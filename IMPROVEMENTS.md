@@ -1,97 +1,429 @@
-# MockPilot Improvements Backlog (Prioritized)
+# MockPilot Improvements Roadmap
 
-## P0 - Immediate (next iterations)
+## Etapa 1 — Redesign estrutural e Full App básico
 
-### 1) Rich Network Inspector
-Goal: when clicking a request row in Network, open a detailed inspector panel similar to DevTools, but with better readability and mock-focused actions.
+> Status: **em andamento pelo Codex**
 
-Proposed scope:
-- Request overview: method, URL, status, duration, resource type, matched rule, applied action.
-- Request headers: full list with search and copy actions.
-- Request payload/body: raw + pretty JSON (when possible).
-- Query params parser: key/value table.
-- Response headers: full list with search and copy actions.
-- Response body preview: raw + pretty JSON + fallback for non-JSON.
-- Timing block: start/end/duration and optional phases (if available).
-- Error block: network error reason/details when request fails.
-- Quick actions: "Create rule from this request", "Replay", "Copy as fetch", "Copy cURL".
+Objetivo: reorganizar o MockPilot para separar melhor o uso rápido no sidepanel do gerenciamento avançado no Full App.
 
-UX direction:
-- Open as side drawer or expandable details under the selected row.
-- Keep keyboard navigation and preserve filter/input focus.
-- Maintain live updates without collapsing the open details panel.
+### Escopo
 
-Technical notes:
-- Expand data capture using CDP events:
-  - `Network.requestWillBeSent` / `requestWillBeSentExtraInfo`
-  - `Network.responseReceived` / `responseReceivedExtraInfo`
-  - `Network.loadingFinished` / `loadingFailed`
-  - `Network.getResponseBody` (on-demand when details open)
-  - optionally `Fetch.requestPaused` request body handling when available
-- Store richer network model per entry (headers, postData, response metadata, timings).
-- Add lightweight memory limits and lazy body loading to avoid performance issues.
+- Reorganização da estrutura de pastas.
+- Criação de uma base visual mais limpa e consistente.
+- Sidepanel compacto, mas ainda operacional.
+- Full App em nova aba da extensão.
+- Collections como agrupamento genérico de rules.
+- Sincronização entre sidepanel, Full App e background.
+- Storage como fonte persistente.
+- Runtime state separado do estado persistido.
 
-Acceptance criteria:
-- Clicking a request always opens details with at least URL/method/status/headers.
-- JSON request/response bodies are prettified when valid JSON.
-- Non-JSON content is still viewable as raw text.
-- Inspector works while new requests continue streaming.
+### Sidepanel
 
-### 2) Rule Presets (Quick Scenarios)
-- Quick template presets for common scenarios: success, 401, 403, 429, 500, timeout, offline.
-- One-click apply for fast QA loops.
+O sidepanel deve permitir:
 
-### 3) Rule Hit Counter + Live State
-- Show `applied N times` per rule.
-- Improve current visual highlight with explicit states: `matching`, `not matching`, `inactive`.
+- Attach / Reattach / Detach.
+- Reload da aba atual.
+- Selecionar Collection ativa.
+- Ativar/desativar Collection ativa.
+- Visualizar rules da Collection ativa.
+- Ativar/desativar rules rapidamente.
+- Criar rule simples.
+- Editar rule simples.
+- Criar rule simples a partir de uma request capturada.
+- Ver logs recentes.
+- Abrir o Full App no contexto correto.
 
-### 4) Rules Actions Layout Cleanup
-- Reorganize action buttons inside each rule card for better scanability and reduced clutter.
-- Define a clear action hierarchy (primary, secondary, destructive).
-- Consider compact overflow for less-used actions on small sidepanel widths.
-- Keep badge and actions visually separated and aligned across cards.
+O sidepanel não deve concentrar:
 
-### 5) Header Actions Consistency
-- Standardize spacing, compact button sizes, and alignment in all card headers.
+- Headers avançados.
+- Diagnóstico completo.
+- Import/export avançado.
+- Cenários complexos.
+- Bulk actions.
+- Configuração pesada de prioridade/conflitos.
 
-## P1 - High value (after P0)
+### Full App
 
-### 6) Extension Full-Page Mode (New Tab)
-- Add an option to open MockPilot in a dedicated extension page/tab (for richer UI).
-- Keep sidepanel as quick-access mode; use full-page for advanced flows.
-- Candidate entrypoints: `chrome.tabs.create({ url: chrome.runtime.getURL('...') })` from sidepanel action.
-- Benefits: more room for inspector, rule management, scenarios, and diagnostics.
+O Full App deve centralizar fluxos avançados:
 
-### 7) Auto-attach for Multi-Branch Testing
-- Add optional auto-attach to the currently active HTTP(S) tab.
-- Useful for environments with many branch URLs (like Panda staging links).
-- Preserve safe behavior when switching tabs/windows (detach previous, attach new target).
-- Show clear status in UI when auto-attach is enabled/disabled.
-- Consider optional host filter (for example only `*.pandavideo.com*`) to avoid attaching on unrelated sites.
+- Dashboard.
+- Rules.
+- Collections.
+- Network.
+- Logs.
+- Import / Export.
+- Diagnostics.
+- Settings.
 
-### 8) One-Rule Mode
-- Optional mode to keep only one rule enabled at a time.
-- Reduces conflicts and improves test predictability.
+### Critérios de aceite
 
-### 9) Persist Network Filters
-- Save current filters (text, exclude terms, method, status, toggles) in storage.
-- Restore filters on extension reopen.
+- Sidepanel não possui mais formulário gigante.
+- Sidepanel permite quick create/edit de rule.
+- Full App abre em nova aba da extensão.
+- Full App permite gerenciamento completo de Collections e Rules.
+- Alterações feitas no Full App refletem no sidepanel.
+- Alterações feitas no sidepanel refletem no Full App.
+- Background continua interceptando mesmo com sidepanel fechado.
+- Defaults seguros são mantidos:
+  - `applyResponseBody: true`
+  - `applyResponseHeaders: false`
 
-### 10) Import/Export Bundle
-- Export/import a bundle of rules (not only one rule JSON).
-- Support feature-based scenario packages.
+---
 
-## P2 - Nice to have
+## Etapa 2 — Polimento visual e usabilidade do Sidepanel
 
-### 11) Attach Diagnostics Panel
-- Add explicit diagnostics card showing attach strategy used (`tabId` vs `targetId`) and latest attach attempts.
+Objetivo: melhorar a experiência diária do sidepanel, deixando a interface mais clara, menos apertada e mais fácil de operar.
 
-### 12) Auto-dismiss Notice Modals
-- For informational-only modals (success/info notices), add optional auto-close timeout.
-- Keep confirm/input modals persistent (no timeout) to avoid accidental dismiss.
-- Allow a small default timeout (for example 2.5s to 4s) with manual close fallback.
-- Ensure timeout is accessible (pause on hover/focus, keep keyboard close support).
+### 2.1 Rules Actions Layout Cleanup
 
-### 13) Optional Host/Project Profiles
-- Save host-specific profiles (example: Panda staging, production-like, local).
-- Quickly switch rule sets and attach preferences by profile.
+Reorganizar as ações dentro dos cards/rows de rule.
+
+Escopo:
+
+- Melhorar scanability das rules.
+- Separar ações primárias, secundárias e destrutivas.
+- Evitar botões espremidos.
+- Usar overflow/menu para ações menos usadas.
+- Manter badges e ações visualmente separados.
+- Alinhar os cards de forma consistente.
+
+Ações sugeridas:
+
+- Primárias:
+  - Edit
+  - Enable/Disable
+- Secundárias:
+  - Duplicate
+  - Advanced
+  - Export
+- Destrutiva:
+  - Delete
+
+### 2.2 Header Actions Consistency
+
+Padronizar os headers de cards, painéis e seções.
+
+Escopo:
+
+- Espaçamento consistente.
+- Botões com tamanho confortável.
+- Alinhamento uniforme.
+- Menos ações competindo na mesma linha.
+- Uso de menus quando houver muitas opções.
+
+### Critérios de aceite
+
+- Nenhum card de rule parece visualmente poluído.
+- Delete não fica próximo demais das ações comuns.
+- Headers seguem um padrão visual único.
+- Botões não ficam espremidos em larguras menores.
+- A interface fica mais coesa entre Rules, Network e Logs.
+
+---
+
+## Etapa 3 — Rule Hit Counter e Live State
+
+Objetivo: deixar claro quais rules estão sendo usadas de verdade durante a navegação/teste.
+
+### Escopo
+
+- Mostrar `applied N times` por rule.
+- Mostrar `last matched`.
+- Melhorar os estados visuais das rules:
+  - `matching`
+  - `not matching`
+  - `inactive`
+  - `error`
+  - `conflict`
+- Destacar rules aplicadas recentemente.
+- Exibir estado tanto no sidepanel quanto no Full App.
+
+### Critérios de aceite
+
+- Cada rule mostra quantas vezes foi aplicada.
+- O usuário consegue identificar rapidamente quais mocks estão ativos e sendo usados.
+- O estado visual não depende apenas de cor.
+- O contador é atualizado sem precisar recarregar a interface.
+
+---
+
+## Etapa 4 — Rule Presets / Quick Scenarios
+
+Objetivo: acelerar a criação de mocks comuns para loops rápidos de QA/dev.
+
+### Presets iniciais
+
+- Success 200.
+- Unauthorized 401.
+- Forbidden 403.
+- Rate limited 429.
+- Server error 500.
+- Timeout.
+- Offline / failed request.
+- Empty list.
+- Empty object.
+
+### Onde aplicar
+
+- Quick create rule no sidepanel.
+- Create rule from request.
+- Advanced editor no Full App.
+
+### Critérios de aceite
+
+- Usuário consegue criar uma rule comum com poucos cliques.
+- Presets geram status/action/body coerentes.
+- Presets não sobrescrevem campos editados sem confirmação.
+- Presets funcionam no sidepanel e no Full App.
+
+---
+
+## Etapa 5 — Persistência de filtros do Network
+
+Objetivo: evitar fricção ao reabrir a extensão ou alternar entre telas.
+
+### Escopo
+
+Persistir filtros como:
+
+- Texto pesquisado.
+- Termos ocultos/excluídos.
+- Method.
+- Status.
+- Resource type.
+- `matched only`.
+- `intercepted only`.
+- `errors only`.
+
+### Critérios de aceite
+
+- Filtros são restaurados ao reabrir o sidepanel.
+- Filtros são restaurados ao abrir o Full App.
+- Atualizações live do Network não removem foco dos inputs.
+- O usuário consegue limpar todos os filtros facilmente.
+
+---
+
+## Etapa 6 — Import/Export Bundle
+
+Objetivo: permitir compartilhamento e backup de conjuntos completos de mocks.
+
+### Escopo
+
+- Exportar uma rule individual.
+- Exportar uma Collection.
+- Exportar todos os dados.
+- Importar bundle.
+- Preview antes de importar.
+- Estratégias de conflito:
+  - Create copies.
+  - Replace existing.
+  - Merge by id.
+
+### Critérios de aceite
+
+- Usuário consegue exportar uma Collection inteira.
+- Usuário consegue importar um bundle sem sobrescrever dados acidentalmente.
+- Import mostra preview antes de aplicar.
+- Conflitos são claramente exibidos.
+
+---
+
+## Etapa 7 — Rich Network Inspector
+
+Objetivo: transformar o Network em um inspector mais útil para debug e criação de mocks.
+
+### Escopo
+
+Ao clicar em uma request, abrir um painel detalhado com:
+
+- Overview da request.
+- Method.
+- URL.
+- Status.
+- Duration.
+- Resource type.
+- Matched rule.
+- Applied action.
+- Query params em tabela.
+- Request headers.
+- Request payload/body.
+- Response headers.
+- Response body preview.
+- Timing.
+- Error details quando houver falha.
+
+### Ações rápidas
+
+- Create rule from this request.
+- Copy as fetch.
+- Copy cURL.
+- Replay.
+
+> Observação: `Replay` pode ficar para uma subetapa própria se aumentar muito a complexidade.
+
+### Critérios de aceite
+
+- Clicar em uma request sempre abre detalhes básicos.
+- Headers são visualizáveis e copiáveis.
+- Query params aparecem em formato legível.
+- JSON válido é exibido formatado.
+- Conteúdo não JSON continua visível como texto bruto.
+- O inspector continua aberto enquanto novas requests chegam.
+- Filtros não perdem foco com atualizações live.
+
+---
+
+## Etapa 8 — Attach Diagnostics Panel
+
+Objetivo: facilitar diagnóstico de problemas de attach, debugger e CDP.
+
+### Escopo
+
+- Mostrar status atual do attach.
+- Mostrar aba atual anexada.
+- Mostrar URL anexada.
+- Mostrar última tentativa de attach.
+- Mostrar último erro de attach.
+- Mostrar estratégia usada:
+  - `tabId`
+  - `targetId`
+- Mostrar status de:
+  - Network enabled.
+  - Fetch enabled.
+  - Runtime listener ativo.
+- Exibir eventos recentes relacionados ao attach.
+
+### Critérios de aceite
+
+- Usuário consegue entender por que a extensão não está interceptando.
+- Erros de attach aparecem de forma clara.
+- Informações de diagnóstico não poluem o sidepanel.
+- Diagnóstico avançado fica no Full App.
+
+---
+
+## Etapa 9 — One-Rule Mode
+
+Objetivo: reduzir conflitos e melhorar previsibilidade durante testes específicos.
+
+### Escopo
+
+- Adicionar modo opcional para manter apenas uma rule ativa por vez.
+- Ao ativar uma rule, desativar automaticamente as outras da mesma Collection.
+- Indicar claramente quando o modo está ativo.
+- Permitir ligar/desligar o modo nas configurações.
+
+### Critérios de aceite
+
+- One-Rule Mode pode ser ativado/desativado.
+- Quando ativo, apenas uma rule fica enabled na Collection atual.
+- A UI informa que outras rules foram desativadas.
+- O comportamento é previsível e reversível.
+
+---
+
+## Etapa 10 — Auto-attach para testes com múltiplas abas/branches
+
+Objetivo: facilitar uso em ambientes com muitas URLs de preview, staging ou localhost.
+
+### Escopo
+
+- Auto-attach opcional na aba HTTP(S) ativa.
+- Detach seguro da aba anterior ao trocar de alvo.
+- Status claro indicando que auto-attach está ativo.
+- Host filter opcional.
+- Lista de hosts permitidos.
+
+Exemplos genéricos de host filter:
+
+- `localhost:*`
+- `*.vercel.app`
+- `*.netlify.app`
+- `*.staging.example.com`
+
+### Critérios de aceite
+
+- Auto-attach é opt-in.
+- Extensão não anexa em sites aleatórios sem configuração clara.
+- Usuário consegue limitar por host.
+- Troca de aba não deixa estado inconsistente.
+- UI mostra claramente qual aba está anexada.
+
+---
+
+## Etapa 11 — Host / Project Profiles
+
+Objetivo: permitir configurações diferentes por contexto de trabalho.
+
+### Escopo
+
+- Criar perfis por host/projeto.
+- Associar Collections a um profile.
+- Salvar preferências de attach por profile.
+- Alternar rapidamente entre profiles.
+- Futuramente permitir import/export por profile.
+
+Exemplos genéricos:
+
+- Localhost.
+- Staging.
+- Preview branches.
+- Production-like.
+- Client project.
+
+### Critérios de aceite
+
+- Usuário consegue criar e alternar profiles.
+- Profiles não acoplam o produto a nenhum domínio específico.
+- Configurações de um profile não vazam para outro.
+- Profiles ajudam a organizar ambientes diferentes.
+
+---
+
+## Etapa 12 — Auto-dismiss Notice Modals
+
+Objetivo: melhorar pequenos feedbacks sem atrapalhar o fluxo.
+
+### Escopo
+
+- Auto-close para notices informativos.
+- Timeout opcional entre 2.5s e 4s.
+- Manter confirmações persistentes.
+- Pausar timeout em hover/focus.
+- Manter suporte a fechamento manual e teclado.
+
+### Critérios de aceite
+
+- Mensagens informativas somem automaticamente.
+- Confirmações destrutivas nunca fecham sozinhas.
+- Usuário ainda consegue fechar manualmente.
+- Comportamento continua acessível por teclado.
+
+---
+
+# Priorização resumida
+
+## Em andamento
+
+1. Redesign estrutural e Full App básico.
+
+## Próximas etapas recomendadas
+
+2. Polimento visual e usabilidade do Sidepanel.
+3. Rule Hit Counter e Live State.
+4. Rule Presets / Quick Scenarios.
+5. Persistência de filtros do Network.
+6. Import/Export Bundle. **(solicitar prompt detalhado)**
+
+## Etapas maiores
+
+7. Rich Network Inspector. **(solicitar prompt detalhado)**
+8. Attach Diagnostics Panel. **(solicitar prompt detalhado)**
+9. One-Rule Mode. **(solicitar prompt detalhado)**
+10. Auto-attach. **(solicitar prompt detalhado)**
+11. Host / Project Profiles. **(solicitar prompt detalhado)**
+
+## Polimento final
+
+12. Auto-dismiss Notice Modals.

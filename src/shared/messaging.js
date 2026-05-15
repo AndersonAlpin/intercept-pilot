@@ -1,0 +1,27 @@
+export const MSG = {
+  STATE_GET: 'state:get',
+  SETTINGS_UPDATE: 'settings:update',
+  APP_OPEN_FULL: 'app:openFullApp',
+
+  DEBUG_ATTACH: 'debugger:attachActiveTab',
+  DEBUG_DETACH: 'debugger:detach',
+  TAB_RELOAD: 'tab:reload',
+
+  COLLECTIONS_CREATE: 'collections:create',
+  COLLECTIONS_UPDATE: 'collections:update',
+  COLLECTIONS_DELETE: 'collections:delete',
+
+  RULES_CREATE: 'rules:create',
+  RULES_UPDATE: 'rules:update',
+  RULES_DELETE: 'rules:delete',
+  RULES_DUPLICATE: 'rules:duplicate',
+  RULES_TOGGLE: 'rules:toggle',
+
+  NETWORK_CLEAR: 'network:clear',
+  LOGS_CLEAR: 'logs:clear',
+  RULE_CREATE_FROM_REQUEST: 'rule:createFromRequest'
+}
+
+export async function sendMessage(message) {
+  return chrome.runtime.sendMessage(message)
+}

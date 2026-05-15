@@ -1,0 +1,433 @@
+import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
+import { ensureState, getState, saveCollection, deleteCollection, saveRule, deleteRule, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
+import { validateRule } from '../shared/validators.js'
+import { clone, uid } from '../shared/utils.js'
+import { makeRule } from '../shared/models.js'
+import { attachToTab, detachCurrentTab, isAttachedSource, sendAttachedCommand } from './debugger.js'
+import { runtimeState } from './runtime-state.js'
+import { pushLog } from './logger.js'
+import { detectSimpleConflicts, findMatchingRule } from './rule-engine.js'
+
+function broadcast(message) {
+  chrome.runtime.sendMessage(message).catch(() => {})
+}
+
+function encodeBody(body) {
+  return btoa(unescape(encodeURIComponent(String(body || ''))))
+}
+
+function parseHeaderLines(raw = '') {
+  return String(raw)
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const idx = line.indexOf(':')
+      if (idx === -1) return null
+      return { name: line.slice(0, idx).trim(), value: line.slice(idx + 1).trim() }
+    })
+    .filter(Boolean)
+}
+
+function normalizeProtocolHeaders(inputHeaders) {
+  if (!Array.isArray(inputHeaders)) return []
+  return inputHeaders.filter(h => h && h.name).map(h => ({ name: String(h.name), value: String(h.value ?? '') }))
+}
+
+function getEntryKey(params) {
+  return params.networkId || params.requestId
+}
+
+function rebuildNetworkIndex() {
+  runtimeState.networkIndex.clear()
+  runtimeState.networkEntries.forEach((entry, index) => runtimeState.networkIndex.set(entry.id, index))
+}
+
+function upsertNetworkEntry(key, patch, max = 300) {
+  const index = runtimeState.networkIndex.get(key)
+  if (index == null) {
+    const entry = {
+      id: key,
+      requestId: patch.requestId || key,
+      networkId: patch.networkId || key,
+      url: '',
+      method: '',
+      status: null,
+      statusText: '',
+      resourceType: '',
+      startedAt: Date.now(),
+      endedAt: null,
+      durationMs: null,
+      matchedRuleId: null,
+      matchedRuleName: null,
+      appliedAction: 'passThrough',
+      intercepted: false,
+      responseHeaders: [],
+      responseMimeType: '',
+      errorText: '',
+      ...patch
+    }
+    runtimeState.networkEntries.unshift(entry)
+    if (runtimeState.networkEntries.length > max) runtimeState.networkEntries = runtimeState.networkEntries.slice(0, max)
+    rebuildNetworkIndex()
+    return entry
+  }
+
+  const current = runtimeState.networkEntries[index]
+  const next = { ...current, ...patch }
+  if (next.startedAt && next.endedAt) next.durationMs = Math.max(0, next.endedAt - next.startedAt)
+  runtimeState.networkEntries[index] = next
+  return next
+}
+
+function publishNetwork() {
+  broadcast({ type: 'state:network', networkEntries: runtimeState.networkEntries.slice(0, 200) })
+}
+
+async function getActiveTab() {
+  const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+  return tabs[0] || null
+}
+
+async function getFullState() {
+  const state = await getState()
+  const activeTab = await getActiveTab()
+
+  const conflicts = detectSimpleConflicts(state.rules)
+  const rules = state.rules.map(rule => ({
+    ...rule,
+    diagnostics: {
+      ...(rule.diagnostics || {}),
+      conflictIds: conflicts.get(rule.id) || []
+    }
+  }))
+
+  return {
+    collections: state.collections,
+    rules,
+    logs: state.logs,
+    settings: state.settings || DEFAULT_SETTINGS,
+    networkEntries: runtimeState.networkEntries.slice(0, 200),
+    attachedTabId: runtimeState.attachedTabId,
+    activeTab: activeTab ? { id: activeTab.id, url: activeTab.url || '', title: activeTab.title || '' } : null
+  }
+}
+
+async function applyRule(params, rule) {
+  const action = rule.action || {}
+  const actionType = action.type || 'mockResponse'
+
+  const requestKey = getEntryKey(params)
+  upsertNetworkEntry(requestKey, {
+    id: requestKey,
+    requestId: params.requestId,
+    networkId: params.networkId,
+    url: params.request.url,
+    method: params.request.method,
+    resourceType: params.resourceType,
+    matchedRuleId: rule.id,
+    matchedRuleName: rule.name,
+    appliedAction: actionType,
+    intercepted: actionType !== 'passThrough'
+  })
+  publishNetwork()
+
+  if (actionType === 'delayOnly' && Number(action.delayMs || 0) > 0) {
+    await new Promise(resolve => setTimeout(resolve, Number(action.delayMs)))
+  }
+
+  if (actionType === 'failRequest') {
+    await sendAttachedCommand('Fetch.failRequest', {
+      requestId: params.requestId,
+      errorReason: String(action.failReason || 'Failed')
+    })
+    return
+  }
+
+  if (actionType === 'passThrough') {
+    await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
+    return
+  }
+
+  const applyResponseHeaders = action.applyResponseHeaders === true
+  const applyResponseBody = action.applyResponseBody !== false
+
+  if (!applyResponseBody) {
+    await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
+    return
+  }
+
+  const headers = applyResponseHeaders ? parseHeaderLines(action.responseHeaders || '') : []
+  const contentType = action.contentType || 'application/json'
+  if (applyResponseHeaders && !headers.some(h => h.name.toLowerCase() === 'content-type')) {
+    headers.push({ name: 'content-type', value: contentType })
+  }
+
+  await sendAttachedCommand('Fetch.fulfillRequest', {
+    requestId: params.requestId,
+    responseCode: Number(action.statusCode || 200),
+    responsePhrase: String(action.statusText || 'OK'),
+    responseHeaders: applyResponseHeaders ? headers : normalizeProtocolHeaders(params.responseHeaders),
+    body: encodeBody(action.responseBody || '{\n  "ok": true\n}')
+  })
+}
+
+async function handleRequestPaused(source, params) {
+  if (!isAttachedSource(source)) return
+
+  if (params.responseStatusCode) {
+    await sendAttachedCommand('Fetch.continueResponse', { requestId: params.requestId }).catch(async () => {
+      await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId }).catch(() => {})
+    })
+    return
+  }
+
+  const state = await getState()
+  const rule = findMatchingRule(state.rules, state.collections, params.request.url, params.request.method, params.resourceType)
+
+  if (!rule) {
+    upsertNetworkEntry(getEntryKey(params), {
+      requestId: params.requestId,
+      networkId: params.networkId,
+      url: params.request.url,
+      method: params.request.method,
+      resourceType: params.resourceType,
+      appliedAction: 'passThrough',
+      intercepted: false
+    })
+    publishNetwork()
+    await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
+    return
+  }
+
+  runtimeState.requestRuleMap.set(getEntryKey(params), rule)
+  rule.diagnostics = {
+    ...(rule.diagnostics || {}),
+    matchCount: Number(rule.diagnostics?.matchCount || 0) + 1,
+    lastMatchedAt: new Date().toISOString()
+  }
+  await saveRule(rule)
+  await applyRule(params, rule)
+}
+
+function handleNetworkRequestWillBeSent(source, params) {
+  if (!isAttachedSource(source)) return
+  upsertNetworkEntry(params.requestId, {
+    requestId: params.requestId,
+    networkId: params.requestId,
+    url: params.request.url,
+    method: params.request.method,
+    resourceType: params.type,
+    startedAt: Date.now()
+  })
+  publishNetwork()
+}
+
+function handleNetworkResponseReceived(source, params) {
+  if (!isAttachedSource(source)) return
+  const key = params.requestId
+  const existingRule = runtimeState.requestRuleMap.get(key)
+  upsertNetworkEntry(key, {
+    status: params.response.status,
+    statusText: params.response.statusText || '',
+    responseHeaders: Object.entries(params.response.headers || {}).map(([name, value]) => ({ name, value: String(value) })),
+    responseMimeType: params.response.mimeType || '',
+    resourceType: params.type,
+    matchedRuleId: existingRule?.id || null,
+    matchedRuleName: existingRule?.name || null,
+    appliedAction: existingRule?.action?.type || 'passThrough'
+  })
+  publishNetwork()
+}
+
+function handleLoadingFinished(source, params) {
+  if (!isAttachedSource(source)) return
+  upsertNetworkEntry(params.requestId, { endedAt: Date.now() })
+  publishNetwork()
+}
+
+function handleLoadingFailed(source, params) {
+  if (!isAttachedSource(source)) return
+  upsertNetworkEntry(params.requestId, { endedAt: Date.now(), status: 0, errorText: params.errorText || 'Failed' })
+  publishNetwork()
+}
+
+async function clearNetworkEntries() {
+  runtimeState.networkEntries = []
+  runtimeState.networkIndex.clear()
+  publishNetwork()
+  return []
+}
+
+chrome.runtime.onInstalled.addListener(async () => {
+  await ensureState()
+  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+})
+
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  const tab = await chrome.tabs.get(tabId).catch(() => null)
+  if (tab) runtimeState.tabMeta.set(tabId, { url: tab.url || '', title: tab.title || '' })
+})
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url || changeInfo.title) {
+    runtimeState.tabMeta.set(tabId, { url: changeInfo.url || tab.url || '', title: changeInfo.title || tab.title || '' })
+  }
+})
+
+chrome.debugger.onEvent.addListener(async (source, method, params) => {
+  try {
+    if (method === 'Fetch.requestPaused') return handleRequestPaused(source, params)
+    if (method === 'Network.requestWillBeSent') return handleNetworkRequestWillBeSent(source, params)
+    if (method === 'Network.responseReceived') return handleNetworkResponseReceived(source, params)
+    if (method === 'Network.loadingFinished') return handleLoadingFinished(source, params)
+    if (method === 'Network.loadingFailed') return handleLoadingFailed(source, params)
+  } catch (error) {
+    await pushLog({ level: 'error', scope: 'debugger', message: error?.message || String(error), url: params?.request?.url || '' })
+  }
+})
+
+chrome.debugger.onDetach.addListener(async (source, reason) => {
+  if ((source.tabId && source.tabId === runtimeState.attachedTabId) || (source.targetId && runtimeState.attachedDebuggee?.targetId === source.targetId)) {
+    runtimeState.attachedTabId = null
+    runtimeState.attachedDebuggee = null
+    runtimeState.requestRuleMap.clear()
+    await pushLog({ level: 'warn', scope: 'debugger', message: `Detached: ${reason}` })
+    broadcast({ type: 'state:attached', attachedTabId: null })
+  }
+})
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  ;(async () => {
+    const type = message?.type
+    switch (type) {
+      case 'state:get':
+        sendResponse(await getFullState())
+        return
+      case 'app:openFullApp':
+        sendResponse({ ok: true, tabId: (await chrome.tabs.create({ url: chrome.runtime.getURL('src/fullapp/fullapp.html') }))?.id || null })
+        return
+      case 'settings:update':
+        sendResponse({ settings: await updateSettings(message.payload || {}) })
+        return
+      case 'debugger:attachActiveTab': {
+        const senderTabId = sender?.tab?.id
+        const tabId = senderTabId || (await getActiveTab())?.id
+        if (!tabId) throw new Error('No active tab found')
+        const result = await attachToTab(tabId)
+        await pushLog({ level: 'info', scope: 'debugger', message: `Attached to tab ${tabId} via ${result.attachedVia || 'tabId'}` })
+        broadcast({ type: 'state:attached', attachedTabId: tabId })
+        sendResponse({ attachedTabId: tabId })
+        return
+      }
+      case 'debugger:detach':
+        await detachCurrentTab()
+        broadcast({ type: 'state:attached', attachedTabId: null })
+        sendResponse({ attachedTabId: null })
+        return
+      case 'tab:reload': {
+        const tabId = runtimeState.attachedTabId || sender?.tab?.id
+        if (!tabId) throw new Error('No tab available to reload')
+        await chrome.tabs.reload(tabId)
+        sendResponse({ ok: true, reloadedTabId: tabId })
+        return
+      }
+      case 'collections:create': {
+        sendResponse({ collections: await saveCollection(message.payload || {}) })
+        return
+      }
+      case 'collections:update': {
+        sendResponse({ collections: await saveCollection(message.payload || {}) })
+        return
+      }
+      case 'collections:delete': {
+        sendResponse({ collections: await deleteCollection(message.collectionId) })
+        return
+      }
+      case 'rules:create': {
+        const rule = makeRule(message.payload || {}, (await getState()).settings.activeCollectionId)
+        const errors = validateRule(rule)
+        if (errors.length) throw new Error(errors[0])
+        sendResponse({ rules: await saveRule(rule) })
+        return
+      }
+      case 'rules:update': {
+        const rule = makeRule(message.payload || {}, (await getState()).settings.activeCollectionId)
+        const errors = validateRule(rule)
+        if (errors.length) throw new Error(errors[0])
+        sendResponse({ rules: await saveRule(rule) })
+        return
+      }
+      case 'rules:toggle':
+        sendResponse({ rules: await updateRuleEnabled(message.ruleId, message.enabled) })
+        return
+      case 'rules:delete':
+        sendResponse({ rules: await deleteRule(message.ruleId) })
+        return
+      case 'rules:duplicate': {
+        const state = await getState()
+        const current = state.rules.find(rule => rule.id === message.ruleId)
+        if (!current) {
+          sendResponse({ rules: state.rules })
+          return
+        }
+        const duplicated = clone(current)
+        duplicated.id = uid('rule')
+        duplicated.name = `${duplicated.name} copy`
+        sendResponse({ rules: await saveRule(duplicated) })
+        return
+      }
+      case 'rule:createFromRequest': {
+        const entry = runtimeState.networkEntries.find(item => item.id === message.entryId)
+        if (!entry) throw new Error('Network entry not found')
+
+        let responseBody = ''
+        try {
+          const bodyResult = await sendAttachedCommand('Network.getResponseBody', { requestId: entry.networkId || entry.requestId })
+          responseBody = bodyResult?.base64Encoded ? atob(bodyResult.body || '') : (bodyResult?.body || '')
+        } catch {
+          responseBody = '{\n  "ok": true\n}'
+        }
+
+        const state = await getState()
+        const rule = makeRule({
+          name: `${entry.method} ${new URL(entry.url).pathname}`,
+          collectionId: state.settings.activeCollectionId,
+          match: {
+            urlPattern: new URL(entry.url).pathname,
+            matchType: 'contains',
+            method: entry.method || 'ANY',
+            resourceType: 'ANY'
+          },
+          action: {
+            type: 'mockResponse',
+            statusCode: Number(entry.status || 200),
+            statusText: entry.statusText || 'OK',
+            contentType: entry.responseMimeType || 'application/json',
+            applyResponseBody: true,
+            applyResponseHeaders: false,
+            responseBody: responseBody || '{\n  "ok": true\n}',
+            responseHeaders: ''
+          }
+        }, state.settings.activeCollectionId)
+
+        sendResponse({ rules: await saveRule(rule), createdRule: rule })
+        return
+      }
+      case 'network:clear':
+        sendResponse({ networkEntries: await clearNetworkEntries() })
+        return
+      case 'logs:clear':
+        await setLogs([])
+        sendResponse({ logs: [] })
+        return
+      default:
+        sendResponse({ ok: true })
+    }
+  })().catch(async error => {
+    await pushLog({ level: 'error', scope: 'runtime', message: `Message "${message?.type || 'unknown'}" failed: ${error?.message || String(error)}`, url: sender?.tab?.url || '' })
+    sendResponse({ error: error?.message || String(error) })
+  })
+
+  return true
+})

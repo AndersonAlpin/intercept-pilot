@@ -1,34 +1,37 @@
-# MockPilot MVP
+# MockPilot
 
-MockPilot is a Chrome extension MVP for mocking HTTP responses from a side panel.
+MockPilot is a Chrome/Edge MV3 extension to intercept HTTP requests and mock responses for frontend testing.
 
-## Included in this MVP
+## Project structure
 
-- Manifest V3 extension
-- Side panel UI
-- Folder and rule management
-- Rule toggles and folder toggles
-- Network request list for the attached tab
-- Create rule from a captured request
-- Mock response with custom status, status text, body, headers and content-type
-- Fail request with a configurable CDP fail reason
-- Delay before continuing a request
-- Basic logs
+- `src/background/*`: debugger runtime, rule engine, logger, service worker entrypoint.
+- `src/shared/*`: constants, models, storage, messaging, validators, utils.
+- `src/sidepanel/*`: compact operational UI.
+- `src/fullapp/*`: full management UI in dedicated extension tab.
 
-## How to load
+## Load unpacked
 
-1. Open `chrome://extensions`
-2. Enable **Developer mode**
-3. Click **Load unpacked**
-4. Select this `MockPilot` folder
-5. Click the extension icon and open the side panel
-6. Press **Attach** in the extension UI
-7. Reload the page you want to inspect
+1. Open `edge://extensions` or `chrome://extensions`.
+2. Enable Developer mode.
+3. Click **Load unpacked** and select this folder.
+
+## How to use
+
+### Sidepanel (compact)
+- Attach/Reattach/Detach/Reload.
+- Select active collection and enable/disable it.
+- Quick rule create/edit and quick toggles.
+- Quick network and logs.
+- Open Full App for advanced editing.
+
+### Full App (advanced)
+- Collections management.
+- Advanced rule editor (headers, resource type, priority, diagnostics state).
+- Network table and create rule from request.
+- Logs, diagnostics, import/export and settings.
 
 ## Notes
 
-- This MVP uses `chrome.debugger` and DevTools Protocol `Fetch`/`Network`
-- Some browser/internal requests may not be ideal candidates for mocking
-- Request body editing is not implemented yet
-- Import/export is not implemented yet
-- Logs and network entries are intentionally capped to avoid unbounded growth
+- Storage source of truth: `chrome.storage.local`.
+- Default safety: `applyResponseBody = true`, `applyResponseHeaders = false`.
+- Background keeps interception running even when sidepanel/full app is closed.
