@@ -166,15 +166,17 @@ function closeModal(result = null) {
 function renderModal() {
   if (!appState.modal.open) return ''
   const isInput = appState.modal.mode === 'json-input'
+  const isTextInput = appState.modal.mode === 'text-input'
   const isConfirm = appState.modal.mode === 'confirm'
   return `
     <div class="modal-backdrop">
       <div class="modal">
         <h3>${escapeHtml(appState.modal.title)}</h3>
         <p>${escapeHtml(appState.modal.message)}</p>
+        ${isTextInput ? `<input class="input modal-input" id="modal-text-input" value="${escapeHtml(appState.modal.value)}" />` : ''}
         ${isInput ? `<textarea class="textarea modal-textarea" id="modal-json-input">${escapeHtml(appState.modal.value)}</textarea>` : ''}
         <div class="modal-actions">
-          ${(isInput || isConfirm) ? `<button class="btn ghost" id="modal-cancel-btn">${escapeHtml(appState.modal.cancelText)}</button>` : ''}
+          ${(isInput || isConfirm || isTextInput) ? `<button class="btn ghost" id="modal-cancel-btn">${escapeHtml(appState.modal.cancelText)}</button>` : ''}
           <button class="btn primary" id="modal-confirm-btn">${escapeHtml(appState.modal.confirmText)}</button>
         </div>
       </div>
@@ -362,7 +364,7 @@ function renderRulesTab() {
       <div class="card">
         <div class="row space-between">
           <h2>Folders</h2>
-          <button class="btn compact-btn" id="create-folder-btn">New folder</button>
+          <button class="btn primary compact-btn" id="create-folder-btn">New folder</button>
         </div>
         <div class="list">
           ${appState.folders.length ? appState.folders.map(folder => `
@@ -688,10 +690,20 @@ function bindEvents() {
   })
 
   $('#create-folder-btn')?.addEventListener('click', async () => {
-    const name = prompt('Folder name')
+    const name = await openModal({
+      mode: 'text-input',
+      title: 'Create folder',
+      message: 'Folder name',
+      value: '',
+      confirmText: 'Create',
+      cancelText: 'Cancel'
+    })
     if (!name) return
     const result = await sendMessage({ type: 'folders:create', payload: { name } })
-    if (result.error) return alert(result.error)
+    if (result.error) {
+      await openModal({ mode: 'info', title: 'Error', message: result.error, confirmText: 'OK' })
+      return
+    }
     await refreshState()
   })
 
@@ -708,7 +720,14 @@ function bindEvents() {
   document.querySelectorAll('[data-folder-rename]').forEach(button => {
     button.addEventListener('click', async () => {
       const folder = appState.folders.find(item => item.id === button.dataset.folderRename)
-      const name = prompt('New folder name', folder?.name || '')
+      const name = await openModal({
+        mode: 'text-input',
+        title: 'Rename folder',
+        message: 'New folder name',
+        value: folder?.name || '',
+        confirmText: 'Rename',
+        cancelText: 'Cancel'
+      })
       if (!name) return
       await sendMessage({ type: 'folders:update', payload: { id: folder.id, name } })
       await refreshState()
@@ -941,6 +960,10 @@ function bindEvents() {
   $('#modal-confirm-btn')?.addEventListener('click', () => {
     if (appState.modal.mode === 'json-input') {
       closeModal($('#modal-json-input')?.value ?? '')
+      return
+    }
+    if (appState.modal.mode === 'text-input') {
+      closeModal($('#modal-text-input')?.value ?? '')
       return
     }
     closeModal(true)

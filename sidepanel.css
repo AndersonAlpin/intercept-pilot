@@ -496,6 +496,9 @@ pre.preview {
   min-height: 220px;
   margin-bottom: 10px;
 }
+.modal-input {
+  margin-bottom: 10px;
+}
 
 .modal-actions {
   display: flex;
