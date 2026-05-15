@@ -895,7 +895,7 @@ function makeDefaultRule(payload) {
       statusText: payload?.action?.statusText || 'OK',
       contentType: payload?.action?.contentType || 'application/json',
       responseHeaders: Array.isArray(payload?.action?.responseHeaders) ? payload.action.responseHeaders : [],
-      applyResponseHeaders: payload?.action?.applyResponseHeaders !== false,
+      applyResponseHeaders: payload?.action?.applyResponseHeaders === true,
       applyResponseBody: payload?.action?.applyResponseBody !== false,
       responseBody: typeof payload?.action?.responseBody === 'string'
         ? payload.action.responseBody
@@ -994,6 +994,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse(await detachCurrentTab())
         return
       }
+      case 'tab:reload': {
+        const targetTabId = state.attachedTabId || sender?.tab?.id
+        if (!targetTabId) throw new Error('No tab available to reload')
+        await chrome.tabs.reload(targetTabId)
+        sendResponse({ ok: true, reloadedTabId: targetTabId })
+        return
+      }
       case 'folders:create': {
         sendResponse({ folders: await createFolder(message.payload) })
         return
@@ -1035,7 +1042,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!entry) throw new Error('Network entry not found')
         let responseBody = ''
         try {
-          const bodyResult = await sendAttachedCommand('Network.getResponseBody', { requestId: entry.requestId })
+          const responseRequestId = entry.networkId || entry.requestId
+          const bodyResult = await sendAttachedCommand('Network.getResponseBody', { requestId: responseRequestId })
           responseBody = decodeProtocolBody(bodyResult)
         } catch {
           responseBody = ''
@@ -1059,7 +1067,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             contentType: contentTypeHeader || entry.responseMimeType || 'application/json',
             responseBody: responseBody || JSON.stringify({ mocked: true, source: entry.url }, null, 2),
             responseHeaders,
-            applyResponseHeaders: true,
+            applyResponseHeaders: false,
             applyResponseBody: true,
             delayMs: 0,
             failReason: 'Failed'

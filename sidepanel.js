@@ -74,7 +74,7 @@ function defaultRuleForm(seed = {}) {
       statusCode: seed.action?.statusCode || 200,
       statusText: seed.action?.statusText || 'OK',
       contentType: seed.action?.contentType || 'application/json',
-      applyResponseHeaders: seed.action?.applyResponseHeaders !== false,
+      applyResponseHeaders: seed.action?.applyResponseHeaders === true,
       applyResponseBody: seed.action?.applyResponseBody !== false,
       responseBody: typeof seed.action?.responseBody === 'string'
         ? seed.action.responseBody
@@ -278,7 +278,7 @@ function readRuleFormFromDom() {
       statusCode: Number($('#rule-status-code')?.value || 200),
       statusText: $('#rule-status-text')?.value || 'OK',
       contentType: $('#rule-content-type')?.value || 'application/json',
-      applyResponseHeaders: $('#rule-apply-response-headers')?.checked ?? true,
+      applyResponseHeaders: $('#rule-apply-response-headers')?.checked ?? false,
       applyResponseBody: $('#rule-apply-response-body')?.checked ?? true,
       responseBody: $('#rule-response-body')?.value || '{\n  "ok": true\n}',
       responseHeadersText: $('#rule-response-headers')?.value || '',
@@ -331,10 +331,13 @@ function renderHeader() {
           <h1>MockPilot</h1>
           <p class="attach-status ${statusClass}">${statusText}</p>
         </div>
-        <div class="header-actions">
-          <button class="btn ${attached ? '' : 'primary'}" id="attach-btn" ${appState.attachBusy ? 'disabled' : ''}>${appState.attachBusy ? 'Attaching...' : attached ? 'Reattach' : 'Attach'}</button>
+        <div class="header-actions compact">
+          <button class="btn ${attached ? 'warning' : 'primary'}" id="attach-btn" ${appState.attachBusy ? 'disabled' : ''}>${appState.attachBusy ? 'Attaching...' : attached ? 'Reattach' : 'Attach'}</button>
           <button class="btn ghost" id="detach-btn" ${(!attached || appState.attachBusy) ? 'disabled' : ''}>Detach</button>
         </div>
+      </div>
+      <div class="header-secondary">
+        <button class="link-btn" id="reload-tab-btn" ${(!attached || appState.attachBusy) ? 'disabled' : ''}>Reload current page to apply rules</button>
       </div>
       <div class="tabs">
         ${['rules', 'network', 'logs'].map(tab => `
@@ -349,6 +352,7 @@ function renderHeader() {
 
 function renderRulesTab() {
   const form = appState.form || defaultRuleForm()
+  const matchedRuleIds = new Set(appState.networkEntries.map(entry => entry.matchedRuleId).filter(Boolean))
   const isEditing = Boolean(form.id)
   const modeClass = isEditing ? 'edit' : 'create'
   const modeLabel = isEditing ? 'Editing existing rule' : 'Creating new rule'
@@ -490,7 +494,7 @@ function renderRulesTab() {
         </div>
         <div class="list">
           ${appState.rules.length ? appState.rules.map(rule => `
-            <div class="item">
+            <div class="item ${matchedRuleIds.has(rule.id) ? 'rule-live' : ''}" data-rule-card-id="${rule.id}">
               <div class="item-title">
                 <div>
                   <strong>${escapeHtml(rule.name)}</strong>
@@ -600,6 +604,16 @@ function bindCreateRuleFromRequestEvents() {
   })
 }
 
+function updateRuleLiveIndicators() {
+  if (appState.currentTab !== 'rules') return
+  const matchedRuleIds = new Set(appState.networkEntries.map(entry => entry.matchedRuleId).filter(Boolean))
+  document.querySelectorAll('[data-rule-card-id]').forEach(card => {
+    const ruleId = card.dataset.ruleCardId
+    if (matchedRuleIds.has(ruleId)) card.classList.add('rule-live')
+    else card.classList.remove('rule-live')
+  })
+}
+
 function renderLogsTab() {
   return `
     <section class="content">
@@ -652,6 +666,15 @@ function bindEvents() {
       alert(result.error)
     }
     await refreshState()
+  })
+
+  $('#reload-tab-btn')?.addEventListener('click', async () => {
+    if (appState.attachBusy) return
+    const result = await sendMessage({ type: 'tab:reload' })
+    if (result.error) {
+      appState.currentTab = 'logs'
+      render()
+    }
   })
 
   $('#detach-btn')?.addEventListener('click', async () => {
@@ -725,7 +748,14 @@ function bindEvents() {
 
   document.querySelectorAll('[data-rule-delete]').forEach(button => {
     button.addEventListener('click', async () => {
-      if (!confirm('Delete this rule?')) return
+      const shouldDelete = await openModal({
+        mode: 'confirm',
+        title: 'Delete rule',
+        message: 'Delete this rule?',
+        confirmText: 'Delete',
+        cancelText: 'Cancel'
+      })
+      if (!shouldDelete) return
       await sendMessage({ type: 'rules:delete', ruleId: button.dataset.ruleDelete })
       await refreshState()
     })
@@ -970,6 +1000,7 @@ chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:network') {
     appState.networkEntries = message.networkEntries
     if (appState.currentTab === 'network') updateNetworkResultsOnly()
+    if (appState.currentTab === 'rules') updateRuleLiveIndicators()
   }
 
   if (message?.type === 'state:attached') {
