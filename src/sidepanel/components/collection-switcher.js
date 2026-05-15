@@ -1,4 +1,5 @@
 import { escapeHtml } from '../../shared/utils.js'
+import { t } from '../../shared/i18n.js'
 
 export function renderCollectionSwitcher(state) {
   const activeId = state.settings?.activeCollectionId || state.collections[0]?.id || ''
@@ -8,12 +9,12 @@ export function renderCollectionSwitcher(state) {
   return `
     <div class="card compact-card">
       <div class="row space-between">
-        <h2>Collection</h2>
-        <button class="btn" id="manage-collections-btn">Manage</button>
+          <h2>${t('collections.title')}</h2>
+          <button class="btn" id="manage-collections-btn">${t('common.manage')}</button>
       </div>
       <div class="column">
         <select class="select" id="active-collection-select">${options}</select>
-        <label class="switch"><input type="checkbox" id="active-collection-enabled" ${current?.enabled ? 'checked' : ''}/> enabled</label>
+        <label class="switch"><input type="checkbox" id="active-collection-enabled" ${current?.enabled ? 'checked' : ''}/> ${t('common.enabled')}</label>
       </div>
     </div>
   `

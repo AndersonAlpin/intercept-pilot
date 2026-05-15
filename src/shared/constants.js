@@ -13,7 +13,8 @@ export const DEFAULT_SETTINGS = {
   maxNetworkEntries: 300,
   maxLogs: 300,
   autoReloadAfterRuleChange: false,
-  theme: 'dark'
+  theme: 'dark',
+  language: 'en'
 }
 
 export const METHODS = ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']

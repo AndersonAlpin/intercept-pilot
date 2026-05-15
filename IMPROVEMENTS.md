@@ -111,6 +111,50 @@ Escopo:
 - Menos ações competindo na mesma linha.
 - Uso de menus quando houver muitas opções.
 
+### 2.5 i18n / Localização
+
+Objetivo: preparar o MockPilot para múltiplos idiomas sem espalhar textos hardcoded pela UI.
+
+Idiomas iniciais:
+
+- English
+- Português
+- Español
+
+Idioma padrão recomendado:
+
+- English
+
+Fallback:
+
+- English
+
+Escopo:
+
+- Criar módulo central de i18n.
+- Remover textos hardcoded do Sidepanel e Full App.
+- Adicionar seletor de idioma em Settings.
+- Persistir idioma escolhido em `chrome.storage.local`.
+- Aplicar idioma no Sidepanel e Full App.
+- Usar fallback quando uma chave não existir.
+- Manter labels, botões, placeholders, empty states, mensagens de erro e badges traduzíveis.
+
+Fora de escopo nesta etapa:
+
+- Tradução automática.
+- Pluralização avançada.
+- Formatação complexa de datas/números.
+- Tradução de conteúdo importado/exportado pelo usuário.
+
+Critérios de aceite:
+
+- Usuário consegue alternar entre English, Português e Español.
+- Sidepanel atualiza os textos conforme o idioma selecionado.
+- Full App atualiza os textos conforme o idioma selecionado.
+- Idioma escolhido persiste ao fechar/reabrir a extensão.
+- Textos novos passam a usar o módulo de i18n.
+- Quando uma chave está ausente, o app usa fallback em inglês.
+
 ### Critérios de aceite
 
 - Nenhum card de rule parece visualmente poluído.

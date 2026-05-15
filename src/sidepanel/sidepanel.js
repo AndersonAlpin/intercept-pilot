@@ -1,5 +1,6 @@
 import { MSG, sendMessage } from '../shared/messaging.js'
 import { makeRule } from '../shared/models.js'
+import { setLocale, t } from '../shared/i18n.js'
 import { renderConnectionHeader } from './components/connection-header.js'
 import { renderCollectionSwitcher } from './components/collection-switcher.js'
 import { renderTabs } from './components/tabs.js'
@@ -111,6 +112,7 @@ async function refreshState() {
   const next = await sendMessage({ type: MSG.STATE_GET })
   if (next?.error) return
   Object.assign(appState, next)
+  setLocale(appState.settings?.language || 'en')
   if (!appState.settings?.activeCollectionId) {
     appState.settings = { ...(appState.settings || {}), activeCollectionId: appState.collections[0]?.id || '' }
   }
@@ -147,7 +149,7 @@ async function saveQuickRule(openAdvanced = false) {
   const type = payload.id ? MSG.RULES_UPDATE : MSG.RULES_CREATE
   const result = await sendMessage({ type, payload })
   if (result?.error) {
-    alert(result.error)
+    alert(result.error || t('rules.saveError'))
     return
   }
   appState.quickRuleEditorOpen = false
@@ -269,7 +271,7 @@ function bindEvents() {
   document.querySelectorAll('[data-create-from-request]').forEach(button => {
     button.addEventListener('click', async () => {
       const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.createFromRequest })
-      if (result?.error) return alert(result.error)
+      if (result?.error) return alert(result.error || t('rules.createFromRequestError'))
       appState.currentTab = 'rules'
       if (result.createdRule) {
         appState.quickRuleEditorOpen = true
@@ -305,6 +307,13 @@ chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:attached') {
     appState.attachedTabId = message.attachedTabId
     render()
+  }
+})
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return
+  if (changes.settings || changes.collections || changes.rules) {
+    refreshState()
   }
 })
 

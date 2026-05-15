@@ -1,13 +1,15 @@
+import { t } from '../../shared/i18n.js'
+
 export function renderSidebar(currentPage) {
   const items = [
-    ['dashboard', 'Dashboard'],
-    ['rules', 'Rules'],
-    ['collections', 'Collections'],
-    ['network', 'Network'],
-    ['logs', 'Logs'],
-    ['import-export', 'Import / Export'],
-    ['diagnostics', 'Diagnostics'],
-    ['settings', 'Settings']
+    ['dashboard', t('navigation.dashboard')],
+    ['rules', t('navigation.rules')],
+    ['collections', t('navigation.collections')],
+    ['network', t('navigation.network')],
+    ['logs', t('navigation.logs')],
+    ['import-export', t('navigation.importExport')],
+    ['diagnostics', t('navigation.diagnostics')],
+    ['settings', t('navigation.settings')]
   ]
 
   return `

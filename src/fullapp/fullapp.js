@@ -1,6 +1,7 @@
 import { MSG, sendMessage } from '../shared/messaging.js'
 import { clone } from '../shared/utils.js'
 import { makeCollection, makeRule } from '../shared/models.js'
+import { setLocale, t } from '../shared/i18n.js'
 import { renderAppShell } from './components/app-shell.js'
 import { renderSidebar } from './components/sidebar.js'
 import { renderTopbar } from './components/topbar.js'
@@ -49,6 +50,7 @@ async function refreshState() {
   const next = await sendMessage({ type: MSG.STATE_GET })
   if (next?.error) return
   Object.assign(state, next)
+  setLocale(state.settings?.language || 'en')
   if (state.editingRule) {
     state.editingRule = state.rules.find(rule => rule.id === state.editingRule.id) || null
   }
@@ -77,22 +79,31 @@ function applyLocalFilters() {
 }
 
 function renderSettingsPage() {
+  const lang = state.settings.language || 'en'
   return `
     <section class="card">
-      <h3>Settings</h3>
+      <h3>${t('common.settings')}</h3>
       <div class="grid two">
-        <label class="switch"><input type="checkbox" id="settings-auto-attach" ${state.settings.autoAttach ? 'checked' : ''}/> Auto-attach</label>
-        <label class="switch"><input type="checkbox" id="settings-auto-reload" ${state.settings.autoReloadAfterRuleChange ? 'checked' : ''}/> Auto reload after rule change</label>
+        <label class="switch"><input type="checkbox" id="settings-auto-attach" ${state.settings.autoAttach ? 'checked' : ''}/> ${t('fullapp.autoAttach')}</label>
+        <label class="switch"><input type="checkbox" id="settings-auto-reload" ${state.settings.autoReloadAfterRuleChange ? 'checked' : ''}/> ${t('fullapp.autoReloadAfterRuleChange')}</label>
         <div>
-          <div class="muted">Max network entries</div>
+          <div class="muted">${t('language.title')}</div>
+          <select class="select" id="settings-language">
+            <option value="en" ${lang === 'en' ? 'selected' : ''}>${t('language.english')}</option>
+            <option value="pt" ${lang === 'pt' ? 'selected' : ''}>${t('language.portuguese')}</option>
+            <option value="es" ${lang === 'es' ? 'selected' : ''}>${t('language.spanish')}</option>
+          </select>
+        </div>
+        <div>
+          <div class="muted">${t('fullapp.maxNetworkEntries')}</div>
           <input class="input" id="settings-max-network" type="number" value="${state.settings.maxNetworkEntries || 300}" />
         </div>
         <div>
-          <div class="muted">Max logs</div>
+          <div class="muted">${t('fullapp.maxLogs')}</div>
           <input class="input" id="settings-max-logs" type="number" value="${state.settings.maxLogs || 300}" />
         </div>
       </div>
-      <div class="footer-actions"><button class="btn primary" id="settings-save-btn">Save settings</button></div>
+      <div class="footer-actions"><button class="btn primary" id="settings-save-btn">${t('fullapp.saveSettings')}</button></div>
     </section>
   `
 }
@@ -192,7 +203,7 @@ function bindEvents() {
 
   document.querySelectorAll('[data-full-rule-delete]').forEach(button => {
     button.addEventListener('click', async () => {
-      if (!confirm('Delete this rule?')) return
+      if (!confirm(t('rules.deleteConfirm'))) return
       await sendMessage({ type: MSG.RULES_DELETE, ruleId: button.dataset.fullRuleDelete })
       if (state.editingRule?.id === button.dataset.fullRuleDelete) state.editingRule = null
       await refreshState()
@@ -216,7 +227,7 @@ function bindEvents() {
   })
 
   $('#full-new-collection-btn')?.addEventListener('click', async () => {
-    const name = prompt('Collection name')
+    const name = prompt(t('collections.newCollection'))
     if (!name) return
     await sendMessage({ type: MSG.COLLECTIONS_CREATE, payload: makeCollection({ name, order: state.collections.length }) })
     await refreshState()
@@ -242,7 +253,7 @@ function bindEvents() {
     button.addEventListener('click', async () => {
       const collection = state.collections.find(item => item.id === button.dataset.fullCollectionRename)
       if (!collection) return
-      const name = prompt('Collection name', collection.name)
+      const name = prompt(t('collections.rename'), collection.name)
       if (!name) return
       await sendMessage({ type: MSG.COLLECTIONS_UPDATE, payload: { ...collection, name } })
       await refreshState()
@@ -251,7 +262,7 @@ function bindEvents() {
 
   document.querySelectorAll('[data-full-collection-delete]').forEach(button => {
     button.addEventListener('click', async () => {
-      if (!confirm('Delete this collection? Rules will move to fallback collection.')) return
+      if (!confirm(t('collections.deleteConfirm'))) return
       await sendMessage({ type: MSG.COLLECTIONS_DELETE, collectionId: button.dataset.fullCollectionDelete })
       await refreshState()
     })
@@ -337,7 +348,7 @@ function bindEvents() {
     try {
       parsed = JSON.parse(raw)
     } catch {
-      alert('Invalid JSON format.')
+      alert(t('errors.invalidJson'))
       return
     }
 
@@ -361,10 +372,12 @@ function bindEvents() {
     const payload = {
       autoAttach: $('#settings-auto-attach')?.checked ?? false,
       autoReloadAfterRuleChange: $('#settings-auto-reload')?.checked ?? false,
+      language: $('#settings-language')?.value || 'en',
       maxNetworkEntries: Number($('#settings-max-network')?.value || 300),
       maxLogs: Number($('#settings-max-logs')?.value || 300)
     }
     await sendMessage({ type: MSG.SETTINGS_UPDATE, payload })
+    setLocale(payload.language)
     await refreshState()
   })
 }
@@ -387,6 +400,13 @@ chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:attached') {
     state.attachedTabId = message.attachedTabId
     render()
+  }
+})
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return
+  if (changes.settings || changes.collections || changes.rules || changes.logs) {
+    refreshState()
   }
 })
 

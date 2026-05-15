@@ -1,19 +1,20 @@
 import { escapeHtml } from '../../shared/utils.js'
+import { t } from '../../shared/i18n.js'
 
 export function renderImportExportPage(state) {
   return `
     <section class="card">
-      <h3>Import / Export</h3>
+      <h3>${t('navigation.importExport')}</h3>
       <div class="footer-actions">
-        <button class="btn" id="full-export-current-collection">Export current collection</button>
-        <button class="btn" id="full-export-all">Export all data</button>
+        <button class="btn" id="full-export-current-collection">${t('fullapp.exportCurrentCollection')}</button>
+        <button class="btn" id="full-export-all">${t('fullapp.exportAllData')}</button>
       </div>
-      <textarea class="textarea code" id="full-import-json" placeholder="Paste JSON for import"></textarea>
+      <textarea class="textarea code" id="full-import-json" placeholder="${t('fullapp.importPlaceholder')}"></textarea>
       <div class="footer-actions">
-        <button class="btn primary" id="full-import-json-btn">Import JSON</button>
+        <button class="btn primary" id="full-import-json-btn">${t('fullapp.importJson')}</button>
       </div>
-      <div class="small">Import strategy: merge by id (current MVP).</div>
-      <pre class="preview">${escapeHtml(state.lastImportExportMessage || 'No export/import action yet.')}</pre>
+      <div class="small">${t('fullapp.importStrategy')}</div>
+      <pre class="preview">${escapeHtml(state.lastImportExportMessage || t('fullapp.noImportExportAction'))}</pre>
     </section>
   `
 }
