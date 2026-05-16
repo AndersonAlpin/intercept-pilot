@@ -10,8 +10,9 @@ const es = {
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
-    connecting: 'Conectando...', attached: 'Adjuntado a la pestaña actual', notAttached: 'No adjuntado',
-    noActiveUrl: 'Sin URL activa', reloadHint: 'Recarga la página actual para aplicar reglas'
+    connecting: 'Conectando...', attached: 'Adjuntado a la pestaña actual', attachedCurrent: 'Adjuntado a la pestaña actual', attachedOther: 'Adjuntado en otra pestaña', attachedTabNumber: 'Adjuntado a la pestaña {position}', notAttached: 'No adjuntado',
+    noActiveUrl: 'Sin URL activa', noAttachableTab: 'No hay pestaña adjuntable disponible',
+    tabPosition: 'Pestaña {position}', currentTabLabel: 'Actual', reloadHint: 'Recarga la página actual para aplicar reglas'
   },
   navigation: {
     rules: 'Reglas', network: 'Red', logs: 'Logs', dashboard: 'Dashboard', collections: 'Colecciones',

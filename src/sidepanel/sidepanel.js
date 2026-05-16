@@ -24,6 +24,9 @@ const appState = {
   logs: [],
   networkEntries: [],
   activeTab: null,
+  attachedTab: null,
+  candidateTab: null,
+  lastAttachableTab: null,
   attachedTabId: null,
   attachBusy: false,
   settings: { activeCollectionId: '' },
@@ -205,7 +208,8 @@ function bindEvents() {
   $('#attach-btn')?.addEventListener('click', async () => {
     appState.attachBusy = true
     render()
-    const result = await sendMessage({ type: MSG.DEBUG_ATTACH })
+    const preferredTabId = appState.candidateTab?.id || appState.lastAttachableTab?.id || null
+    const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
     appState.attachBusy = false
     if (result?.error) {
       toastError(translateBackendError(result.error))
@@ -390,6 +394,14 @@ chrome.runtime.onMessage.addListener(message => {
   }
   if (message?.type === 'state:attached') {
     appState.attachedTabId = message.attachedTabId
+    render()
+  }
+  if (message?.type === 'state:connection') {
+    appState.attachedTabId = message.attachedTabId ?? null
+    appState.attachedTab = message.attachedTab ?? null
+    appState.activeTab = message.activeTab ?? null
+    appState.candidateTab = message.candidateTab ?? null
+    appState.lastAttachableTab = message.lastAttachableTab ?? null
     render()
   }
   if (message?.type === 'state:activeTab') {

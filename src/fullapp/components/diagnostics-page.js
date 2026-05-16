@@ -9,7 +9,7 @@ export function renderDiagnosticsPage(state) {
       <div class="grid two">
         <div><strong>${t('fullapp.isAttached')}</strong><div>${state.attachedTabId ? 'true' : 'false'}</div></div>
         <div><strong>${t('fullapp.attachedTabId')}</strong><div>${escapeHtml(String(state.attachedTabId ?? 'null'))}</div></div>
-        <div><strong>${t('fullapp.attachedUrl')}</strong><div>${escapeHtml(state.activeTab?.url || '')}</div></div>
+        <div><strong>${t('fullapp.attachedUrl')}</strong><div>${escapeHtml(state.attachedTab?.url || '')}</div></div>
         <div><strong>activeCollectionId</strong><div>${escapeHtml(state.settings?.activeCollectionId || '')}</div></div>
         <div><strong>${t('fullapp.enabledRules')}</strong><div>${state.rules.filter(rule => rule.enabled).length}</div></div>
         <div><strong>${t('fullapp.invalidRules')}</strong><div>${invalidRules.length}</div></div>

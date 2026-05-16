@@ -1,7 +1,7 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
 import { ensureState, getState, saveCollection, deleteCollection, saveRule, deleteRule, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
-import { clone, uid } from '../shared/utils.js'
+import { clone, isHttpUrl, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
 import { attachToTab, detachCurrentTab, isAttachedSource, sendAttachedCommand } from './debugger.js'
 import { runtimeState } from './runtime-state.js'
@@ -89,9 +89,88 @@ async function getActiveTab() {
   return tabs[0] || null
 }
 
+function toTabRef(tab) {
+  if (!tab || !tab.id) return null
+  return {
+    id: tab.id,
+    url: tab.url || '',
+    title: tab.title || '',
+    index: Number(tab.index ?? -1),
+    position: Number(tab.index ?? -1) + 1
+  }
+}
+
+function isAttachableTab(tab) {
+  return Boolean(tab?.id && isHttpUrl(tab?.url || ''))
+}
+
+function getEffectiveCandidateTab() {
+  return runtimeState.candidateTab || runtimeState.lastAttachableTab || null
+}
+
+async function getAttachedTabRef() {
+  if (!runtimeState.attachedTabId) return null
+  const fromActive = runtimeState.activeTab?.id === runtimeState.attachedTabId ? runtimeState.activeTab : null
+  if (fromActive) return fromActive
+  const tab = await chrome.tabs.get(runtimeState.attachedTabId).catch(() => null)
+  if (!tab) return null
+  return toTabRef(tab)
+}
+
+async function updateConnectionFromActiveTab() {
+  const activeTab = await getActiveTab().catch(() => null)
+  const activeRef = toTabRef(activeTab)
+  runtimeState.activeTab = activeRef
+  if (isAttachableTab(activeRef)) {
+    runtimeState.candidateTab = activeRef
+    runtimeState.lastAttachableTab = activeRef
+  } else if (!runtimeState.candidateTab || runtimeState.candidateTab.id === activeRef?.id) {
+    runtimeState.candidateTab = runtimeState.lastAttachableTab
+  }
+}
+
+async function broadcastConnectionState() {
+  const attachedTab = await getAttachedTabRef()
+  broadcast({
+    type: 'state:connection',
+    attachedTabId: runtimeState.attachedTabId,
+    attachedTab,
+    activeTab: runtimeState.activeTab,
+    candidateTab: getEffectiveCandidateTab(),
+    lastAttachableTab: runtimeState.lastAttachableTab
+  })
+}
+
+async function resolveAttachTargetTab(message, sender) {
+  const explicitId = Number(message?.tabId || 0)
+  if (explicitId) {
+    const explicitTab = await chrome.tabs.get(explicitId).catch(() => null)
+    if (isAttachableTab(explicitTab)) return explicitTab
+  }
+
+  const senderTabId = sender?.tab?.id
+  if (senderTabId) {
+    const senderTab = await chrome.tabs.get(senderTabId).catch(() => null)
+    if (isAttachableTab(senderTab)) return senderTab
+  }
+
+  if (isAttachableTab(runtimeState.candidateTab)) {
+    const tab = await chrome.tabs.get(runtimeState.candidateTab.id).catch(() => null)
+    if (isAttachableTab(tab)) return tab
+  }
+  if (isAttachableTab(runtimeState.lastAttachableTab)) {
+    const tab = await chrome.tabs.get(runtimeState.lastAttachableTab.id).catch(() => null)
+    if (isAttachableTab(tab)) return tab
+  }
+
+  const active = await getActiveTab().catch(() => null)
+  return isAttachableTab(active) ? active : null
+}
+
 async function getFullState() {
   const state = await getState()
-  const activeTab = await getActiveTab()
+  await updateConnectionFromActiveTab()
+  const attachedTab = await getAttachedTabRef()
 
   const conflicts = detectSimpleConflicts(state.rules)
   const rules = state.rules.map(rule => ({
@@ -109,8 +188,40 @@ async function getFullState() {
     settings: state.settings || DEFAULT_SETTINGS,
     networkEntries: runtimeState.networkEntries.slice(0, 200),
     attachedTabId: runtimeState.attachedTabId,
-    activeTab: activeTab ? { id: activeTab.id, url: activeTab.url || '', title: activeTab.title || '' } : null
+    attachedTab,
+    activeTab: runtimeState.activeTab,
+    candidateTab: getEffectiveCandidateTab(),
+    lastAttachableTab: runtimeState.lastAttachableTab
   }
+}
+
+async function maybeAutoAttach() {
+  const state = await getState()
+  if (!state.settings?.autoAttach) return false
+  if (runtimeState.attachedTabId) return false
+  const targetId = runtimeState.candidateTab?.id || runtimeState.lastAttachableTab?.id
+  if (!targetId) return false
+  try {
+    const result = await attachToTab(targetId)
+    await pushLog({ level: 'info', scope: 'debugger', message: `Auto-attached to tab ${targetId} via ${result.attachedVia || 'tabId'}` })
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function maybeAutoReloadAfterRuleChange() {
+  const state = await getState()
+  if (!state.settings?.autoReloadAfterRuleChange) return false
+
+  if (!runtimeState.attachedTabId && state.settings?.autoAttach) {
+    await maybeAutoAttach()
+  }
+
+  const targetId = runtimeState.attachedTabId || runtimeState.candidateTab?.id || runtimeState.lastAttachableTab?.id
+  if (!targetId) return false
+  await chrome.tabs.reload(targetId).catch(() => {})
+  return true
 }
 
 async function applyRule(params, rule) {
@@ -264,30 +375,45 @@ chrome.runtime.onInstalled.addListener(async () => {
   await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
 })
 
-async function broadcastActiveTab() {
-  const activeTab = await getActiveTab().catch(() => null)
-  broadcast({
-    type: 'state:activeTab',
-    activeTab: activeTab ? { id: activeTab.id, url: activeTab.url || '', title: activeTab.title || '' } : null
-  })
-}
-
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   const tab = await chrome.tabs.get(tabId).catch(() => null)
   if (tab) runtimeState.tabMeta.set(tabId, { url: tab.url || '', title: tab.title || '' })
-  await broadcastActiveTab()
+  await updateConnectionFromActiveTab()
+  await maybeAutoAttach()
+  await broadcastConnectionState()
 })
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.url || changeInfo.title) {
     runtimeState.tabMeta.set(tabId, { url: changeInfo.url || tab.url || '', title: changeInfo.title || tab.title || '' })
-    if (tab.active) await broadcastActiveTab()
+    const updatedRef = toTabRef(tab)
+    if (updatedRef) {
+      if (runtimeState.activeTab?.id === tabId) runtimeState.activeTab = updatedRef
+      if (runtimeState.candidateTab?.id === tabId) runtimeState.candidateTab = updatedRef
+      if (runtimeState.lastAttachableTab?.id === tabId) runtimeState.lastAttachableTab = updatedRef
+    }
+    if (tab.active) {
+      await updateConnectionFromActiveTab()
+      await maybeAutoAttach()
+      await broadcastConnectionState()
+    }
   }
 })
 
 chrome.windows.onFocusChanged.addListener(async windowId => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) return
-  await broadcastActiveTab()
+  await updateConnectionFromActiveTab()
+  await maybeAutoAttach()
+  await broadcastConnectionState()
+})
+
+chrome.tabs.onRemoved.addListener(async tabId => {
+  if (runtimeState.candidateTab?.id === tabId) runtimeState.candidateTab = null
+  if (runtimeState.lastAttachableTab?.id === tabId) runtimeState.lastAttachableTab = null
+  if (runtimeState.activeTab?.id === tabId) runtimeState.activeTab = null
+  await updateConnectionFromActiveTab()
+  await maybeAutoAttach()
+  await broadcastConnectionState()
 })
 
 chrome.debugger.onEvent.addListener(async (source, method, params) => {
@@ -308,7 +434,8 @@ chrome.debugger.onDetach.addListener(async (source, reason) => {
     runtimeState.attachedDebuggee = null
     runtimeState.requestRuleMap.clear()
     await pushLog({ level: 'warn', scope: 'debugger', message: `Detached: ${reason}` })
-    broadcast({ type: 'state:attached', attachedTabId: null })
+    await updateConnectionFromActiveTab()
+    await broadcastConnectionState()
   }
 })
 
@@ -345,24 +472,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       case 'settings:update':
         sendResponse({ settings: await updateSettings(message.payload || {}) })
+        await maybeAutoAttach()
+        await updateConnectionFromActiveTab()
+        await broadcastConnectionState()
         return
       case 'debugger:attachActiveTab': {
-        const senderTabId = sender?.tab?.id
-        const tabId = senderTabId || (await getActiveTab())?.id
+        const targetTab = await resolveAttachTargetTab(message, sender)
+        const tabId = targetTab?.id
         if (!tabId) throw new Error('attachNoActiveTab')
         const result = await attachToTab(tabId)
+        const attachedRef = toTabRef(targetTab)
+        if (attachedRef) {
+          runtimeState.lastAttachableTab = attachedRef
+          runtimeState.candidateTab = attachedRef
+        }
+        await updateConnectionFromActiveTab()
         await pushLog({ level: 'info', scope: 'debugger', message: `Attached to tab ${tabId} via ${result.attachedVia || 'tabId'}` })
-        broadcast({ type: 'state:attached', attachedTabId: tabId })
+        await broadcastConnectionState()
         sendResponse({ attachedTabId: tabId })
         return
       }
       case 'debugger:detach':
         await detachCurrentTab()
-        broadcast({ type: 'state:attached', attachedTabId: null })
+        await updateConnectionFromActiveTab()
+        await broadcastConnectionState()
         sendResponse({ attachedTabId: null })
         return
       case 'tab:reload': {
-        const tabId = runtimeState.attachedTabId || sender?.tab?.id
+        const tabId = runtimeState.attachedTabId || runtimeState.candidateTab?.id || runtimeState.lastAttachableTab?.id || sender?.tab?.id
         if (!tabId) throw new Error('reloadNoTab')
         await chrome.tabs.reload(tabId)
         sendResponse({ ok: true, reloadedTabId: tabId })
@@ -385,6 +522,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const errors = validateRule(rule)
         if (errors.length) throw new Error(errors[0])
         sendResponse({ rules: await saveRule(rule) })
+        await maybeAutoReloadAfterRuleChange()
         return
       }
       case 'rules:update': {
@@ -392,13 +530,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const errors = validateRule(rule)
         if (errors.length) throw new Error(errors[0])
         sendResponse({ rules: await saveRule(rule) })
+        await maybeAutoReloadAfterRuleChange()
         return
       }
       case 'rules:toggle':
         sendResponse({ rules: await updateRuleEnabled(message.ruleId, message.enabled) })
+        await maybeAutoReloadAfterRuleChange()
         return
       case 'rules:delete':
         sendResponse({ rules: await deleteRule(message.ruleId) })
+        await maybeAutoReloadAfterRuleChange()
         return
       case 'rules:duplicate': {
         const state = await getState()

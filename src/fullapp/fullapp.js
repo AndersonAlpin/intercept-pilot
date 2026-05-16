@@ -36,6 +36,9 @@ const state = {
   logs: [],
   networkEntries: [],
   activeTab: null,
+  attachedTab: null,
+  candidateTab: null,
+  lastAttachableTab: null,
   attachedTabId: null,
   settings: {},
 
@@ -309,7 +312,8 @@ function bindEvents() {
   document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => openFullPage(button.dataset.page)))
 
   $('#full-attach-btn')?.addEventListener('click', async () => {
-    const result = await sendMessage({ type: MSG.DEBUG_ATTACH })
+    const preferredTabId = state.candidateTab?.id || state.lastAttachableTab?.id || null
+    const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
     if (result?.error) {
       toastError(translateBackendError(result.error))
       return
@@ -616,6 +620,14 @@ chrome.runtime.onMessage.addListener(message => {
   }
   if (message?.type === 'state:attached') {
     state.attachedTabId = message.attachedTabId
+    render()
+  }
+  if (message?.type === 'state:connection') {
+    state.attachedTabId = message.attachedTabId ?? null
+    state.attachedTab = message.attachedTab ?? null
+    state.activeTab = message.activeTab ?? null
+    state.candidateTab = message.candidateTab ?? null
+    state.lastAttachableTab = message.lastAttachableTab ?? null
     render()
   }
   if (message?.type === 'state:activeTab') {

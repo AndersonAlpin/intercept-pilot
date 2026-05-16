@@ -43,8 +43,14 @@ const en = {
   status: {
     connecting: 'Connecting...',
     attached: 'Attached to current tab',
+    attachedCurrent: 'Attached to current tab',
+    attachedOther: 'Attached to another tab',
+    attachedTabNumber: 'Attached to tab {position}',
     notAttached: 'Not attached',
     noActiveUrl: 'No active URL',
+    noAttachableTab: 'No attachable tab available',
+    tabPosition: 'Tab {position}',
+    currentTabLabel: 'Current',
     reloadHint: 'Reload current page to apply rules'
   },
   navigation: {

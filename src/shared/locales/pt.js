@@ -10,8 +10,9 @@ const pt = {
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
-    connecting: 'Conectando...', attached: 'Anexado à aba atual', notAttached: 'Não anexado',
-    noActiveUrl: 'Sem URL ativa', reloadHint: 'Recarregue a página atual para aplicar as regras'
+    connecting: 'Conectando...', attached: 'Anexado à aba atual', attachedCurrent: 'Anexado à aba atual', attachedOther: 'Anexado em outra aba', attachedTabNumber: 'Anexado à aba {position}', notAttached: 'Não anexado',
+    noActiveUrl: 'Sem URL ativa', noAttachableTab: 'Nenhuma aba anexável disponível',
+    tabPosition: 'Aba {position}', currentTabLabel: 'Atual', reloadHint: 'Recarregue a página atual para aplicar as regras'
   },
   navigation: {
     rules: 'Regras', network: 'Rede', logs: 'Logs', dashboard: 'Dashboard', collections: 'Coleções',
