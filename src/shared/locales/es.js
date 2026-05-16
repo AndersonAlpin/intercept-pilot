@@ -12,7 +12,7 @@ const es = {
     noActiveUrl: 'Sin URL activa', reloadHint: 'Recarga la página actual para aplicar reglas'
   },
   navigation: {
-    rules: 'Reglas', network: 'Network', logs: 'Logs', dashboard: 'Dashboard', collections: 'Colecciones',
+    rules: 'Reglas', network: 'Red', logs: 'Logs', dashboard: 'Dashboard', collections: 'Colecciones',
     importExport: 'Importar / Exportar', diagnostics: 'Diagnóstico', settings: 'Configuración'
   },
   collections: {
@@ -32,13 +32,13 @@ const es = {
   },
   logs: { title: 'Logs', errorOnly: 'solo errores', clearLogs: 'Limpiar logs', noLogs: 'Sin logs.' },
   network: {
-    title: 'Network', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Estado',
+    title: 'Red', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Estado',
     matchedOnly: 'solo matched', interceptedOnly: 'solo interceptadas', noRequests: 'Sin requests capturadas.',
     createRule: 'Crear regla'
   },
   dashboard: {
     attached: 'Adjuntado', enabledRules: 'Reglas habilitadas', matchedRecently: 'Matches recientes', errors: 'Errores',
-    currentContext: 'Contexto actual', activeCollection: 'Colección activa', recentNetwork: 'Entradas de network recientes', recentLogs: 'Logs recientes'
+    currentContext: 'Contexto actual', activeCollection: 'Colección activa', recentNetwork: 'Entradas de red recientes', recentLogs: 'Logs recientes'
   },
   fullapp: {
     noRuleSelected: 'Selecciona una regla para editar.', ruleEditor: 'Editor de reglas',
@@ -46,7 +46,7 @@ const es = {
     noImportExportAction: 'Sin acciones de import/export todavía.', exportCurrentCollection: 'Exportar colección actual',
     exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', saveSettings: 'Guardar configuración',
     autoAttach: 'Auto-adjuntar', autoReloadAfterRuleChange: 'Auto-recargar tras cambio de regla',
-    maxNetworkEntries: 'Máx. entradas de network', maxLogs: 'Máx. logs', attachedUrl: 'URL adjuntada',
+    maxNetworkEntries: 'Máx. entradas de red', maxLogs: 'Máx. logs', attachedUrl: 'URL adjuntada',
     attachedTabId: 'attachedTabId', isAttached: 'isAttached', enabledRules: 'reglas habilitadas',
     invalidRules: 'reglas inválidas', recentRuntimeLogs: 'Logs recientes de runtime', noLogs: 'Sin logs.',
     newRule: 'Nueva regla', exportCollection: 'Exportar colección', importRule: 'Importar', settingsSaved: 'Configuración guardada.',
