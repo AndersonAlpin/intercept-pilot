@@ -31,7 +31,8 @@ const en = {
     exportJson: 'Export JSON',
     downloadJson: 'Download JSON',
     moreActions: 'More actions',
-    advanced: 'Advanced'
+    advanced: 'Advanced',
+    confirm: 'Confirm'
   },
   language: {
     title: 'Language',
@@ -61,9 +62,14 @@ const en = {
     activeCollection: 'Active collection',
     noCollections: 'No collections yet.',
     newCollection: 'New collection',
+    newCollectionTitle: 'New collection',
+    newCollectionPlaceholder: 'Collection name',
     setActive: 'Set active',
     rename: 'Rename',
+    renameTitle: 'Rename collection',
+    renamePlaceholder: 'New name',
     deleteConfirm: 'Delete this collection? Rules will move to fallback collection.',
+    deleteTitle: 'Delete collection',
     rulesCount: 'rule(s)'
   },
   rules: {
@@ -90,6 +96,8 @@ const en = {
     saveSuccess: 'Rule saved successfully.',
     saveError: 'Failed to save rule.',
     deleteConfirm: 'Delete this rule?',
+    deleteTitle: 'Delete rule',
+    deleteSuccess: 'Rule deleted.',
     createFromRequestError: 'Failed to create rule from request.',
     exportRule: 'Export',
     exportCopiedRule: 'Rule JSON copied to clipboard.'

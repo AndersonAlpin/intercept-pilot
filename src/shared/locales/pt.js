@@ -6,7 +6,7 @@ const pt = {
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Status',
     method: 'Método', level: 'Nível', settings: 'Configurações', close: 'Fechar', yes: 'Sim', no: 'Não',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Baixar JSON',
-    moreActions: 'Mais ações', advanced: 'Avançado'
+    moreActions: 'Mais ações', advanced: 'Avançado', confirm: 'Confirmar'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
@@ -19,8 +19,10 @@ const pt = {
   },
   collections: {
     title: 'Coleção', activeCollection: 'Coleção ativa', noCollections: 'Sem coleções.',
-    newCollection: 'Nova coleção', setActive: 'Definir ativa', rename: 'Renomear',
-    deleteConfirm: 'Excluir esta coleção? As regras serão movidas para a coleção de fallback.', rulesCount: 'regra(s)'
+    newCollection: 'Nova coleção', newCollectionTitle: 'Nova coleção', newCollectionPlaceholder: 'Nome da coleção',
+    setActive: 'Definir ativa', rename: 'Renomear', renameTitle: 'Renomear coleção', renamePlaceholder: 'Novo nome',
+    deleteConfirm: 'Excluir esta coleção? As regras serão movidas para a coleção de fallback.',
+    deleteTitle: 'Excluir coleção', rulesCount: 'regra(s)'
   },
   rules: {
     title: 'Regras', newRule: '+ Regra', searchPlaceholder: 'Buscar regras', noRules: 'Sem regras nesta coleção.',
@@ -30,6 +32,7 @@ const pt = {
     createEnabledRule: 'Criar regra ativada', saveQuickEdit: 'Salvar edição rápida', mockThis: 'Mockar', inspect: 'Inspecionar ↗',
     noRequests: 'Sem requisições ainda.', passThrough: 'passThrough', noMatch: 'Sem match',
     saveSuccess: 'Regra salva com sucesso.', saveError: 'Falha ao salvar regra.', deleteConfirm: 'Excluir esta regra?',
+    deleteTitle: 'Excluir regra', deleteSuccess: 'Regra excluída.',
     createFromRequestError: 'Falha ao criar regra da requisição.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON da regra copiado.'
   },

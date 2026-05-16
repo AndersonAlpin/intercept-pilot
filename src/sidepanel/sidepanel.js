@@ -9,6 +9,7 @@ import {
   buildRuleFilename
 } from '../shared/export.js'
 import { toastSuccess, toastError } from '../shared/toast.js'
+import { confirmDialog } from '../shared/dialogs.js'
 import { renderConnectionHeader } from './components/connection-header.js'
 import { renderCollectionSwitcher } from './components/collection-switcher.js'
 import { renderTabs } from './components/tabs.js'
@@ -297,6 +298,22 @@ function bindEvents() {
       } catch {
         toastError(t('toasts.exportError'))
       }
+    })
+  })
+
+  document.querySelectorAll('[data-rule-delete]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const ok = await confirmDialog({
+        title: t('rules.deleteTitle'),
+        message: t('rules.deleteConfirm'),
+        confirmLabel: t('common.delete'),
+        cancelLabel: t('common.cancel'),
+        danger: true
+      })
+      if (!ok) return
+      await sendMessage({ type: MSG.RULES_DELETE, ruleId: button.dataset.ruleDelete })
+      toastSuccess(t('rules.deleteSuccess'))
+      await refreshState()
     })
   })
 

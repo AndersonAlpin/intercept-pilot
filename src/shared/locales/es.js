@@ -6,7 +6,7 @@ const es = {
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Estado',
     method: 'Método', level: 'Nivel', settings: 'Configuración', close: 'Cerrar', yes: 'Sí', no: 'No',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Descargar JSON',
-    moreActions: 'Más acciones', advanced: 'Avanzado'
+    moreActions: 'Más acciones', advanced: 'Avanzado', confirm: 'Confirmar'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
@@ -19,8 +19,10 @@ const es = {
   },
   collections: {
     title: 'Colección', activeCollection: 'Colección activa', noCollections: 'Sin colecciones.',
-    newCollection: 'Nueva colección', setActive: 'Definir activa', rename: 'Renombrar',
-    deleteConfirm: '¿Eliminar esta colección? Las reglas irán a la colección de respaldo.', rulesCount: 'regla(s)'
+    newCollection: 'Nueva colección', newCollectionTitle: 'Nueva colección', newCollectionPlaceholder: 'Nombre de la colección',
+    setActive: 'Definir activa', rename: 'Renombrar', renameTitle: 'Renombrar colección', renamePlaceholder: 'Nuevo nombre',
+    deleteConfirm: '¿Eliminar esta colección? Las reglas irán a la colección de respaldo.',
+    deleteTitle: 'Eliminar colección', rulesCount: 'regla(s)'
   },
   rules: {
     title: 'Reglas', newRule: '+ Regla', searchPlaceholder: 'Buscar reglas', noRules: 'No hay reglas en esta colección.',
@@ -30,6 +32,7 @@ const es = {
     createEnabledRule: 'Crear regla habilitada', saveQuickEdit: 'Guardar edición rápida', mockThis: 'Mockear', inspect: 'Inspeccionar ↗',
     noRequests: 'Sin requests todavía.', passThrough: 'passThrough', noMatch: 'Sin match',
     saveSuccess: 'Regla guardada.', saveError: 'Error al guardar regla.', deleteConfirm: '¿Eliminar esta regla?',
+    deleteTitle: 'Eliminar regla', deleteSuccess: 'Regla eliminada.',
     createFromRequestError: 'Error al crear regla desde request.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON de la regla copiado.'
   },

@@ -16,6 +16,7 @@ import {
   BUNDLE_TYPE_COLLECTION
 } from '../shared/export.js'
 import { toastSuccess, toastError } from '../shared/toast.js'
+import { confirmDialog, promptDialog } from '../shared/dialogs.js'
 import { renderAppShell } from './components/app-shell.js'
 import { renderSidebar } from './components/sidebar.js'
 import { renderTopbar } from './components/topbar.js'
@@ -345,9 +346,18 @@ function bindEvents() {
 
   document.querySelectorAll('[data-full-rule-delete]').forEach(button => {
     button.addEventListener('click', async () => {
-      if (!confirm(t('rules.deleteConfirm'))) return
-      await sendMessage({ type: MSG.RULES_DELETE, ruleId: button.dataset.fullRuleDelete })
-      if (state.editingRule?.id === button.dataset.fullRuleDelete) state.editingRule = null
+      const ok = await confirmDialog({
+        title: t('rules.deleteTitle'),
+        message: t('rules.deleteConfirm'),
+        confirmLabel: t('common.delete'),
+        cancelLabel: t('common.cancel'),
+        danger: true
+      })
+      if (!ok) return
+      const ruleId = button.dataset.fullRuleDelete
+      await sendMessage({ type: MSG.RULES_DELETE, ruleId })
+      if (state.editingRule?.id === ruleId) state.editingRule = null
+      toastSuccess(t('rules.deleteSuccess'))
       await refreshState()
     })
   })
@@ -408,7 +418,12 @@ function bindEvents() {
   })
 
   $('#full-new-collection-btn')?.addEventListener('click', async () => {
-    const name = prompt(t('collections.newCollection'))
+    const name = await promptDialog({
+      title: t('collections.newCollectionTitle'),
+      placeholder: t('collections.newCollectionPlaceholder'),
+      confirmLabel: t('common.create'),
+      cancelLabel: t('common.cancel')
+    })
     if (!name) return
     await sendMessage({ type: MSG.COLLECTIONS_CREATE, payload: makeCollection({ name, order: state.collections.length }) })
     await refreshState()
@@ -434,7 +449,13 @@ function bindEvents() {
     button.addEventListener('click', async () => {
       const collection = state.collections.find(item => item.id === button.dataset.fullCollectionRename)
       if (!collection) return
-      const name = prompt(t('collections.rename'), collection.name)
+      const name = await promptDialog({
+        title: t('collections.renameTitle'),
+        placeholder: t('collections.renamePlaceholder'),
+        defaultValue: collection.name,
+        confirmLabel: t('common.save'),
+        cancelLabel: t('common.cancel')
+      })
       if (!name) return
       await sendMessage({ type: MSG.COLLECTIONS_UPDATE, payload: { ...collection, name } })
       await refreshState()
@@ -443,7 +464,14 @@ function bindEvents() {
 
   document.querySelectorAll('[data-full-collection-delete]').forEach(button => {
     button.addEventListener('click', async () => {
-      if (!confirm(t('collections.deleteConfirm'))) return
+      const ok = await confirmDialog({
+        title: t('collections.deleteTitle'),
+        message: t('collections.deleteConfirm'),
+        confirmLabel: t('common.delete'),
+        cancelLabel: t('common.cancel'),
+        danger: true
+      })
+      if (!ok) return
       await sendMessage({ type: MSG.COLLECTIONS_DELETE, collectionId: button.dataset.fullCollectionDelete })
       await refreshState()
     })
