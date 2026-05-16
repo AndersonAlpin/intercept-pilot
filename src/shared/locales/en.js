@@ -209,7 +209,12 @@ const en = {
     invalidStatusCode: 'Status code must be between 100 and 599.',
     invalidDelay: 'Delay must be greater than or equal to 0.',
     invalidFailReason: 'Invalid failure reason.',
-    invalidResponseBodyJson: 'Response body must be valid JSON for application/json content type.'
+    invalidResponseBodyJson: 'Response body must be valid JSON for application/json content type.',
+    attachNoTab: 'No tab available to attach.',
+    attachNoActiveTab: 'Open an HTTP(S) page in a tab first, then click Attach.',
+    attachHttpOnly: 'Attach only works on HTTP(S) pages. Open a website in a regular tab first.',
+    attachCannotAttach: 'Cannot attach the debugger to this tab.',
+    reloadNoTab: 'No tab available to reload.'
   },
   toasts: {
     ruleCopied: 'Rule JSON copied.',

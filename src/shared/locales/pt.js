@@ -96,7 +96,12 @@ const pt = {
     invalidStatusCode: 'O código de status deve estar entre 100 e 599.',
     invalidDelay: 'O atraso deve ser maior ou igual a 0.',
     invalidFailReason: 'Motivo de falha inválido.',
-    invalidResponseBodyJson: 'O corpo da resposta deve ser um JSON válido para content type application/json.'
+    invalidResponseBodyJson: 'O corpo da resposta deve ser um JSON válido para content type application/json.',
+    attachNoTab: 'Nenhuma aba disponível para anexar.',
+    attachNoActiveTab: 'Abra uma página HTTP(S) em uma aba primeiro e clique em Anexar.',
+    attachHttpOnly: 'Anexar só funciona em páginas HTTP(S). Abra um site em uma aba comum primeiro.',
+    attachCannotAttach: 'Não foi possível anexar o debugger a esta aba.',
+    reloadNoTab: 'Nenhuma aba disponível para recarregar.'
   },
   toasts: {
     ruleCopied: 'JSON da regra copiado.',

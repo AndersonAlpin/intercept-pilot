@@ -96,7 +96,12 @@ const es = {
     invalidStatusCode: 'El código de estado debe estar entre 100 y 599.',
     invalidDelay: 'El delay debe ser mayor o igual a 0.',
     invalidFailReason: 'Motivo de fallo inválido.',
-    invalidResponseBodyJson: 'El cuerpo de la respuesta debe ser un JSON válido para content type application/json.'
+    invalidResponseBodyJson: 'El cuerpo de la respuesta debe ser un JSON válido para content type application/json.',
+    attachNoTab: 'No hay pestaña disponible para adjuntar.',
+    attachNoActiveTab: 'Abre una página HTTP(S) en una pestaña primero y haz clic en Adjuntar.',
+    attachHttpOnly: 'Adjuntar solo funciona en páginas HTTP(S). Abre un sitio en una pestaña normal primero.',
+    attachCannotAttach: 'No se pudo adjuntar el depurador a esta pestaña.',
+    reloadNoTab: 'No hay pestaña disponible para recargar.'
   },
   toasts: {
     ruleCopied: 'JSON de la regla copiado.',

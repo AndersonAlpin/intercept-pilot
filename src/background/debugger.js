@@ -21,11 +21,11 @@ export async function findPageTargetIdForTab(tabId) {
 }
 
 export async function attachToTab(tabId) {
-  if (!tabId) throw new Error('No tab available to attach')
+  if (!tabId) throw new Error('attachNoTab')
   if (runtimeState.attachedTabId === tabId) return { attachedTabId: tabId }
 
   const tab = await chrome.tabs.get(tabId)
-  if (!isHttpUrl(tab?.url || '')) throw new Error('Attach only works on HTTP(S) tabs.')
+  if (!isHttpUrl(tab?.url || '')) throw new Error('attachHttpOnly')
 
   if (runtimeState.attachedTabId && runtimeState.attachedTabId !== tabId) {
     await detachCurrentTab().catch(() => {})
@@ -40,7 +40,7 @@ export async function attachToTab(tabId) {
       await chrome.debugger.attach({ tabId }, '1.3')
     } catch {
       const targetId = await findPageTargetIdForTab(tabId)
-      if (!targetId) throw new Error('Cannot attach debugger to this tab.')
+      if (!targetId) throw new Error('attachCannotAttach')
       await chrome.debugger.attach({ targetId }, '1.3')
       attachedVia = 'targetId'
       attachedTargetId = targetId

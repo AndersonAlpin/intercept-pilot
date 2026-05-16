@@ -334,7 +334,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'debugger:attachActiveTab': {
         const senderTabId = sender?.tab?.id
         const tabId = senderTabId || (await getActiveTab())?.id
-        if (!tabId) throw new Error('No active tab found')
+        if (!tabId) throw new Error('attachNoActiveTab')
         const result = await attachToTab(tabId)
         await pushLog({ level: 'info', scope: 'debugger', message: `Attached to tab ${tabId} via ${result.attachedVia || 'tabId'}` })
         broadcast({ type: 'state:attached', attachedTabId: tabId })
@@ -348,7 +348,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       case 'tab:reload': {
         const tabId = runtimeState.attachedTabId || sender?.tab?.id
-        if (!tabId) throw new Error('No tab available to reload')
+        if (!tabId) throw new Error('reloadNoTab')
         await chrome.tabs.reload(tabId)
         sendResponse({ ok: true, reloadedTabId: tabId })
         return

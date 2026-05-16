@@ -205,8 +205,13 @@ function bindEvents() {
   $('#attach-btn')?.addEventListener('click', async () => {
     appState.attachBusy = true
     render()
-    await sendMessage({ type: MSG.DEBUG_ATTACH })
+    const result = await sendMessage({ type: MSG.DEBUG_ATTACH })
     appState.attachBusy = false
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      render()
+      return
+    }
     await refreshState()
   })
 
@@ -218,7 +223,10 @@ function bindEvents() {
     await refreshState()
   })
 
-  $('#reload-tab-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.TAB_RELOAD }))
+  $('#reload-tab-btn')?.addEventListener('click', async () => {
+    const result = await sendMessage({ type: MSG.TAB_RELOAD })
+    if (result?.error) toastError(translateBackendError(result.error))
+  })
 
   $('#active-collection-select')?.addEventListener('change', async event => {
     const activeCollectionId = event.target.value

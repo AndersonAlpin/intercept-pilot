@@ -309,7 +309,11 @@ function bindEvents() {
   document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => openFullPage(button.dataset.page)))
 
   $('#full-attach-btn')?.addEventListener('click', async () => {
-    await sendMessage({ type: MSG.DEBUG_ATTACH })
+    const result = await sendMessage({ type: MSG.DEBUG_ATTACH })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      return
+    }
     await refreshState()
   })
   $('#full-detach-btn')?.addEventListener('click', async () => {
@@ -317,7 +321,8 @@ function bindEvents() {
     await refreshState()
   })
   $('#full-reload-btn')?.addEventListener('click', async () => {
-    await sendMessage({ type: MSG.TAB_RELOAD })
+    const result = await sendMessage({ type: MSG.TAB_RELOAD })
+    if (result?.error) toastError(translateBackendError(result.error))
   })
 
   $('#full-rules-collection')?.addEventListener('change', async event => {

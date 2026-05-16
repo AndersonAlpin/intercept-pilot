@@ -30,7 +30,10 @@ export function renderRulesQuickPanel(state) {
         ${filtered.length ? filtered.map(rule => `
           <div class="item ${rule.diagnostics?.lastError ? 'rule-error' : ''}">
             <div class="item-title">
-                  <label class="switch"><input type="checkbox" data-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''}/> ${t('common.enabled')}</label>
+              <label class="status-toggle" title="${escapeHtml(rule.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}">
+                <input type="checkbox" data-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
+                <span class="status-toggle-track" aria-hidden="true"></span>
+              </label>
               ${actionBadge(rule)}
             </div>
             <strong>${escapeHtml(truncate(rule.name, 48))}</strong>

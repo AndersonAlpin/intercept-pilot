@@ -14,7 +14,13 @@ export function renderCollectionSwitcher(state) {
       </div>
       <div class="column">
         <select class="select" id="active-collection-select">${options}</select>
-        <label class="switch"><input type="checkbox" id="active-collection-enabled" ${current?.enabled ? 'checked' : ''}/> ${t('common.enabled')}</label>
+        <div class="row space-between">
+          <span class="small">${escapeHtml(t('rules.columns.status'))}</span>
+          <label class="status-toggle" title="${escapeHtml(current?.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}">
+            <input type="checkbox" id="active-collection-enabled" ${current?.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
+            <span class="status-toggle-track" aria-hidden="true"></span>
+          </label>
+        </div>
       </div>
     </div>
   `
