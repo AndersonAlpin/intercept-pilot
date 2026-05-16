@@ -1,6 +1,13 @@
 import { MSG, sendMessage } from '../shared/messaging.js'
 import { makeRule } from '../shared/models.js'
 import { setLocale, t } from '../shared/i18n.js'
+import {
+  createRuleBundle,
+  copyJsonToClipboard,
+  downloadJsonFile,
+  buildRuleFilename
+} from '../shared/export.js'
+import { toastSuccess, toastError } from '../shared/toast.js'
 import { renderConnectionHeader } from './components/connection-header.js'
 import { renderCollectionSwitcher } from './components/collection-switcher.js'
 import { renderTabs } from './components/tabs.js'
@@ -150,17 +157,24 @@ function readQuickRuleForm() {
   }
 }
 
-async function saveQuickRule(openAdvanced = false) {
+async function saveQuickRule() {
   const payload = readQuickRuleForm()
   const type = payload.id ? MSG.RULES_UPDATE : MSG.RULES_CREATE
   const result = await sendMessage({ type, payload })
   if (result?.error) {
-    alert(result.error || t('rules.saveError'))
+    toastError(result.error || t('rules.saveError'))
     return
   }
   appState.quickRuleEditorOpen = false
+  toastSuccess(t('rules.saveSuccess'))
   await refreshState()
-  if (openAdvanced) await sendMessage({ type: MSG.APP_OPEN_FULL })
+}
+
+async function openAdvancedFromQuick() {
+  const draftRule = readQuickRuleForm()
+  appState.quickRuleEditorOpen = false
+  render()
+  await sendMessage({ type: MSG.APP_OPEN_FULL, draftRule: JSON.stringify(draftRule) })
 }
 
 function bindEvents() {
@@ -224,8 +238,8 @@ function bindEvents() {
     if (event.target === event.currentTarget) closeQuickEditor()
   })
 
-  $('#quick-save-rule')?.addEventListener('click', async () => saveQuickRule(false))
-  $('#quick-open-advanced')?.addEventListener('click', async () => saveQuickRule(true))
+  $('#quick-save-rule')?.addEventListener('click', saveQuickRule)
+  $('#quick-open-advanced')?.addEventListener('click', openAdvancedFromQuick)
 
   document.querySelectorAll('[data-rule-edit]').forEach(button => {
     button.addEventListener('click', () => {
@@ -246,6 +260,32 @@ function bindEvents() {
 
   document.querySelectorAll('[data-rule-advanced]').forEach(button => {
     button.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, editRuleId: button.dataset.ruleAdvanced }))
+  })
+
+  document.querySelectorAll('[data-rule-copy]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const rule = appState.rules.find(item => item.id === button.dataset.ruleCopy)
+      if (!rule) return
+      try {
+        await copyJsonToClipboard(createRuleBundle(rule))
+        toastSuccess(t('toasts.ruleCopied'))
+      } catch {
+        toastError(t('toasts.copyError'))
+      }
+    })
+  })
+
+  document.querySelectorAll('[data-rule-export]').forEach(button => {
+    button.addEventListener('click', () => {
+      const rule = appState.rules.find(item => item.id === button.dataset.ruleExport)
+      if (!rule) return
+      try {
+        downloadJsonFile(createRuleBundle(rule), buildRuleFilename(rule))
+        toastSuccess(t('toasts.ruleExported'))
+      } catch {
+        toastError(t('toasts.exportError'))
+      }
+    })
   })
 
   $('#network-refresh-btn')?.addEventListener('click', refreshState)
@@ -278,7 +318,7 @@ function bindEvents() {
   document.querySelectorAll('[data-create-from-request]').forEach(button => {
     button.addEventListener('click', async () => {
       const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.createFromRequest })
-      if (result?.error) return alert(result.error || t('rules.createFromRequestError'))
+      if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
       appState.currentTab = 'rules'
       if (result.createdRule) {
         appState.quickRuleEditorOpen = true

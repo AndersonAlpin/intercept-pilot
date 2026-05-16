@@ -2,6 +2,19 @@ import { MSG, sendMessage } from '../shared/messaging.js'
 import { clone } from '../shared/utils.js'
 import { makeCollection, makeRule } from '../shared/models.js'
 import { setLocale, t } from '../shared/i18n.js'
+import {
+  createRuleBundle,
+  createCollectionBundle,
+  copyJsonToClipboard,
+  downloadJsonFile,
+  getUniqueName,
+  buildRuleFilename,
+  buildCollectionFilename,
+  SCHEMA_VERSION,
+  BUNDLE_TYPE_RULE,
+  BUNDLE_TYPE_COLLECTION
+} from '../shared/export.js'
+import { toastSuccess, toastError } from '../shared/toast.js'
 import { renderAppShell } from './components/app-shell.js'
 import { renderSidebar } from './components/sidebar.js'
 import { renderTopbar } from './components/topbar.js'
@@ -136,11 +149,106 @@ function closeEditor() {
   render()
 }
 
+async function importRuleBundle(bundle) {
+  if (!bundle?.rule) {
+    toastError(t('toasts.ruleImportError'))
+    return
+  }
+  const activeCollectionId = state.settings.activeCollectionId || state.collections[0]?.id
+  const existingNames = state.rules
+    .filter(rule => rule.collectionId === activeCollectionId)
+    .map(rule => rule.name)
+  const seed = bundle.rule
+  const payload = {
+    ...seed,
+    id: null,
+    collectionId: activeCollectionId,
+    name: getUniqueName(seed.name, existingNames),
+    action: {
+      ...seed.action,
+      applyResponseBody: seed.action?.applyResponseBody ?? true,
+      applyResponseHeaders: seed.action?.applyResponseHeaders ?? false
+    }
+  }
+  const result = await sendMessage({ type: MSG.RULES_CREATE, payload })
+  if (result?.error) {
+    toastError(t('toasts.ruleImportError'))
+    return
+  }
+  toastSuccess(t('toasts.ruleImported'))
+  await refreshState()
+}
+
+async function importCollectionBundle(bundle) {
+  if (!bundle?.collection || !Array.isArray(bundle.rules)) {
+    toastError(t('toasts.collectionImportError'))
+    return
+  }
+  const existingCollectionNames = state.collections.map(item => item.name)
+  const seedCollection = bundle.collection
+  const newCollectionName = getUniqueName(seedCollection.name, existingCollectionNames)
+  const collectionPayload = makeCollection({
+    name: newCollectionName,
+    description: seedCollection.description,
+    enabled: seedCollection.enabled !== false,
+    order: state.collections.length
+  })
+  const createResult = await sendMessage({ type: MSG.COLLECTIONS_CREATE, payload: collectionPayload })
+  if (createResult?.error) {
+    toastError(t('toasts.collectionImportError'))
+    return
+  }
+
+  const usedNames = []
+  for (const rule of bundle.rules) {
+    const ruleName = getUniqueName(rule.name, usedNames)
+    usedNames.push(ruleName)
+    const rulePayload = {
+      ...rule,
+      id: null,
+      collectionId: collectionPayload.id,
+      name: ruleName,
+      action: {
+        ...rule.action,
+        applyResponseBody: rule.action?.applyResponseBody ?? true,
+        applyResponseHeaders: rule.action?.applyResponseHeaders ?? false
+      }
+    }
+    await sendMessage({ type: MSG.RULES_CREATE, payload: rulePayload })
+  }
+  toastSuccess(t('toasts.collectionImported'))
+  await refreshState()
+}
+
+async function importBundleFromText(raw) {
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    toastError(t('toasts.invalidJson'))
+    return false
+  }
+  if (!parsed || parsed.schemaVersion !== SCHEMA_VERSION) {
+    toastError(t('toasts.unsupportedType'))
+    return false
+  }
+  if (parsed.type === BUNDLE_TYPE_RULE) {
+    await importRuleBundle(parsed)
+    return true
+  }
+  if (parsed.type === BUNDLE_TYPE_COLLECTION) {
+    await importCollectionBundle(parsed)
+    return true
+  }
+  toastError(t('toasts.unsupportedType'))
+  return false
+}
+
 function bindCreateRuleFromRequestEvents() {
   document.querySelectorAll('[data-full-create-from-request]').forEach(button => {
     button.addEventListener('click', async () => {
       const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.fullCreateFromRequest })
-      if (result?.error) return alert(result.error)
+      if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
       state.page = 'rules'
       state.editingRule = result.createdRule || null
       await refreshState()
@@ -236,23 +344,29 @@ function bindEvents() {
     })
   })
 
-  document.querySelectorAll('[data-full-rule-export]').forEach(button => {
+  document.querySelectorAll('[data-full-rule-copy]').forEach(button => {
     button.addEventListener('click', async () => {
+      const rule = state.rules.find(item => item.id === button.dataset.fullRuleCopy)
+      if (!rule) return
+      try {
+        await copyJsonToClipboard(createRuleBundle(rule))
+        toastSuccess(t('toasts.ruleCopied'))
+      } catch {
+        toastError(t('toasts.copyError'))
+      }
+    })
+  })
+
+  document.querySelectorAll('[data-full-rule-export]').forEach(button => {
+    button.addEventListener('click', () => {
       const rule = state.rules.find(item => item.id === button.dataset.fullRuleExport)
       if (!rule) return
       try {
-        await navigator.clipboard.writeText(JSON.stringify(rule, null, 2))
+        downloadJsonFile(createRuleBundle(rule), buildRuleFilename(rule))
+        toastSuccess(t('toasts.ruleExported'))
       } catch {
-        alert(t('errors.unknown'))
-        return
+        toastError(t('toasts.exportError'))
       }
-      const originalText = button.textContent
-      button.textContent = '✓'
-      button.disabled = true
-      setTimeout(() => {
-        button.textContent = originalText
-        button.disabled = false
-      }, 1400)
     })
   })
 
@@ -268,8 +382,9 @@ function bindEvents() {
     if (!payload) return
     const type = payload.id ? MSG.RULES_UPDATE : MSG.RULES_CREATE
     const result = await sendMessage({ type, payload })
-    if (result?.error) return alert(result.error)
+    if (result?.error) return toastError(result.error || t('rules.saveError'))
     state.editingRule = null
+    toastSuccess(t('rules.saveSuccess'))
     await refreshState()
   })
 
@@ -321,6 +436,34 @@ function bindEvents() {
     })
   })
 
+  document.querySelectorAll('[data-full-collection-copy]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const collection = state.collections.find(item => item.id === button.dataset.fullCollectionCopy)
+      if (!collection) return
+      try {
+        await copyJsonToClipboard(createCollectionBundle(collection, state.rules))
+        toastSuccess(t('toasts.collectionCopied'))
+      } catch {
+        toastError(t('toasts.copyError'))
+      }
+    })
+  })
+
+  document.querySelectorAll('[data-full-collection-export]').forEach(button => {
+    button.addEventListener('click', () => {
+      const collection = state.collections.find(item => item.id === button.dataset.fullCollectionExport)
+      if (!collection) return
+      try {
+        downloadJsonFile(createCollectionBundle(collection, state.rules), buildCollectionFilename(collection))
+        toastSuccess(t('toasts.collectionExported'))
+      } catch {
+        toastError(t('toasts.exportError'))
+      }
+    })
+  })
+
+  $('#full-import-rule-btn')?.addEventListener('click', () => openFullPage('import-export'))
+
   $('#full-network-url')?.addEventListener('input', event => {
     state.networkFilter.url = event.target.value
     applyLocalFilters()
@@ -368,49 +511,28 @@ function bindEvents() {
     await refreshState()
   })
 
-  $('#full-export-current-collection')?.addEventListener('click', async () => {
-    const activeCollectionId = state.settings.activeCollectionId
-    const payload = {
-      collection: state.collections.find(item => item.id === activeCollectionId),
-      rules: state.rules.filter(rule => rule.collectionId === activeCollectionId)
-    }
-    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2)).catch(() => {})
-    state.lastImportExportMessage = 'Current collection JSON copied to clipboard.'
-    render()
-  })
-
-  $('#full-export-all')?.addEventListener('click', async () => {
-    const payload = { collections: state.collections, rules: state.rules, settings: state.settings }
-    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2)).catch(() => {})
-    state.lastImportExportMessage = 'All data JSON copied to clipboard.'
-    render()
-  })
-
   $('#full-import-json-btn')?.addEventListener('click', async () => {
-    const raw = $('#full-import-json')?.value || ''
+    const textarea = $('#full-import-json')
+    const raw = textarea?.value || ''
     if (!raw.trim()) return
-    let parsed
+    const ok = await importBundleFromText(raw)
+    if (ok && textarea) textarea.value = ''
+  })
+
+  $('#full-import-pick-file-btn')?.addEventListener('click', () => {
+    $('#full-import-file-input')?.click()
+  })
+
+  $('#full-import-file-input')?.addEventListener('change', async event => {
+    const file = event.target.files?.[0]
+    if (!file) return
     try {
-      parsed = JSON.parse(raw)
+      const text = await file.text()
+      event.target.value = ''
+      await importBundleFromText(text)
     } catch {
-      alert(t('errors.invalidJson'))
-      return
+      toastError(t('toasts.importError'))
     }
-
-    if (Array.isArray(parsed.collections)) {
-      for (const collection of parsed.collections) {
-        await sendMessage({ type: MSG.COLLECTIONS_UPDATE, payload: collection })
-      }
-    }
-
-    if (Array.isArray(parsed.rules)) {
-      for (const rule of parsed.rules) {
-        await sendMessage({ type: MSG.RULES_UPDATE, payload: rule })
-      }
-    }
-
-    state.lastImportExportMessage = 'Import completed (merge by id).'
-    await refreshState()
   })
 
   $('#settings-save-btn')?.addEventListener('click', async () => {
@@ -465,14 +587,28 @@ document.addEventListener('keydown', event => {
 
 async function bootstrap() {
   await refreshState()
-  const editId = new URLSearchParams(window.location.search).get('edit')
+  const params = new URLSearchParams(window.location.search)
+  const editId = params.get('edit')
+  const draft = params.get('draft')
   if (editId) {
     const rule = state.rules.find(item => item.id === editId)
+    window.history.replaceState({}, '', window.location.pathname)
     if (rule) {
       state.page = 'rules'
       state.editingRule = clone(rule)
-      window.history.replaceState({}, '', window.location.pathname)
       render()
+    }
+  } else if (draft) {
+    try {
+      const draftRule = JSON.parse(draft)
+      if (draftRule && typeof draftRule === 'object') {
+        state.page = 'rules'
+        state.editingRule = draftRule
+        window.history.replaceState({}, '', window.location.pathname)
+        render()
+      }
+    } catch {
+      window.history.replaceState({}, '', window.location.pathname)
     }
   }
 }

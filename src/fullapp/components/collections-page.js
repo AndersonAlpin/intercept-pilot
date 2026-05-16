@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { icon } from '../../shared/icons.js'
 
 export function renderCollectionsPage(state) {
   const counts = new Map()
@@ -20,7 +21,9 @@ export function renderCollectionsPage(state) {
             <div class="footer-actions">
               <button class="btn" data-full-collection-set-active="${collection.id}">${t('collections.setActive')}</button>
               <button class="btn" data-full-collection-rename="${collection.id}">${t('collections.rename')}</button>
-              ${collection.id === 'collection-default' ? '' : `<button class="btn danger" data-full-collection-delete="${collection.id}">${t('common.delete')}</button>`}
+              <button class="icon-btn" type="button" data-full-collection-copy="${collection.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
+              <button class="icon-btn" type="button" data-full-collection-export="${collection.id}" title="${escapeHtml(t('common.exportJson'))}" aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
+              ${collection.id === 'collection-default' ? '' : `<button class="icon-btn danger" type="button" data-full-collection-delete="${collection.id}" title="${escapeHtml(t('common.delete'))}" aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>`}
             </div>
           </div>
         `).join('')}

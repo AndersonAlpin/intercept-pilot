@@ -1,5 +1,6 @@
 import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { icon } from '../../shared/icons.js'
 
 function actionBadge(rule) {
   const type = rule.action?.type || 'mockResponse'
@@ -34,11 +35,13 @@ export function renderRulesQuickPanel(state) {
             </div>
             <strong>${escapeHtml(truncate(rule.name, 48))}</strong>
             <div class="item-meta">${escapeHtml(rule.match?.method || 'ANY')} · ${escapeHtml(truncate(rule.match?.urlPattern || '', 64))}</div>
-            <div class="footer-actions">
-                  <button class="btn" data-rule-edit="${rule.id}">${t('common.edit')}</button>
-                  <button class="btn" data-rule-advanced="${rule.id}">${t('rules.advanced')}</button>
-                </div>
-              </div>
+            <div class="row-actions">
+              <button class="icon-btn" type="button" data-rule-edit="${rule.id}" title="${escapeHtml(t('common.edit'))}" aria-label="${escapeHtml(t('common.edit'))}">${icon('edit')}</button>
+              <button class="icon-btn" type="button" data-rule-copy="${rule.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
+              <button class="icon-btn" type="button" data-rule-export="${rule.id}" title="${escapeHtml(t('common.exportJson'))}" aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
+              <button class="btn" data-rule-advanced="${rule.id}" title="${escapeHtml(t('common.advanced'))}">${t('common.advanced')} ${icon('external', 12)}</button>
+            </div>
+          </div>
         `).join('') : `<div class="empty">${t('rules.noRules')}</div>`}
       </div>
       <p class="small">${t('rules.advancedEditor')}</p>

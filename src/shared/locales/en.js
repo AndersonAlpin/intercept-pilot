@@ -25,7 +25,13 @@ const en = {
     settings: 'Settings',
     close: 'Close',
     yes: 'Yes',
-    no: 'No'
+    no: 'No',
+    copy: 'Copy',
+    copyJson: 'Copy JSON',
+    exportJson: 'Export JSON',
+    downloadJson: 'Download JSON',
+    moreActions: 'More actions',
+    advanced: 'Advanced'
   },
   language: {
     title: 'Language',
@@ -123,6 +129,7 @@ const en = {
     exportCurrentCollection: 'Export current collection',
     exportAllData: 'Export all data',
     importJson: 'Import JSON',
+    importPickFile: 'Choose JSON file',
     saveSettings: 'Save settings',
     autoAttach: 'Auto-attach',
     autoReloadAfterRuleChange: 'Auto reload after rule change',
@@ -146,6 +153,22 @@ const en = {
   errors: {
     invalidJson: 'Invalid JSON format.',
     unknown: 'Unexpected error.'
+  },
+  toasts: {
+    ruleCopied: 'Rule JSON copied.',
+    ruleExported: 'Rule JSON exported.',
+    collectionCopied: 'Collection JSON copied.',
+    collectionExported: 'Collection JSON exported.',
+    ruleImported: 'Rule imported.',
+    collectionImported: 'Collection imported.',
+    importCompleted: 'Import completed.',
+    invalidJson: 'Invalid JSON.',
+    unsupportedType: 'Unsupported MockPilot JSON type.',
+    copyError: 'Could not copy JSON.',
+    exportError: 'Could not export JSON.',
+    importError: 'Could not import JSON.',
+    ruleImportError: 'Could not import rule.',
+    collectionImportError: 'Could not import collection.'
   },
   badges: {
     mock: 'mock',

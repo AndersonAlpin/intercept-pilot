@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { icon } from '../../shared/icons.js'
 
 function actionLabel(rule) {
   const type = rule.action?.type || 'mockResponse'
@@ -7,6 +8,11 @@ function actionLabel(rule) {
   if (type === 'failRequest') return 'fail'
   if (type === 'delayOnly') return `delay ${rule.action?.delayMs || 0}ms`
   return 'pass'
+}
+
+function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {
+  const cls = `icon-btn${danger ? ' danger' : ''}`
+  return `<button class="${cls}" type="button" data-full-rule-${action}="${ruleId}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${icon(iconName)}</button>`
 }
 
 export function renderRulesPage(state) {
@@ -21,7 +27,6 @@ export function renderRulesPage(state) {
         <input class="input" id="full-rules-search" placeholder="${t('rules.searchPlaceholder')}" value="${escapeHtml(state.rulesSearch || '')}" />
         <button class="btn primary" id="full-new-rule-btn">${t('fullapp.newRule')}</button>
         <button class="btn" id="full-import-rule-btn">${t('common.import')}</button>
-        <button class="btn" id="full-export-collection-btn">${t('fullapp.exportCollection')}</button>
       </div>
       <div class="table table-wide">
         ${rules.length ? rules.map(rule => `
@@ -32,10 +37,11 @@ export function renderRulesPage(state) {
             <div title="${escapeHtml(rule.match?.urlPattern || '')}">${escapeHtml(rule.name)}</div>
             <div>${escapeHtml(actionLabel(rule))}</div>
             <div>${rule.diagnostics?.conflictIds?.length ? '<span class="badge warning">conflict</span>' : '<span class="badge success">ok</span>'}</div>
-            <div class="footer-actions">
-              <button class="btn" data-full-rule-edit="${rule.id}">${t('common.edit')}</button>
-              <button class="btn" data-full-rule-export="${rule.id}">${t('rules.exportRule')}</button>
-              <button class="btn danger" data-full-rule-delete="${rule.id}">${t('common.delete')}</button>
+            <div class="row-actions">
+              ${iconBtn({ icon: 'edit', label: t('common.edit'), action: 'edit', ruleId: rule.id })}
+              ${iconBtn({ icon: 'copy', label: t('common.copyJson'), action: 'copy', ruleId: rule.id })}
+              ${iconBtn({ icon: 'download', label: t('common.exportJson'), action: 'export', ruleId: rule.id })}
+              ${iconBtn({ icon: 'trash', label: t('common.delete'), action: 'delete', ruleId: rule.id, danger: true })}
             </div>
           </div>
         `).join('') : `<div class="empty">${t('rules.noRules')}</div>`}

@@ -306,11 +306,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       case 'app:openFullApp': {
         const base = chrome.runtime.getURL('src/fullapp/fullapp.html')
-        const url = message.editRuleId ? `${base}?edit=${encodeURIComponent(message.editRuleId)}` : base
+        let url = base
+        if (message.editRuleId) {
+          url = `${base}?edit=${encodeURIComponent(message.editRuleId)}`
+        } else if (message.draftRule) {
+          url = `${base}?draft=${encodeURIComponent(message.draftRule)}`
+        }
+        const hasParam = Boolean(message.editRuleId || message.draftRule)
         const tabs = await chrome.tabs.query({})
         const existing = tabs.find(tab => tab.url?.startsWith(base))
         if (existing) {
-          const update = message.editRuleId ? { active: true, url } : { active: true }
+          const update = hasParam ? { active: true, url } : { active: true }
           await chrome.tabs.update(existing.id, update)
           if (existing.windowId != null) {
             await chrome.windows.update(existing.windowId, { focused: true }).catch(() => {})

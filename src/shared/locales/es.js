@@ -4,7 +4,9 @@ const es = {
     enabled: 'habilitado', disabled: 'deshabilitado', manage: 'Gestionar', edit: 'Editar', delete: 'Eliminar',
     cancel: 'Cancelar', save: 'Guardar', clear: 'Limpiar', refresh: 'Actualizar', create: 'Crear',
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Estado',
-    method: 'Método', level: 'Nivel', settings: 'Configuración', close: 'Cerrar', yes: 'Sí', no: 'No'
+    method: 'Método', level: 'Nivel', settings: 'Configuración', close: 'Cerrar', yes: 'Sí', no: 'No',
+    copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Descargar JSON',
+    moreActions: 'Más acciones', advanced: 'Avanzado'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
@@ -45,7 +47,7 @@ const es = {
     noRuleSelected: 'Selecciona una regla para editar.', ruleEditor: 'Editor de reglas',
     importPlaceholder: 'Pega JSON para importar', importStrategy: 'Estrategia de importación: merge por id (MVP actual).',
     noImportExportAction: 'Sin acciones de import/export todavía.', exportCurrentCollection: 'Exportar colección actual',
-    exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', saveSettings: 'Guardar configuración',
+    exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', importPickFile: 'Elegir archivo JSON', saveSettings: 'Guardar configuración',
     autoAttach: 'Auto-adjuntar', autoReloadAfterRuleChange: 'Auto-recargar tras cambio de regla',
     maxNetworkEntries: 'Máx. entradas de red', maxLogs: 'Máx. logs', attachedUrl: 'URL adjuntada',
     attachedTabId: 'attachedTabId', isAttached: 'isAttached', enabledRules: 'reglas habilitadas',
@@ -54,6 +56,22 @@ const es = {
     importCompleted: 'Importación completada (merge por id).', exportCopiedCollection: 'JSON de colección copiado.', exportCopiedAll: 'JSON de todos los datos copiado.'
   },
   errors: { invalidJson: 'Formato JSON inválido.', unknown: 'Error inesperado.' },
+  toasts: {
+    ruleCopied: 'JSON de la regla copiado.',
+    ruleExported: 'JSON de la regla exportado.',
+    collectionCopied: 'JSON de la colección copiado.',
+    collectionExported: 'JSON de la colección exportado.',
+    ruleImported: 'Regla importada.',
+    collectionImported: 'Colección importada.',
+    importCompleted: 'Importación completada.',
+    invalidJson: 'JSON inválido.',
+    unsupportedType: 'Tipo de JSON de MockPilot no soportado.',
+    copyError: 'No se pudo copiar el JSON.',
+    exportError: 'No se pudo exportar el JSON.',
+    importError: 'No se pudo importar el JSON.',
+    ruleImportError: 'No se pudo importar la regla.',
+    collectionImportError: 'No se pudo importar la colección.'
+  },
   badges: { mock: 'mock', fail: 'fallo', delay: 'delay', pass: 'pass', ok: 'ok', conflict: 'conflicto', error: 'error', warn: 'aviso', info: 'info' }
 }
 
