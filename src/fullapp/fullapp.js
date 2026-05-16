@@ -9,7 +9,7 @@ import { renderDashboardPage } from './components/dashboard-page.js'
 import { renderRulesPage } from './components/rules-page.js'
 import { renderRuleEditor } from './components/rule-editor.js'
 import { renderCollectionsPage } from './components/collections-page.js'
-import { renderNetworkPage } from './components/network-page.js'
+import { renderNetworkPage, renderNetworkRows } from './components/network-page.js'
 import { renderLogsPage } from './components/logs-page.js'
 import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
@@ -128,6 +128,26 @@ function render() {
     content: renderPage()
   })
   bindEvents()
+}
+
+function bindCreateRuleFromRequestEvents() {
+  document.querySelectorAll('[data-full-create-from-request]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.fullCreateFromRequest })
+      if (result?.error) return alert(result.error)
+      state.page = 'rules'
+      state.editingRule = result.createdRule || null
+      await refreshState()
+    })
+  })
+}
+
+function refreshNetworkTableOnly() {
+  if (state.page !== 'network') return
+  const table = $('#full-network-table')
+  if (!table) return
+  table.innerHTML = renderNetworkRows(state)
+  bindCreateRuleFromRequestEvents()
 }
 
 function readEditorRule() {
@@ -271,42 +291,34 @@ function bindEvents() {
   $('#full-network-url')?.addEventListener('input', event => {
     state.networkFilter.url = event.target.value
     applyLocalFilters()
-    render()
+    refreshNetworkTableOnly()
   })
   $('#full-network-method')?.addEventListener('change', event => {
     state.networkFilter.method = event.target.value
     applyLocalFilters()
-    render()
+    refreshNetworkTableOnly()
   })
   $('#full-network-status')?.addEventListener('input', event => {
     state.networkFilter.status = event.target.value
     applyLocalFilters()
-    render()
+    refreshNetworkTableOnly()
   })
   $('#full-network-matched')?.addEventListener('change', event => {
     state.networkFilter.matchedOnly = event.target.checked
     applyLocalFilters()
-    render()
+    refreshNetworkTableOnly()
   })
   $('#full-network-intercepted')?.addEventListener('change', event => {
     state.networkFilter.interceptedOnly = event.target.checked
     applyLocalFilters()
-    render()
+    refreshNetworkTableOnly()
   })
   $('#full-network-clear')?.addEventListener('click', async () => {
     await sendMessage({ type: MSG.NETWORK_CLEAR })
     await refreshState()
   })
 
-  document.querySelectorAll('[data-full-create-from-request]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.fullCreateFromRequest })
-      if (result?.error) return alert(result.error)
-      state.page = 'rules'
-      state.editingRule = result.createdRule || null
-      await refreshState()
-    })
-  })
+  bindCreateRuleFromRequestEvents()
 
   $('#full-logs-level')?.addEventListener('change', event => {
     state.logsFilter.level = event.target.value
@@ -387,7 +399,11 @@ chrome.runtime.onMessage.addListener(message => {
     state.networkEntries = message.networkEntries
     if (state.page === 'network' || state.page === 'dashboard') {
       applyLocalFilters()
-      render()
+      if (state.page === 'network') {
+        refreshNetworkTableOnly()
+      } else {
+        render()
+      }
     }
   }
   if (message?.type === 'state:logs') {

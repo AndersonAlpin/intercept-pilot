@@ -1,8 +1,24 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 
-export function renderNetworkPage(state) {
+export function renderNetworkRows(state) {
   const entries = state.filteredNetworkEntries || state.networkEntries
+  return `
+    ${entries.length ? entries.slice(0, 200).map(entry => `
+      <div class="table-row row-network">
+        <div>${escapeHtml(entry.method || '—')}</div>
+        <div title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</div>
+        <div>${entry.status ?? '—'}</div>
+        <div>${escapeHtml(entry.resourceType || '')}</div>
+        <div>${escapeHtml(entry.matchedRuleName || t('rules.passThrough'))}</div>
+        <div>${escapeHtml(entry.appliedAction || t('rules.passThrough'))}</div>
+        <div class="footer-actions"><button class="btn" data-full-create-from-request="${entry.id}">${t('network.createRule')}</button></div>
+      </div>
+    `).join('') : `<div class="empty">${t('network.noRequests')}</div>`}
+  `
+}
+
+export function renderNetworkPage(state) {
   return `
     <section class="card">
       <div class="toolbar">
@@ -13,18 +29,8 @@ export function renderNetworkPage(state) {
         <label class="switch"><input type="checkbox" id="full-network-intercepted" ${state.networkFilter.interceptedOnly ? 'checked' : ''}/> ${t('network.interceptedOnly')}</label>
         <button class="btn" id="full-network-clear">${t('common.clear')}</button>
       </div>
-      <div class="table table-wide">
-        ${entries.length ? entries.slice(0, 200).map(entry => `
-          <div class="table-row row-network">
-            <div>${escapeHtml(entry.method || '—')}</div>
-            <div title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</div>
-            <div>${entry.status ?? '—'}</div>
-            <div>${escapeHtml(entry.resourceType || '')}</div>
-            <div>${escapeHtml(entry.matchedRuleName || t('rules.passThrough'))}</div>
-            <div>${escapeHtml(entry.appliedAction || t('rules.passThrough'))}</div>
-            <div class="footer-actions"><button class="btn" data-full-create-from-request="${entry.id}">${t('network.createRule')}</button></div>
-          </div>
-        `).join('') : `<div class="empty">${t('network.noRequests')}</div>`}
+      <div class="table table-wide" id="full-network-table">
+        ${renderNetworkRows(state)}
       </div>
     </section>
   `
