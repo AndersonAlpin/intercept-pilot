@@ -304,9 +304,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'state:get':
         sendResponse(await getFullState())
         return
-      case 'app:openFullApp':
-        sendResponse({ ok: true, tabId: (await chrome.tabs.create({ url: chrome.runtime.getURL('src/fullapp/fullapp.html') }))?.id || null })
+      case 'app:openFullApp': {
+        const base = chrome.runtime.getURL('src/fullapp/fullapp.html')
+        const url = message.editRuleId ? `${base}?edit=${encodeURIComponent(message.editRuleId)}` : base
+        const tabs = await chrome.tabs.query({})
+        const existing = tabs.find(tab => tab.url?.startsWith(base))
+        if (existing) {
+          const update = message.editRuleId ? { active: true, url } : { active: true }
+          await chrome.tabs.update(existing.id, update)
+          if (existing.windowId != null) {
+            await chrome.windows.update(existing.windowId, { focused: true }).catch(() => {})
+          }
+          sendResponse({ ok: true, tabId: existing.id })
+        } else {
+          const created = await chrome.tabs.create({ url })
+          sendResponse({ ok: true, tabId: created?.id || null })
+        }
         return
+      }
       case 'settings:update':
         sendResponse({ settings: await updateSettings(message.payload || {}) })
         return

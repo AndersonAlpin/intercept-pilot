@@ -463,4 +463,18 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && state.editingRule) closeEditor()
 })
 
-refreshState()
+async function bootstrap() {
+  await refreshState()
+  const editId = new URLSearchParams(window.location.search).get('edit')
+  if (editId) {
+    const rule = state.rules.find(item => item.id === editId)
+    if (rule) {
+      state.page = 'rules'
+      state.editingRule = clone(rule)
+      window.history.replaceState({}, '', window.location.pathname)
+      render()
+    }
+  }
+}
+
+bootstrap()

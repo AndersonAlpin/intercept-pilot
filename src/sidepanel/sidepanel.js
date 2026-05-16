@@ -245,7 +245,7 @@ function bindEvents() {
   })
 
   document.querySelectorAll('[data-rule-advanced]').forEach(button => {
-    button.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
+    button.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, editRuleId: button.dataset.ruleAdvanced }))
   })
 
   $('#network-refresh-btn')?.addEventListener('click', refreshState)
