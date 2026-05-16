@@ -34,7 +34,32 @@ const pt = {
     saveSuccess: 'Regra salva com sucesso.', saveError: 'Falha ao salvar regra.', deleteConfirm: 'Excluir esta regra?',
     deleteTitle: 'Excluir regra', deleteSuccess: 'Regra excluída.',
     createFromRequestError: 'Falha ao criar regra da requisição.',
-    exportRule: 'Exportar', exportCopiedRule: 'JSON da regra copiado.'
+    exportRule: 'Exportar', exportCopiedRule: 'JSON da regra copiado.',
+    columns: {
+      rule: 'Regra', status: 'Status', method: 'Método', action: 'Ação', state: 'Estado', hits: 'Hits', actions: 'Ações'
+    },
+    states: {
+      ready: 'Pronta', matched: 'Acionada', disabled: 'Desativada', error: 'Erro', conflict: 'Conflito'
+    },
+    actionLabels: {
+      mock: 'Mock', fail: 'Falha', delay: 'Atraso', pass: 'Pass'
+    },
+    fields: {
+      name: 'Nome da regra',
+      priority: 'Prioridade',
+      method: 'Método',
+      matchType: 'Tipo de correspondência',
+      resourceType: 'Tipo de recurso',
+      urlPattern: 'Padrão de URL',
+      actionType: 'Tipo de ação',
+      statusCode: 'Código de status',
+      delayMs: 'Atraso (ms)',
+      contentType: 'Content-Type',
+      responseHeaders: 'Headers da resposta',
+      responseBody: 'Corpo da resposta',
+      applyResponseBody: 'Aplicar corpo da resposta',
+      applyResponseHeaders: 'Aplicar headers da resposta'
+    }
   },
   logs: { title: 'Logs', errorOnly: 'somente erro', clearLogs: 'Limpar logs', noLogs: 'Sem logs.' },
   network: {

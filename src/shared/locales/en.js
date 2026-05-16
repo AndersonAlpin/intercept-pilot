@@ -100,7 +100,45 @@ const en = {
     deleteSuccess: 'Rule deleted.',
     createFromRequestError: 'Failed to create rule from request.',
     exportRule: 'Export',
-    exportCopiedRule: 'Rule JSON copied to clipboard.'
+    exportCopiedRule: 'Rule JSON copied to clipboard.',
+    columns: {
+      rule: 'Rule',
+      status: 'Status',
+      method: 'Method',
+      action: 'Action',
+      state: 'State',
+      hits: 'Hits',
+      actions: 'Actions'
+    },
+    states: {
+      ready: 'Ready',
+      matched: 'Matched',
+      disabled: 'Disabled',
+      error: 'Error',
+      conflict: 'Conflict'
+    },
+    actionLabels: {
+      mock: 'Mock',
+      fail: 'Fail',
+      delay: 'Delay',
+      pass: 'Pass'
+    },
+    fields: {
+      name: 'Rule name',
+      priority: 'Priority',
+      method: 'Method',
+      matchType: 'Match type',
+      resourceType: 'Resource type',
+      urlPattern: 'URL pattern',
+      actionType: 'Action type',
+      statusCode: 'Status code',
+      delayMs: 'Delay (ms)',
+      contentType: 'Content-Type',
+      responseHeaders: 'Response headers',
+      responseBody: 'Response body',
+      applyResponseBody: 'Apply response body',
+      applyResponseHeaders: 'Apply response headers'
+    }
   },
   logs: {
     title: 'Logs',

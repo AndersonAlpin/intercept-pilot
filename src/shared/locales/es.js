@@ -34,7 +34,32 @@ const es = {
     saveSuccess: 'Regla guardada.', saveError: 'Error al guardar regla.', deleteConfirm: '¿Eliminar esta regla?',
     deleteTitle: 'Eliminar regla', deleteSuccess: 'Regla eliminada.',
     createFromRequestError: 'Error al crear regla desde request.',
-    exportRule: 'Exportar', exportCopiedRule: 'JSON de la regla copiado.'
+    exportRule: 'Exportar', exportCopiedRule: 'JSON de la regla copiado.',
+    columns: {
+      rule: 'Regla', status: 'Estado', method: 'Método', action: 'Acción', state: 'Estado', hits: 'Hits', actions: 'Acciones'
+    },
+    states: {
+      ready: 'Lista', matched: 'Activada', disabled: 'Desactivada', error: 'Error', conflict: 'Conflicto'
+    },
+    actionLabels: {
+      mock: 'Mock', fail: 'Fallo', delay: 'Retraso', pass: 'Pass'
+    },
+    fields: {
+      name: 'Nombre de la regla',
+      priority: 'Prioridad',
+      method: 'Método',
+      matchType: 'Tipo de coincidencia',
+      resourceType: 'Tipo de recurso',
+      urlPattern: 'Patrón de URL',
+      actionType: 'Tipo de acción',
+      statusCode: 'Código de estado',
+      delayMs: 'Retraso (ms)',
+      contentType: 'Content-Type',
+      responseHeaders: 'Headers de la respuesta',
+      responseBody: 'Cuerpo de la respuesta',
+      applyResponseBody: 'Aplicar cuerpo de la respuesta',
+      applyResponseHeaders: 'Aplicar headers de la respuesta'
+    }
   },
   logs: { title: 'Logs', errorOnly: 'solo errores', clearLogs: 'Limpiar logs', noLogs: 'Sin logs.' },
   network: {
