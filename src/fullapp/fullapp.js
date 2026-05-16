@@ -1,6 +1,7 @@
 import { MSG, sendMessage } from '../shared/messaging.js'
 import { clone } from '../shared/utils.js'
 import { makeCollection, makeRule } from '../shared/models.js'
+import { validateRule } from '../shared/validators.js'
 import { setLocale, t } from '../shared/i18n.js'
 import {
   createRuleBundle,
@@ -147,6 +148,13 @@ function render() {
 function closeEditor() {
   state.editingRule = null
   render()
+}
+
+function translateBackendError(code) {
+  if (!code) return t('rules.saveError')
+  const key = `errors.${code}`
+  const value = t(key)
+  return value === key ? code : value
 }
 
 async function importRuleBundle(bundle) {
@@ -380,9 +388,14 @@ function bindEvents() {
   $('#editor-save-rule')?.addEventListener('click', async () => {
     const payload = readEditorRule()
     if (!payload) return
+    const errors = validateRule(payload)
+    if (errors.length) {
+      toastError(t(`errors.${errors[0]}`))
+      return
+    }
     const type = payload.id ? MSG.RULES_UPDATE : MSG.RULES_CREATE
     const result = await sendMessage({ type, payload })
-    if (result?.error) return toastError(result.error || t('rules.saveError'))
+    if (result?.error) return toastError(translateBackendError(result.error))
     state.editingRule = null
     toastSuccess(t('rules.saveSuccess'))
     await refreshState()

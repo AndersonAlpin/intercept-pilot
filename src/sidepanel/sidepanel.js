@@ -1,5 +1,6 @@
 import { MSG, sendMessage } from '../shared/messaging.js'
 import { makeRule } from '../shared/models.js'
+import { validateRule } from '../shared/validators.js'
 import { setLocale, t } from '../shared/i18n.js'
 import {
   createRuleBundle,
@@ -96,12 +97,11 @@ function hydrateQuickRule(seed = {}) {
 function render() {
   const root = $('#app')
   const header = renderConnectionHeader(appState)
-  const switcher = renderCollectionSwitcher(appState)
   const tabs = renderTabs(appState.currentTab)
 
   let body = ''
   if (appState.currentTab === 'rules') {
-    body = `${renderRulesQuickPanel(appState)}${renderQuickRuleEditor(appState)}`
+    body = `${renderCollectionSwitcher(appState)}${renderRulesQuickPanel(appState)}${renderQuickRuleEditor(appState)}`
   }
   if (appState.currentTab === 'network') {
     appState.filteredNetworkEntries = filteredNetworkEntries()
@@ -111,7 +111,7 @@ function render() {
     body = renderLogsQuickPanel(appState)
   }
 
-  root.innerHTML = `${header}${tabs}<section class="content">${switcher}${body}</section>`
+  root.innerHTML = `${header}${tabs}<section class="content">${body}</section>`
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindEvents()
 }
@@ -157,12 +157,24 @@ function readQuickRuleForm() {
   }
 }
 
+function translateBackendError(code) {
+  if (!code) return t('rules.saveError')
+  const key = `errors.${code}`
+  const value = t(key)
+  return value === key ? code : value
+}
+
 async function saveQuickRule() {
   const payload = readQuickRuleForm()
+  const errors = validateRule(payload)
+  if (errors.length) {
+    toastError(t(`errors.${errors[0]}`))
+    return
+  }
   const type = payload.id ? MSG.RULES_UPDATE : MSG.RULES_CREATE
   const result = await sendMessage({ type, payload })
   if (result?.error) {
-    toastError(result.error || t('rules.saveError'))
+    toastError(translateBackendError(result.error))
     return
   }
   appState.quickRuleEditorOpen = false

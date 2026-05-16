@@ -55,7 +55,21 @@ const pt = {
     newRule: 'Nova regra', exportCollection: 'Exportar coleção', importRule: 'Importar', settingsSaved: 'Configurações salvas.',
     importCompleted: 'Importação concluída (merge por id).', exportCopiedCollection: 'JSON da coleção atual copiado.', exportCopiedAll: 'JSON de todos os dados copiado.'
   },
-  errors: { invalidJson: 'Formato JSON inválido.', unknown: 'Erro inesperado.' },
+  errors: {
+    invalidJson: 'Formato JSON inválido.',
+    unknown: 'Erro inesperado.',
+    ruleNameRequired: 'O nome da regra é obrigatório.',
+    urlPatternRequired: 'O padrão de URL é obrigatório.',
+    invalidMethod: 'Método HTTP inválido.',
+    invalidResourceType: 'Tipo de recurso inválido.',
+    invalidMatchType: 'Tipo de correspondência inválido.',
+    invalidActionType: 'Tipo de ação inválido.',
+    invalidRegex: 'Padrão regex inválido.',
+    invalidStatusCode: 'O código de status deve estar entre 100 e 599.',
+    invalidDelay: 'O atraso deve ser maior ou igual a 0.',
+    invalidFailReason: 'Motivo de falha inválido.',
+    invalidResponseBodyJson: 'O corpo da resposta deve ser um JSON válido para content type application/json.'
+  },
   toasts: {
     ruleCopied: 'JSON da regra copiado.',
     ruleExported: 'JSON da regra exportado.',

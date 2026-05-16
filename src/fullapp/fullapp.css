@@ -67,9 +67,11 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .row-network { grid-template-columns: 80px 1fr 70px 90px 150px 110px 140px; }
 .row-error { border-color: rgba(255,92,102,.6); }
 .list { display: flex; flex-direction: column; gap: 8px; }
-.item { border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.item { border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .item-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.item-meta { color: var(--text-muted); font-size: 12px; }
+.item-title > :first-child { min-width: 0; flex: 1; }
+.item strong { overflow-wrap: anywhere; word-break: break-word; }
+.item-meta { color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; word-break: break-word; }
 .footer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .footer-actions .btn { padding: 8px 12px; }
 .preview { margin: 0; border: 1px solid var(--border); border-radius: 10px; background: #0f1420; padding: 10px; overflow: auto; max-height: 240px; }

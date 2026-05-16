@@ -152,7 +152,18 @@ const en = {
   },
   errors: {
     invalidJson: 'Invalid JSON format.',
-    unknown: 'Unexpected error.'
+    unknown: 'Unexpected error.',
+    ruleNameRequired: 'Rule name is required.',
+    urlPatternRequired: 'URL pattern is required.',
+    invalidMethod: 'Invalid HTTP method.',
+    invalidResourceType: 'Invalid resource type.',
+    invalidMatchType: 'Invalid match type.',
+    invalidActionType: 'Invalid action type.',
+    invalidRegex: 'Invalid regex pattern.',
+    invalidStatusCode: 'Status code must be between 100 and 599.',
+    invalidDelay: 'Delay must be greater than or equal to 0.',
+    invalidFailReason: 'Invalid failure reason.',
+    invalidResponseBodyJson: 'Response body must be valid JSON for application/json content type.'
   },
   toasts: {
     ruleCopied: 'Rule JSON copied.',
