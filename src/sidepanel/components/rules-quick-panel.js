@@ -50,23 +50,26 @@ export function renderQuickRuleEditor(state) {
   if (!state.quickRuleEditorOpen) return ''
   const form = state.quickRuleForm
   return `
-    <div class="card compact-card">
-      <div class="row space-between">
-        <h2>${form.id ? t('rules.editRule') : t('rules.createRule')}</h2>
-        <button class="btn" id="quick-editor-cancel">${t('common.cancel')}</button>
-      </div>
-      <div class="column">
-        <label class="switch"><input type="checkbox" id="quick-enabled" ${form.enabled ? 'checked' : ''}/> ${t('common.enabled')}</label>
-        <input class="input" id="quick-name" placeholder="${t('rules.ruleName')}" value="${escapeHtml(form.name)}" />
-        <select class="select" id="quick-method">${['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map(method => `<option value="${method}" ${form.match.method === method ? 'selected' : ''}>${method}</option>`).join('')}</select>
-        <select class="select" id="quick-match-type">${['contains', 'equals'].map(type => `<option value="${type}" ${form.match.matchType === type ? 'selected' : ''}>${type}</option>`).join('')}</select>
-        <input class="input" id="quick-url" placeholder="/api/user" value="${escapeHtml(form.match.urlPattern)}" />
-        <select class="select" id="quick-action-type">${['mockResponse', 'failRequest', 'delayOnly', 'passThrough'].map(type => `<option value="${type}" ${form.action.type === type ? 'selected' : ''}>${type}</option>`).join('')}</select>
-        <input class="input" id="quick-status" type="number" placeholder="${t('rules.statusCode')}" value="${escapeHtml(form.action.statusCode)}" />
-        <input class="input" id="quick-delay" type="number" placeholder="${t('rules.delayMs')}" value="${escapeHtml(form.action.delayMs)}" />
-        <textarea class="textarea" id="quick-body">${escapeHtml(form.action.responseBody)}</textarea>
+    <div class="modal-backdrop" data-modal-backdrop>
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal-header">
+          <h2>${form.id ? t('rules.editRule') : t('rules.createRule')}</h2>
+          <button class="modal-close" id="quick-editor-close-x" aria-label="${t('common.close')}">×</button>
+        </div>
+        <div class="column">
+          <label class="switch"><input type="checkbox" id="quick-enabled" ${form.enabled ? 'checked' : ''}/> ${t('common.enabled')}</label>
+          <input class="input" id="quick-name" placeholder="${t('rules.ruleName')}" value="${escapeHtml(form.name)}" />
+          <select class="select" id="quick-method">${['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map(method => `<option value="${method}" ${form.match.method === method ? 'selected' : ''}>${method}</option>`).join('')}</select>
+          <select class="select" id="quick-match-type">${['contains', 'equals'].map(type => `<option value="${type}" ${form.match.matchType === type ? 'selected' : ''}>${type}</option>`).join('')}</select>
+          <input class="input" id="quick-url" placeholder="/api/user" value="${escapeHtml(form.match.urlPattern)}" />
+          <select class="select" id="quick-action-type">${['mockResponse', 'failRequest', 'delayOnly', 'passThrough'].map(type => `<option value="${type}" ${form.action.type === type ? 'selected' : ''}>${type}</option>`).join('')}</select>
+          <input class="input" id="quick-status" type="number" placeholder="${t('rules.statusCode')}" value="${escapeHtml(form.action.statusCode)}" />
+          <input class="input" id="quick-delay" type="number" placeholder="${t('rules.delayMs')}" value="${escapeHtml(form.action.delayMs)}" />
+          <textarea class="textarea" id="quick-body">${escapeHtml(form.action.responseBody)}</textarea>
+        </div>
         <div class="footer-actions">
-          <button class="btn primary" id="quick-save-rule">${form.id ? t('rules.saveQuickEdit') : t('rules.createEnabledRule')}</button>
+          <button class="btn" id="quick-editor-cancel">${t('common.cancel')}</button>
+          <button class="btn primary" id="quick-save-rule">${t('common.save')}</button>
           <button class="btn" id="quick-open-advanced">${t('rules.advanced')}</button>
         </div>
       </div>

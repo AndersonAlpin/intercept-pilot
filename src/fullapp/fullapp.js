@@ -127,7 +127,13 @@ function render() {
     topbar: renderTopbar(state),
     content: renderPage()
   })
+  document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindEvents()
+}
+
+function closeEditor() {
+  state.editingRule = null
+  render()
 }
 
 function bindCreateRuleFromRequestEvents() {
@@ -230,6 +236,26 @@ function bindEvents() {
     })
   })
 
+  document.querySelectorAll('[data-full-rule-export]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const rule = state.rules.find(item => item.id === button.dataset.fullRuleExport)
+      if (!rule) return
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(rule, null, 2))
+      } catch {
+        alert(t('errors.unknown'))
+        return
+      }
+      const originalText = button.textContent
+      button.textContent = '✓'
+      button.disabled = true
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 1400)
+    })
+  })
+
   document.querySelectorAll('[data-full-rule-toggle]').forEach(input => {
     input.addEventListener('change', async () => {
       await sendMessage({ type: MSG.RULES_TOGGLE, ruleId: input.dataset.fullRuleToggle, enabled: input.checked })
@@ -243,7 +269,14 @@ function bindEvents() {
     const type = payload.id ? MSG.RULES_UPDATE : MSG.RULES_CREATE
     const result = await sendMessage({ type, payload })
     if (result?.error) return alert(result.error)
+    state.editingRule = null
     await refreshState()
+  })
+
+  $('#editor-cancel-rule')?.addEventListener('click', closeEditor)
+  $('#editor-close-x')?.addEventListener('click', closeEditor)
+  document.querySelector('[data-modal-backdrop]')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeEditor()
   })
 
   $('#full-new-collection-btn')?.addEventListener('click', async () => {
@@ -424,6 +457,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   if (changes.settings || changes.collections || changes.rules || changes.logs) {
     refreshState()
   }
+})
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && state.editingRule) closeEditor()
 })
 
 refreshState()

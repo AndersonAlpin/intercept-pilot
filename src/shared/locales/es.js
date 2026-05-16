@@ -28,7 +28,8 @@ const es = {
     createEnabledRule: 'Crear regla habilitada', saveQuickEdit: 'Guardar edición rápida', mockThis: 'Mockear', inspect: 'Inspeccionar ↗',
     noRequests: 'Sin requests todavía.', passThrough: 'passThrough', noMatch: 'Sin match',
     saveSuccess: 'Regla guardada.', saveError: 'Error al guardar regla.', deleteConfirm: '¿Eliminar esta regla?',
-    createFromRequestError: 'Error al crear regla desde request.'
+    createFromRequestError: 'Error al crear regla desde request.',
+    exportRule: 'Exportar', exportCopiedRule: 'JSON de la regla copiado.'
   },
   logs: { title: 'Logs', errorOnly: 'solo errores', clearLogs: 'Limpiar logs', noLogs: 'Sin logs.' },
   network: {

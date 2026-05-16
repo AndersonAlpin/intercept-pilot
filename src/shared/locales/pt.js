@@ -28,7 +28,8 @@ const pt = {
     createEnabledRule: 'Criar regra ativada', saveQuickEdit: 'Salvar edição rápida', mockThis: 'Mockar', inspect: 'Inspecionar ↗',
     noRequests: 'Sem requisições ainda.', passThrough: 'passThrough', noMatch: 'Sem match',
     saveSuccess: 'Regra salva com sucesso.', saveError: 'Falha ao salvar regra.', deleteConfirm: 'Excluir esta regra?',
-    createFromRequestError: 'Falha ao criar regra da requisição.'
+    createFromRequestError: 'Falha ao criar regra da requisição.',
+    exportRule: 'Exportar', exportCopiedRule: 'JSON da regra copiado.'
   },
   logs: { title: 'Logs', errorOnly: 'somente erro', clearLogs: 'Limpar logs', noLogs: 'Sem logs.' },
   network: {

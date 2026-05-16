@@ -105,7 +105,13 @@ function render() {
   }
 
   root.innerHTML = `${header}${tabs}<section class="content">${switcher}${body}</section>`
+  document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindEvents()
+}
+
+function closeQuickEditor() {
+  appState.quickRuleEditorOpen = false
+  render()
 }
 
 async function refreshState() {
@@ -212,9 +218,10 @@ function bindEvents() {
     render()
   })
 
-  $('#quick-editor-cancel')?.addEventListener('click', () => {
-    appState.quickRuleEditorOpen = false
-    render()
+  $('#quick-editor-cancel')?.addEventListener('click', closeQuickEditor)
+  $('#quick-editor-close-x')?.addEventListener('click', closeQuickEditor)
+  document.querySelector('[data-modal-backdrop]')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeQuickEditor()
   })
 
   $('#quick-save-rule')?.addEventListener('click', async () => saveQuickRule(false))
@@ -315,6 +322,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   if (changes.settings || changes.collections || changes.rules) {
     refreshState()
   }
+})
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && appState.quickRuleEditorOpen) closeQuickEditor()
 })
 
 refreshState()

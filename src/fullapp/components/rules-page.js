@@ -34,6 +34,7 @@ export function renderRulesPage(state) {
             <div>${rule.diagnostics?.conflictIds?.length ? '<span class="badge warning">conflict</span>' : '<span class="badge success">ok</span>'}</div>
             <div class="footer-actions">
               <button class="btn" data-full-rule-edit="${rule.id}">${t('common.edit')}</button>
+              <button class="btn" data-full-rule-export="${rule.id}">${t('rules.exportRule')}</button>
               <button class="btn danger" data-full-rule-delete="${rule.id}">${t('common.delete')}</button>
             </div>
           </div>

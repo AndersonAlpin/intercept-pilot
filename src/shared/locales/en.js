@@ -84,7 +84,9 @@ const en = {
     saveSuccess: 'Rule saved successfully.',
     saveError: 'Failed to save rule.',
     deleteConfirm: 'Delete this rule?',
-    createFromRequestError: 'Failed to create rule from request.'
+    createFromRequestError: 'Failed to create rule from request.',
+    exportRule: 'Export',
+    exportCopiedRule: 'Rule JSON copied to clipboard.'
   },
   logs: {
     title: 'Logs',
