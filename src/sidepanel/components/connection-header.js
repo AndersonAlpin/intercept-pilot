@@ -7,14 +7,13 @@ export function renderConnectionHeader(state) {
   const statusText = state.attachBusy ? t('status.connecting') : attached ? t('status.attached') : t('status.notAttached')
   const urlText = state.activeTab?.url ? truncate(state.activeTab.url, 52) : t('status.noActiveUrl')
 
-  const localeCode = String(state.settings?.language || 'en').toUpperCase()
   return `
     <header class="header">
       <div class="header-top">
         <div class="brand">
           <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
           <p class="attach-status ${statusClass}">${statusText}</p>
-          <p class="url-muted" title="${escapeHtml(state.activeTab?.url || '')}">${escapeHtml(urlText)} · ${localeCode}</p>
+          <p class="url-muted" title="${escapeHtml(state.activeTab?.url || '')}">${escapeHtml(urlText)}</p>
         </div>
         <div class="header-actions compact">
           <button class="btn" id="open-fullapp-btn">${t('common.open')}</button>

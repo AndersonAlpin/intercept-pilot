@@ -264,15 +264,30 @@ chrome.runtime.onInstalled.addListener(async () => {
   await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
 })
 
+async function broadcastActiveTab() {
+  const activeTab = await getActiveTab().catch(() => null)
+  broadcast({
+    type: 'state:activeTab',
+    activeTab: activeTab ? { id: activeTab.id, url: activeTab.url || '', title: activeTab.title || '' } : null
+  })
+}
+
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   const tab = await chrome.tabs.get(tabId).catch(() => null)
   if (tab) runtimeState.tabMeta.set(tabId, { url: tab.url || '', title: tab.title || '' })
+  await broadcastActiveTab()
 })
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.url || changeInfo.title) {
     runtimeState.tabMeta.set(tabId, { url: changeInfo.url || tab.url || '', title: changeInfo.title || tab.title || '' })
+    if (tab.active) await broadcastActiveTab()
   }
+})
+
+chrome.windows.onFocusChanged.addListener(async windowId => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) return
+  await broadcastActiveTab()
 })
 
 chrome.debugger.onEvent.addListener(async (source, method, params) => {

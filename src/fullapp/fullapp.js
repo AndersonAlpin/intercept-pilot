@@ -618,6 +618,10 @@ chrome.runtime.onMessage.addListener(message => {
     state.attachedTabId = message.attachedTabId
     render()
   }
+  if (message?.type === 'state:activeTab') {
+    state.activeTab = message.activeTab
+    render()
+  }
 })
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
