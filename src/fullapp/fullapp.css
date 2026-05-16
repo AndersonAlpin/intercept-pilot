@@ -18,6 +18,7 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .app-shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
 .app-sidebar { border-right: 1px solid var(--border); background: #0f1727; padding: 18px 14px; }
 .app-sidebar h1 { margin: 0 0 16px; font-size: 22px; }
+.app-sidebar .brand-logo { height: 32px; width: auto; display: block; margin: 0 0 18px; }
 .app-sidebar nav { display: flex; flex-direction: column; gap: 6px; }
 .nav-item { width: 100%; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 10px; padding: 10px 12px; color: var(--text-muted); cursor: pointer; transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease; }
 .nav-item:not(.active):hover { background: rgba(255,255,255,.04); border-color: var(--border); color: var(--text); }

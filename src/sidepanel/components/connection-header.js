@@ -12,7 +12,7 @@ export function renderConnectionHeader(state) {
     <header class="header">
       <div class="header-top">
         <div class="brand">
-          <h1>MockPilot</h1>
+          <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
           <p class="attach-status ${statusClass}">${statusText}</p>
           <p class="url-muted" title="${escapeHtml(state.activeTab?.url || '')}">${escapeHtml(urlText)} · ${localeCode}</p>
         </div>

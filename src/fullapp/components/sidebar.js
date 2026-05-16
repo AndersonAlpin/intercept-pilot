@@ -14,7 +14,7 @@ export function renderSidebar(currentPage) {
 
   return `
     <aside class="app-sidebar">
-      <h1>MockPilot</h1>
+      <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
       <nav>
         ${items.map(([id, label]) => `<button class="nav-item ${currentPage === id ? 'active' : ''}" data-page="${id}">${label}</button>`).join('')}
       </nav>

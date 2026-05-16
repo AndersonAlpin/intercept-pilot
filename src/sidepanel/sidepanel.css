@@ -23,6 +23,7 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .header { position: sticky; top: 0; z-index: 10; background: rgba(11,15,23,.96); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 14px; }
 .header-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .brand h1 { margin: 0; font-size: 22px; }
+.brand-logo { height: 26px; width: auto; display: block; margin-bottom: 4px; }
 .attach-status { margin: 2px 0 0; display: inline-flex; align-items: center; gap: 6px; color: var(--text-soft); }
 .attach-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
 .attach-status.is-attached::before { background: var(--success); }
