@@ -150,7 +150,8 @@ const en = {
     title: 'Logs',
     errorOnly: 'error only',
     clearLogs: 'Clear logs',
-    noLogs: 'No logs.'
+    noLogs: 'No logs.',
+    noResults: 'No logs match these filters.'
   },
   network: {
     title: 'Network',
@@ -160,6 +161,8 @@ const en = {
     matchedOnly: 'matched only',
     interceptedOnly: 'intercepted only',
     noRequests: 'No requests captured yet.',
+    noResults: 'No requests match these filters.',
+    resultsCount: '{filtered} of {total}',
     createRule: 'Create rule'
   },
   dashboard: {

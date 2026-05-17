@@ -12,20 +12,21 @@ function statusBadge(status) {
 export function renderNetworkQuickPanel(state) {
   const entries = state.filteredNetworkEntries || []
   return `
-    <div class="card compact-card">
-      <div class="row space-between">
+    <div class="card compact-card sticky-filters">
+      <div class="sticky-bar">
+        <div class="row space-between">
           <h2>${t('network.title')}</h2>
           <div class="footer-actions">
             <button class="btn" id="network-refresh-btn">${t('common.refresh')}</button>
             <button class="btn" id="network-clear-btn">${t('common.clear')}</button>
           </div>
         </div>
-      <div class="column">
-        <input class="input" id="network-filter-text" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilters.text)}" />
-        <select class="select" id="network-filter-method">${['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS'].map(method => `<option value="${method}" ${state.networkFilters.method === method ? 'selected' : ''}>${method}</option>`).join('')}</select>
-        <input class="input" id="network-filter-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilters.status)}" />
-        <label class="switch"><input type="checkbox" id="network-filter-matched" ${state.networkFilters.matchedOnly ? 'checked' : ''}/> ${t('network.matchedOnly')}</label>
-        <label class="switch"><input type="checkbox" id="network-filter-intercepted" ${state.networkFilters.interceptedOnly ? 'checked' : ''}/> ${t('network.interceptedOnly')}</label>
+        <div class="column">
+          <input class="input" id="network-filter-text" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilters.text)}" />
+          <select class="select" id="network-filter-method">${['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS'].map(method => `<option value="${method}" ${state.networkFilters.method === method ? 'selected' : ''}>${method}</option>`).join('')}</select>
+          <input class="input" id="network-filter-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilters.status)}" />
+          <label class="switch"><input type="checkbox" id="network-filter-intercepted" ${state.networkFilters.interceptedOnly ? 'checked' : ''}/> ${t('network.interceptedOnly')}</label>
+        </div>
       </div>
       <div class="table">
         ${entries.length ? entries.slice(0, 20).map(entry => `

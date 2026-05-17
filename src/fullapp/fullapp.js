@@ -24,7 +24,7 @@ import { renderDashboardPage } from './components/dashboard-page.js'
 import { renderRulesPage } from './components/rules-page.js'
 import { renderRuleEditor } from './components/rule-editor.js'
 import { renderCollectionsPage } from './components/collections-page.js'
-import { renderNetworkPage, renderNetworkRows } from './components/network-page.js'
+import { renderNetworkPage, renderNetworkRows, isRenderableNetworkEntry } from './components/network-page.js'
 import { renderLogsPage } from './components/logs-page.js'
 import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
@@ -48,7 +48,6 @@ const state = {
     url: '',
     method: 'ANY',
     status: '',
-    matchedOnly: false,
     interceptedOnly: false
   },
   logsFilter: {
@@ -78,10 +77,10 @@ async function refreshState() {
 
 function applyLocalFilters() {
   state.filteredNetworkEntries = state.networkEntries.filter(entry => {
+    if (!isRenderableNetworkEntry(entry)) return false
     const f = state.networkFilter
     if (f.method !== 'ANY' && entry.method !== f.method) return false
     if (f.status && String(entry.status || '') !== f.status) return false
-    if (f.matchedOnly && !entry.matchedRuleId) return false
     if (f.interceptedOnly && !entry.intercepted) return false
     const text = f.url.trim().toLowerCase()
     if (text && !String(entry.url || '').toLowerCase().includes(text)) return false
@@ -140,10 +139,12 @@ function renderPage() {
 
 function render() {
   const root = $('#app')
+  const isSplitScrollPage = state.page === 'network' || state.page === 'logs'
   root.innerHTML = renderAppShell({
     sidebar: renderSidebar(state.page),
     topbar: renderTopbar(state),
-    content: renderPage()
+    content: renderPage(),
+    contentClass: isSplitScrollPage ? 'app-content-split' : ''
   })
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindEvents()
@@ -273,6 +274,12 @@ function refreshNetworkTableOnly() {
   const table = $('#full-network-table')
   if (!table) return
   table.innerHTML = renderNetworkRows(state)
+  const countEl = $('#full-network-count')
+  if (countEl) {
+    const total = state.networkEntries.filter(isRenderableNetworkEntry).length
+    const filtered = state.filteredNetworkEntries?.length ?? total
+    countEl.textContent = t('network.resultsCount', { filtered, total })
+  }
   bindCreateRuleFromRequestEvents()
 }
 
@@ -529,11 +536,6 @@ function bindEvents() {
     applyLocalFilters()
     refreshNetworkTableOnly()
   })
-  $('#full-network-matched')?.addEventListener('change', event => {
-    state.networkFilter.matchedOnly = event.target.checked
-    applyLocalFilters()
-    refreshNetworkTableOnly()
-  })
   $('#full-network-intercepted')?.addEventListener('change', event => {
     state.networkFilter.interceptedOnly = event.target.checked
     applyLocalFilters()
@@ -657,6 +659,8 @@ async function bootstrap() {
   const params = new URLSearchParams(window.location.search)
   const editId = params.get('edit')
   const draft = params.get('draft')
+  const targetPage = params.get('page')
+  const filterUrl = params.get('filterUrl')
   if (editId) {
     const rule = state.rules.find(item => item.id === editId)
     window.history.replaceState({}, '', window.location.pathname)
@@ -677,6 +681,14 @@ async function bootstrap() {
     } catch {
       window.history.replaceState({}, '', window.location.pathname)
     }
+  } else if (targetPage) {
+    window.history.replaceState({}, '', window.location.pathname)
+    state.page = targetPage
+    if (targetPage === 'network' && filterUrl) {
+      state.networkFilter.url = filterUrl
+      applyLocalFilters()
+    }
+    render()
   }
 }
 

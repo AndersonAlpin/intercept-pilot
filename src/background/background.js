@@ -453,8 +453,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           url = `${base}?edit=${encodeURIComponent(message.editRuleId)}`
         } else if (message.draftRule) {
           url = `${base}?draft=${encodeURIComponent(message.draftRule)}`
+        } else if (message.inspectUrl) {
+          url = `${base}?page=network&filterUrl=${encodeURIComponent(message.inspectUrl)}`
         }
-        const hasParam = Boolean(message.editRuleId || message.draftRule)
+        const hasParam = Boolean(message.editRuleId || message.draftRule || message.inspectUrl)
         const tabs = await chrome.tabs.query({})
         const existing = tabs.find(tab => tab.url?.startsWith(base))
         if (existing) {

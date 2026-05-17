@@ -36,7 +36,6 @@ const appState = {
     text: '',
     method: 'ANY',
     status: '',
-    matchedOnly: false,
     interceptedOnly: false
   },
   logsErrorOnly: false,
@@ -57,12 +56,18 @@ function activeCollectionId() {
   return appState.settings?.activeCollectionId || appState.collections[0]?.id || ''
 }
 
+function isRenderableNetworkEntry(entry) {
+  const method = String(entry?.method || '').trim()
+  const url = String(entry?.url || '').trim()
+  return Boolean(method || url)
+}
+
 function filteredNetworkEntries() {
   return appState.networkEntries.filter(entry => {
+    if (!isRenderableNetworkEntry(entry)) return false
     const filter = appState.networkFilters
     if (filter.method !== 'ANY' && entry.method !== filter.method) return false
     if (filter.status && String(entry.status || '') !== filter.status) return false
-    if (filter.matchedOnly && !entry.matchedRuleId) return false
     if (filter.interceptedOnly && !entry.intercepted) return false
     const text = filter.text.trim().toLowerCase()
     if (text) {
@@ -117,7 +122,15 @@ function render() {
 
   root.innerHTML = `${header}${tabs}<section class="content">${body}</section>`
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
+  updateHeaderOffset()
   bindEvents()
+}
+
+function updateHeaderOffset() {
+  const headerEl = document.querySelector('.header')
+  if (!headerEl) return
+  const height = headerEl.offsetHeight
+  document.documentElement.style.setProperty('--sp-header-h', `${height}px`)
 }
 
 function closeQuickEditor() {
@@ -347,10 +360,6 @@ function bindEvents() {
     appState.networkFilters.status = event.target.value
     render()
   })
-  $('#network-filter-matched')?.addEventListener('change', event => {
-    appState.networkFilters.matchedOnly = event.target.checked
-    render()
-  })
   $('#network-filter-intercepted')?.addEventListener('change', event => {
     appState.networkFilters.interceptedOnly = event.target.checked
     render()
@@ -370,7 +379,11 @@ function bindEvents() {
   })
 
   document.querySelectorAll('[data-open-inspect]').forEach(button => {
-    button.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
+    button.addEventListener('click', async () => {
+      const entry = appState.networkEntries.find(item => item.id === button.dataset.openInspect)
+      const inspectUrl = entry?.url || ''
+      await sendMessage({ type: MSG.APP_OPEN_FULL, inspectUrl })
+    })
   })
 
   $('#logs-error-only')?.addEventListener('change', event => {
@@ -420,5 +433,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && appState.quickRuleEditorOpen) closeQuickEditor()
 })
+
+window.addEventListener('resize', updateHeaderOffset)
 
 refreshState()

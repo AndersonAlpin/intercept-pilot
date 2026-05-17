@@ -62,10 +62,12 @@ const es = {
       applyResponseHeaders: 'Aplicar headers de la respuesta'
     }
   },
-  logs: { title: 'Logs', errorOnly: 'solo errores', clearLogs: 'Limpiar logs', noLogs: 'Sin logs.' },
+  logs: { title: 'Logs', errorOnly: 'solo errores', clearLogs: 'Limpiar logs', noLogs: 'Sin logs.', noResults: 'Ningún log coincide con estos filtros.' },
   network: {
     title: 'Red', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Estado',
     matchedOnly: 'solo matched', interceptedOnly: 'solo interceptadas', noRequests: 'Sin requests capturadas.',
+    noResults: 'Ninguna request coincide con estos filtros.',
+    resultsCount: '{filtered} de {total}',
     createRule: 'Crear regla'
   },
   dashboard: {
