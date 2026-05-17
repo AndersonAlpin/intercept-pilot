@@ -32,7 +32,7 @@ const en = {
     downloadJson: 'Download JSON',
     moreActions: 'More actions',
     advanced: 'Advanced',
-    confirm: 'Confirm'
+    confirm: 'Confirm', activate: 'Activate', deactivate: 'Deactivate'
   },
   language: {
     title: 'Language',
@@ -65,6 +65,7 @@ const en = {
   },
   collections: {
     title: 'Collection',
+    active: 'Active',
     activeCollection: 'Active collection',
     noCollections: 'No collections yet.',
     newCollection: 'New collection',

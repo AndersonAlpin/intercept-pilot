@@ -6,7 +6,7 @@ const pt = {
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Status',
     method: 'Método', level: 'Nível', settings: 'Configurações', close: 'Fechar', yes: 'Sim', no: 'Não',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Baixar JSON',
-    moreActions: 'Mais ações', advanced: 'Avançado', confirm: 'Confirmar'
+    moreActions: 'Mais ações', advanced: 'Avançado', confirm: 'Confirmar', activate: 'Ativar', deactivate: 'Desativar'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
@@ -20,6 +20,7 @@ const pt = {
   },
   collections: {
     title: 'Coleção', activeCollection: 'Coleção ativa', noCollections: 'Sem coleções.',
+    active: 'Ativa',
     newCollection: 'Nova coleção', newCollectionTitle: 'Nova coleção', newCollectionPlaceholder: 'Nome da coleção',
     setActive: 'Definir ativa', rename: 'Renomear', renameTitle: 'Renomear coleção', renamePlaceholder: 'Novo nome',
     deleteConfirm: 'Excluir esta coleção? As regras serão movidas para a coleção de fallback.',

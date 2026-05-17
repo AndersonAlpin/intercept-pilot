@@ -6,12 +6,35 @@ function hasActiveLogsFilter(state) {
   return Boolean((f.level && f.level !== 'ANY') || (f.scope && f.scope !== 'ANY') || f.search)
 }
 
+function normalizeLogScope(scope) {
+  return String(scope || '').toLowerCase() === 'web' ? 'web' : 'app'
+}
+
+function scopeLabel(scope) {
+  return normalizeLogScope(scope) === 'web' ? t('logs.scopeWeb') : t('logs.scopeApp')
+}
+
+function levelBadge(level) {
+  const kind = level === 'error' ? 'danger' : level === 'warn' ? 'warning' : 'success'
+  return `<span class="badge ${kind}">${escapeHtml(level || 'info')}</span>`
+}
+
 export function renderLogsPage(state) {
   const logs = state.filteredLogs || state.logs
   const total = state.logs.length
   const filtered = state.filteredLogs?.length ?? total
   const countText = t('network.resultsCount', { filtered, total })
   const emptyKey = hasActiveLogsFilter(state) ? 'logs.noResults' : 'logs.noLogs'
+
+  const header = `
+    <div class="table-row row-logs rules-header" role="row">
+      <div role="columnheader">MESSAGE</div>
+      <div role="columnheader">${escapeHtml(t('common.level'))}</div>
+      <div role="columnheader">SCOPE</div>
+      <div role="columnheader">TIME</div>
+      <div role="columnheader">URL</div>
+    </div>
+  `
 
   return `
     <section class="split-page logs-page">
@@ -25,12 +48,15 @@ export function renderLogsPage(state) {
         </div>
       </section>
       <section class="card data-card logs-data-card">
-        <div class="list">
+        <div class="table table-wide">
+          ${logs.length ? header : ''}
           ${logs.length ? logs.slice(0, 200).map(log => `
-            <div class="item">
-              <div class="item-title"><strong>${escapeHtml(log.message || '')}</strong><span class="badge ${log.level === 'error' ? 'danger' : log.level === 'warn' ? 'warning' : 'success'}">${escapeHtml(log.level || 'info')}</span></div>
-              <div class="item-meta">${escapeHtml(log.timestamp || '')}</div>
-              ${log.url ? `<div class="item-meta">${escapeHtml(log.url)}</div>` : ''}
+            <div class="table-row row-logs">
+              <div class="cell-network-url" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</div>
+              <div>${levelBadge(log.level || 'info')}</div>
+              <div>${escapeHtml(scopeLabel(log.scope))}</div>
+              <div>${escapeHtml(log.timestamp || '')}</div>
+              <div class="cell-network-url" title="${escapeHtml(log.url || '')}">${escapeHtml(log.url || '—')}</div>
             </div>
           `).join('') : `<div class="empty">${escapeHtml(t(emptyKey))}</div>`}
         </div>

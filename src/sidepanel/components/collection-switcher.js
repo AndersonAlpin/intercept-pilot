@@ -16,8 +16,8 @@ export function renderCollectionSwitcher(state) {
         <select class="select" id="active-collection-select">${options}</select>
         <div class="row space-between">
           <span class="small">${escapeHtml(t('rules.columns.status'))}</span>
-          <label class="status-toggle" title="${escapeHtml(current?.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}">
-            <input type="checkbox" id="active-collection-enabled" ${current?.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
+          <label class="status-toggle" title="${escapeHtml(current?.enabled ? t('common.deactivate') : t('common.activate'))}">
+            <input type="checkbox" id="active-collection-enabled" ${current?.enabled ? 'checked' : ''} aria-label="${escapeHtml(current?.enabled ? t('common.deactivate') : t('common.activate'))}" />
             <span class="status-toggle-track" aria-hidden="true"></span>
           </label>
         </div>

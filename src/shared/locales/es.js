@@ -6,7 +6,7 @@ const es = {
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Estado',
     method: 'Método', level: 'Nivel', settings: 'Configuración', close: 'Cerrar', yes: 'Sí', no: 'No',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Descargar JSON',
-    moreActions: 'Más acciones', advanced: 'Avanzado', confirm: 'Confirmar'
+    moreActions: 'Más acciones', advanced: 'Avanzado', confirm: 'Confirmar', activate: 'Activar', deactivate: 'Desactivar'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
@@ -20,6 +20,7 @@ const es = {
   },
   collections: {
     title: 'Colección', activeCollection: 'Colección activa', noCollections: 'Sin colecciones.',
+    active: 'Activa',
     newCollection: 'Nueva colección', newCollectionTitle: 'Nueva colección', newCollectionPlaceholder: 'Nombre de la colección',
     setActive: 'Definir activa', rename: 'Renombrar', renameTitle: 'Renombrar colección', renamePlaceholder: 'Nuevo nombre',
     deleteConfirm: '¿Eliminar esta colección? Las reglas irán a la colección de respaldo.',

@@ -25,7 +25,13 @@ function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {
 
 export function renderRulesPage(state) {
   const activeCollectionId = state.settings?.activeCollectionId
-  const rules = state.rules.filter(rule => !activeCollectionId || rule.collectionId === activeCollectionId)
+  const search = String(state.rulesSearch || '').trim().toLowerCase()
+  const rules = state.rules.filter(rule => {
+    if (activeCollectionId && rule.collectionId !== activeCollectionId) return false
+    if (!search) return true
+    const hay = `${rule.name || ''} ${rule.match?.urlPattern || ''} ${rule.match?.method || ''}`.toLowerCase()
+    return hay.includes(search)
+  })
   const options = state.collections.map(collection => `<option value="${collection.id}" ${collection.id === activeCollectionId ? 'selected' : ''}>${escapeHtml(collection.name)}</option>`).join('')
 
   const header = `
@@ -41,16 +47,19 @@ export function renderRulesPage(state) {
   `
 
   return `
-    <section class="card">
-      <div class="toolbar">
-        <select class="select" id="full-rules-collection">${options}</select>
-        <input class="input" id="full-rules-search" placeholder="${escapeHtml(t('rules.searchPlaceholder'))}" value="${escapeHtml(state.rulesSearch || '')}" />
-        <button class="btn primary" id="full-new-rule-btn">${escapeHtml(t('fullapp.newRule'))}</button>
-        <button class="btn" id="full-import-rule-btn">${escapeHtml(t('common.import'))}</button>
-      </div>
-      <div class="table table-wide" role="table">
-        ${rules.length ? header : ''}
-        ${rules.length ? rules.map(rule => {
+    <section class="split-page rules-page">
+      <section class="card filters-card rules-filters-card">
+        <div class="toolbar">
+          <select class="select" id="full-rules-collection">${options}</select>
+          <input class="input" id="full-rules-search" placeholder="${escapeHtml(t('rules.searchPlaceholder'))}" value="${escapeHtml(state.rulesSearch || '')}" />
+          <button class="btn primary" id="full-new-rule-btn">${escapeHtml(t('fullapp.newRule'))}</button>
+          <button class="btn" id="full-import-rule-btn">${escapeHtml(t('common.import'))}</button>
+        </div>
+      </section>
+      <section class="card data-card rules-data-card">
+        <div class="table table-wide" role="table">
+          ${rules.length ? header : ''}
+          ${rules.length ? rules.map(rule => {
           const urlPattern = rule.match?.urlPattern || ''
           const hits = Number(rule.diagnostics?.matchCount || 0)
           return `
@@ -77,8 +86,9 @@ export function renderRulesPage(state) {
               </div>
             </div>
           `
-        }).join('') : `<div class="empty">${escapeHtml(t('rules.noRules'))}</div>`}
-      </div>
+          }).join('') : `<div class="empty">${escapeHtml(t('rules.noRules'))}</div>`}
+        </div>
+      </section>
     </section>
   `
 }

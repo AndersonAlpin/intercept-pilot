@@ -44,6 +44,7 @@ const state = {
 
   editingRule: null,
   rulesSearch: '',
+  collectionsSearch: '',
   networkFilter: {
     url: '',
     method: 'ANY',
@@ -62,6 +63,10 @@ const state = {
 
 function $(selector) {
   return document.querySelector(selector)
+}
+
+function normalizeLogScope(scope) {
+  return String(scope || '').toLowerCase() === 'web' ? 'web' : 'app'
 }
 
 async function refreshState() {
@@ -90,7 +95,7 @@ function applyLocalFilters() {
 
   state.filteredLogs = state.logs.filter(log => {
     if (state.logsFilter.level !== 'ANY' && log.level !== state.logsFilter.level) return false
-    if (state.logsFilter.scope !== 'ANY' && String(log.scope || 'app') !== state.logsFilter.scope) return false
+    if (state.logsFilter.scope !== 'ANY' && normalizeLogScope(log.scope) !== state.logsFilter.scope) return false
     const text = state.logsFilter.search.trim().toLowerCase()
     if (text && !(`${log.message || ''} ${log.url || ''}`).toLowerCase().includes(text)) return false
     return true
@@ -141,7 +146,7 @@ function renderPage() {
 
 function render() {
   const root = $('#app')
-  const isSplitScrollPage = state.page === 'network' || state.page === 'logs'
+  const isSplitScrollPage = state.page === 'network' || state.page === 'logs' || state.page === 'rules' || state.page === 'collections'
   root.innerHTML = renderAppShell({
     sidebar: renderSidebar(state.page),
     topbar: renderTopbar(state),
@@ -357,6 +362,11 @@ function bindEvents() {
     render()
   })
 
+  $('#full-collections-search')?.addEventListener('input', event => {
+    state.collectionsSearch = event.target.value
+    render()
+  })
+
   $('#full-new-rule-btn')?.addEventListener('click', () => {
     state.editingRule = makeRule({ collectionId: state.settings.activeCollectionId }, state.settings.activeCollectionId)
     render()
@@ -465,9 +475,11 @@ function bindEvents() {
     })
   })
 
-  document.querySelectorAll('[data-full-collection-set-active]').forEach(button => {
-    button.addEventListener('click', async () => {
-      await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { activeCollectionId: button.dataset.fullCollectionSetActive } })
+  document.querySelectorAll('[data-full-collection-set-active]').forEach(input => {
+    input.addEventListener('change', async () => {
+      const activeCollectionId = input.dataset.fullCollectionSetActive
+      if (!activeCollectionId) return
+      await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { activeCollectionId } })
       await refreshState()
     })
   })

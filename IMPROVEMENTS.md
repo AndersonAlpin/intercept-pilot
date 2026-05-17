@@ -68,6 +68,40 @@ O Full App deve centralizar fluxos avançados:
   - `applyResponseBody: true`
   - `applyResponseHeaders: false`
 
+### Entregas já implementadas (até v0.3.9)
+
+- Full App funcional com navegação por páginas:
+  - Dashboard
+  - Regras
+  - Coleções
+  - Rede
+  - Logs
+  - Importar / Exportar
+  - Diagnóstico
+  - Configurações
+- Sidepanel e Full App sincronizados via estado central no background.
+- Criação/edição rápida de rules no sidepanel + editor avançado no Full App.
+- Criação de rule a partir de request capturada.
+- i18n ativo em Sidepanel e Full App:
+  - English
+  - Português
+  - Español
+- Melhorias de UX no topo (side e full):
+  - Status no formato `Anexado à aba X`
+  - Nome da aba clicável para focar a aba/janela
+- Network (side/full):
+  - Filtro de entradas incompletas/fantasmas (sem método e sem URL)
+  - Organização de layout com separação clara de filtros e dados
+- Logs:
+  - Captura de logs internos (`scope: app`)
+  - Captura de logs da página web via CDP Runtime (`scope: web`)
+  - Filtro por escopo (`Todos`, `App`, `Web`) no sidepanel e Full App
+- Mock response:
+  - Correção de headers/CORS para reduzir falhas de regra que fazia match mas quebrava no frontend
+- Auto-attach:
+  - Reanexo automático ao trocar para outra aba HTTP(S) quando a opção está ativa
+- Versão atualizada para `0.3.9`.
+
 ---
 
 ## Etapa 2 — Polimento visual e usabilidade do Sidepanel
@@ -371,6 +405,8 @@ Objetivo: reduzir conflitos e melhorar previsibilidade durante testes específic
 
 Objetivo: facilitar uso em ambientes com muitas URLs de preview, staging ou localhost.
 
+> Status: **parcialmente implementado**
+
 ### Escopo
 
 - Auto-attach opcional na aba HTTP(S) ativa.
@@ -393,6 +429,16 @@ Exemplos genéricos de host filter:
 - Usuário consegue limitar por host.
 - Troca de aba não deixa estado inconsistente.
 - UI mostra claramente qual aba está anexada.
+
+Status atual:
+
+- Implementado:
+  - Auto-attach opt-in
+  - Reanexo ao trocar de aba HTTP(S)
+  - Indicação clara da aba anexada na UI
+- Pendente:
+  - Host filter
+  - Lista de hosts permitidos
 
 ---
 

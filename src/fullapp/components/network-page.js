@@ -18,17 +18,29 @@ export function renderNetworkRows(state) {
     const key = hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'
     return `<div class="empty">${escapeHtml(t(key))}</div>`
   }
-  return entries.slice(0, 200).map(entry => `
+  const header = `
+    <div class="table-row row-network rules-header" role="row">
+      <div role="columnheader">${escapeHtml(t('common.method'))}</div>
+      <div role="columnheader">URL</div>
+      <div role="columnheader">${escapeHtml(t('common.status'))}</div>
+      <div role="columnheader">TYPE</div>
+      <div role="columnheader">RULE</div>
+      <div role="columnheader">${escapeHtml(t('rules.columns.action'))}</div>
+      <div role="columnheader" class="col-actions">${escapeHtml(t('rules.columns.actions'))}</div>
+    </div>
+  `
+  const rows = entries.slice(0, 200).map(entry => `
     <div class="table-row row-network">
       <div>${escapeHtml(entry.method || '—')}</div>
       <div class="cell-network-url" title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</div>
-      <div>${entry.status ?? '—'}</div>
+      <div>${escapeHtml(String(entry.status ?? '—'))}</div>
       <div>${escapeHtml(entry.resourceType || '')}</div>
       <div>${escapeHtml(entry.matchedRuleName || t('rules.passThrough'))}</div>
       <div>${escapeHtml(entry.appliedAction || t('rules.passThrough'))}</div>
       <div class="footer-actions"><button class="btn" data-full-create-from-request="${entry.id}">${t('network.createRule')}</button></div>
     </div>
   `).join('')
+  return `${header}${rows}`
 }
 
 export function renderNetworkPage(state) {

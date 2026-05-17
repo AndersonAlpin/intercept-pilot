@@ -63,6 +63,10 @@ function isRenderableNetworkEntry(entry) {
   return Boolean(method || url)
 }
 
+function normalizeLogScope(scope) {
+  return String(scope || '').toLowerCase() === 'web' ? 'web' : 'app'
+}
+
 function filteredNetworkEntries() {
   return appState.networkEntries.filter(entry => {
     if (!isRenderableNetworkEntry(entry)) return false
@@ -107,7 +111,7 @@ function hydrateQuickRule(seed = {}) {
 function filteredLogs() {
   return appState.logs.filter(log => {
     if (appState.logsErrorOnly && log.level !== 'error') return false
-    if (appState.logsScope !== 'ANY' && String(log.scope || 'app') !== appState.logsScope) return false
+    if (appState.logsScope !== 'ANY' && normalizeLogScope(log.scope) !== appState.logsScope) return false
     return true
   })
 }
