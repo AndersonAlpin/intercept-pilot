@@ -13,7 +13,7 @@ const pt = {
     connecting: 'Conectando...', attached: 'Anexado à aba atual', attachedCurrent: 'Anexado à aba atual', attachedOther: 'Anexado em outra aba', attachedTabNumber: 'Anexado à aba {position}', notAttached: 'Não anexado',
     autoAttachActive: 'Auto-anexar ativo',
     openAutoAttachSettings: 'Abrir configurações de auto-anexar',
-    noActiveUrl: 'Sem URL ativa', noAttachableTab: 'Nenhuma aba anexável disponível', noEligibleTab: 'Nenhuma aba elegível',
+    noActiveUrl: 'Sem URL ativa', noAttachableTab: 'Nenhuma aba anexável disponível', noEligibleTab: 'Aba atual não elegível',
     tabPosition: 'Aba {position}', currentTabLabel: 'Atual', reloadHint: 'Recarregue a página atual para aplicar as regras'
   },
   navigation: {
@@ -71,7 +71,14 @@ const pt = {
     matchedOnly: 'Somente match', interceptedOnly: 'Somente interceptadas', noRequests: 'Sem requisições capturadas.',
     noResults: 'Nenhuma requisição corresponde a esses filtros.',
     resultsCount: '{filtered} de {total}',
-    createRule: 'Criar regra'
+    createRule: 'Criar regra',
+    appliedRule: 'Regra aplicada',
+    result: 'Resultado',
+    noRule: 'Sem regra',
+    resultPassThrough: 'Passou direto',
+    resultMock200: 'Mock {status}',
+    resultDelay: 'Delay',
+    resultFail: 'Falhou'
   },
   dashboard: {
     attached: 'Anexado', enabledRules: 'Regras ativas', matchedRecently: 'Matches recentes', errors: 'Erros',

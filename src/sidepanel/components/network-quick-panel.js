@@ -9,6 +9,10 @@ function statusBadge(status) {
     return `<span class="badge success">${status}</span>`
 }
 
+function getAppliedRuleLabel(entry) {
+  return entry?.matchedRuleName ? entry.matchedRuleName : t('network.noRule')
+}
+
 export function renderNetworkQuickPanel(state) {
   const entries = state.filteredNetworkEntries || []
   return `
@@ -32,7 +36,7 @@ export function renderNetworkQuickPanel(state) {
         ${entries.length ? entries.slice(0, 20).map(entry => `
             <div class="table-row">
               <div><strong>${escapeHtml(entry.method || '—')}</strong></div>
-            <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</strong><span>${escapeHtml(entry.matchedRuleName || t('rules.passThrough'))}</span></div>
+            <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</strong><span>${escapeHtml(getAppliedRuleLabel(entry))}</span></div>
             <div>${statusBadge(entry.status)}</div>
             <div class="footer-actions">
               <button class="btn" data-create-from-request="${entry.id}">${t('rules.mockThis')}</button>

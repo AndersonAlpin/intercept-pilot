@@ -29,7 +29,7 @@ export function renderTopbar(state) {
         ${eligibilityText ? `<div class="muted">${escapeHtml(eligibilityText)}</div>` : ''}
         ${canFocusTab
           ? `<button class="tab-focus-link" id="full-focus-tab-btn" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 80))}</button>`
-          : `<div class="muted" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 80))}</div>`
+          : (eligibilityText ? '' : `<div class="muted" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 80))}</div>`)
         }
         ${autoAttachEnabled ? `<button class="auto-attach-link" id="full-open-auto-attach-settings" title="${escapeHtml(t('status.openAutoAttachSettings'))}" aria-label="${escapeHtml(t('status.openAutoAttachSettings'))}">${t('status.autoAttachActive')}</button>` : ''}
         ${primaryUrl ? `<div class="muted" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryUrl, 110))}</div>` : ''}

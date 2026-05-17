@@ -12,6 +12,18 @@ export function isRenderableNetworkEntry(entry) {
   return Boolean(method || url)
 }
 
+function getAppliedRuleLabel(entry) {
+  return entry?.matchedRuleName ? entry.matchedRuleName : t('network.noRule')
+}
+
+function getResultLabel(entry) {
+  const action = String(entry?.appliedAction || 'passThrough')
+  if (action === 'mockResponse') return t('network.resultMock200', { status: String(entry?.status || 200) })
+  if (action === 'delayOnly') return t('network.resultDelay')
+  if (action === 'failRequest') return t('network.resultFail')
+  return t('network.resultPassThrough')
+}
+
 export function renderNetworkRows(state) {
   const entries = (state.filteredNetworkEntries || state.networkEntries).filter(isRenderableNetworkEntry)
   if (!entries.length) {
@@ -24,8 +36,8 @@ export function renderNetworkRows(state) {
       <div role="columnheader">URL</div>
       <div role="columnheader">${escapeHtml(t('common.status'))}</div>
       <div role="columnheader">TYPE</div>
-      <div role="columnheader">RULE</div>
-      <div role="columnheader">${escapeHtml(t('rules.columns.action'))}</div>
+      <div role="columnheader">${escapeHtml(t('network.appliedRule'))}</div>
+      <div role="columnheader">${escapeHtml(t('network.result'))}</div>
       <div role="columnheader" class="col-actions">${escapeHtml(t('rules.columns.actions'))}</div>
     </div>
   `
@@ -35,8 +47,8 @@ export function renderNetworkRows(state) {
       <div class="cell-network-url" title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</div>
       <div>${escapeHtml(String(entry.status ?? '—'))}</div>
       <div>${escapeHtml(entry.resourceType || '')}</div>
-      <div>${escapeHtml(entry.matchedRuleName || t('rules.passThrough'))}</div>
-      <div>${escapeHtml(entry.appliedAction || t('rules.passThrough'))}</div>
+      <div>${escapeHtml(getAppliedRuleLabel(entry))}</div>
+      <div>${escapeHtml(getResultLabel(entry))}</div>
       <div class="footer-actions"><button class="btn" data-full-create-from-request="${entry.id}">${t('network.createRule')}</button></div>
     </div>
   `).join('')

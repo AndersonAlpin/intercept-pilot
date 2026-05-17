@@ -13,7 +13,7 @@ const es = {
     connecting: 'Conectando...', attached: 'Adjuntado a la pestaña actual', attachedCurrent: 'Adjuntado a la pestaña actual', attachedOther: 'Adjuntado en otra pestaña', attachedTabNumber: 'Adjuntado a la pestaña {position}', notAttached: 'No adjuntado',
     autoAttachActive: 'Auto-adjuntar activo',
     openAutoAttachSettings: 'Abrir configuración de auto-adjuntar',
-    noActiveUrl: 'Sin URL activa', noAttachableTab: 'No hay pestaña adjuntable disponible', noEligibleTab: 'No hay pestaña elegible',
+    noActiveUrl: 'Sin URL activa', noAttachableTab: 'No hay pestaña adjuntable disponible', noEligibleTab: 'La pestaña actual no es elegible',
     tabPosition: 'Pestaña {position}', currentTabLabel: 'Actual', reloadHint: 'Recarga la página actual para aplicar reglas'
   },
   navigation: {
@@ -71,7 +71,14 @@ const es = {
     matchedOnly: 'Solo matched', interceptedOnly: 'Solo interceptadas', noRequests: 'Sin requests capturadas.',
     noResults: 'Ninguna request coincide con estos filtros.',
     resultsCount: '{filtered} de {total}',
-    createRule: 'Crear regla'
+    createRule: 'Crear regla',
+    appliedRule: 'Regla aplicada',
+    result: 'Resultado',
+    noRule: 'Sin regla',
+    resultPassThrough: 'Pasó directo',
+    resultMock200: 'Mock {status}',
+    resultDelay: 'Delay',
+    resultFail: 'Falló'
   },
   dashboard: {
     attached: 'Adjuntado', enabledRules: 'Reglas habilitadas', matchedRecently: 'Matches recientes', errors: 'Errores',

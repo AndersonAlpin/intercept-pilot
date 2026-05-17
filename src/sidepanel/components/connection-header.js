@@ -28,7 +28,7 @@ export function renderConnectionHeader(state) {
           ${eligibilityText ? `<p class="url-muted">${escapeHtml(eligibilityText)}</p>` : ''}
           ${canFocusTab
             ? `<button class="tab-focus-link" id="side-focus-tab-btn" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</button>`
-            : `<p class="url-muted" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</p>`
+            : (eligibilityText ? '' : `<p class="url-muted" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</p>`)
           }
           ${autoAttachEnabled ? `<button class="auto-attach-link" id="side-open-auto-attach-settings" title="${escapeHtml(t('status.openAutoAttachSettings'))}" aria-label="${escapeHtml(t('status.openAutoAttachSettings'))}">${t('status.autoAttachActive')}</button>` : ''}
         </div>

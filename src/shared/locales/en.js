@@ -52,7 +52,7 @@ const en = {
     notAttached: 'Not attached',
     noActiveUrl: 'No active URL',
     noAttachableTab: 'No attachable tab available',
-    noEligibleTab: 'No eligible tab',
+    noEligibleTab: 'Current tab is not eligible',
     tabPosition: 'Tab {position}',
     currentTabLabel: 'Current',
     openAutoAttachSettings: 'Open auto-attach settings',
@@ -173,7 +173,14 @@ const en = {
     noRequests: 'No requests captured yet.',
     noResults: 'No requests match these filters.',
     resultsCount: '{filtered} of {total}',
-    createRule: 'Create rule'
+    createRule: 'Create rule',
+    appliedRule: 'Applied rule',
+    result: 'Result',
+    noRule: 'No rule',
+    resultPassThrough: 'Passed through',
+    resultMock200: 'Mock {status}',
+    resultDelay: 'Delay',
+    resultFail: 'Failed'
   },
   dashboard: {
     attached: 'Attached',
