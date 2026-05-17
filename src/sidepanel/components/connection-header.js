@@ -13,6 +13,8 @@ export function renderConnectionHeader(state) {
       : t('status.notAttached')
   const primaryTab = attached ? attachedTab : candidateTab
   const primaryTitle = primaryTab?.title || t('status.noAttachableTab')
+  const primaryUrl = primaryTab?.url || ''
+  const canFocusTab = Boolean(primaryTab?.id)
 
   return `
     <header class="header">
@@ -20,7 +22,10 @@ export function renderConnectionHeader(state) {
         <div class="brand">
           <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
           <p class="attach-status ${statusClass}">${statusText}</p>
-          <p class="url-muted" title="${escapeHtml(primaryTab?.url || '')}">${escapeHtml(truncate(primaryTitle, 52))}</p>
+          ${canFocusTab
+            ? `<button class="tab-focus-link" id="side-focus-tab-btn" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</button>`
+            : `<p class="url-muted" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</p>`
+          }
         </div>
         <div class="header-actions compact">
           <button class="btn btn-open" id="open-fullapp-btn">${t('common.open')}</button>

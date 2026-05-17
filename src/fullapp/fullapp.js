@@ -335,6 +335,15 @@ function bindEvents() {
     const result = await sendMessage({ type: MSG.TAB_RELOAD })
     if (result?.error) toastError(translateBackendError(result.error))
   })
+  $('#full-focus-tab-btn')?.addEventListener('click', async () => {
+    const targetTabId = state.attachedTab?.id || state.candidateTab?.id || state.lastAttachableTab?.id || null
+    if (!targetTabId) return
+    await chrome.tabs.update(targetTabId, { active: true }).catch(() => {})
+    const tab = await chrome.tabs.get(targetTabId).catch(() => null)
+    if (tab?.windowId != null) {
+      await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {})
+    }
+  })
 
   $('#full-rules-collection')?.addEventListener('change', async event => {
     await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { activeCollectionId: event.target.value } })

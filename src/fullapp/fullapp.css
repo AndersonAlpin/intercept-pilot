@@ -31,6 +31,9 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); }
 .dot.ok { background: var(--success); }
 .dot.off { background: var(--danger); }
+.tab-focus-link { margin: 2px 0 0; border: 0; background: transparent; color: var(--text); padding: 0; font: inherit; text-align: left; cursor: pointer; }
+.tab-focus-link:hover { color: #c9d9ff; text-decoration: underline; }
+.tab-focus-link:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .25); }
 .muted { color: var(--text-muted); font-size: 12px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; padding-left: 8px; }
 .app-content { flex: 1; min-height: 0; overflow: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }

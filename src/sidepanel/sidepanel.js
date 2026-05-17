@@ -244,6 +244,15 @@ function bindEvents() {
     const result = await sendMessage({ type: MSG.TAB_RELOAD })
     if (result?.error) toastError(translateBackendError(result.error))
   })
+  $('#side-focus-tab-btn')?.addEventListener('click', async () => {
+    const targetTabId = appState.attachedTab?.id || appState.candidateTab?.id || appState.lastAttachableTab?.id || null
+    if (!targetTabId) return
+    await chrome.tabs.update(targetTabId, { active: true }).catch(() => {})
+    const tab = await chrome.tabs.get(targetTabId).catch(() => null)
+    if (tab?.windowId != null) {
+      await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {})
+    }
+  })
 
   $('#active-collection-select')?.addEventListener('change', async event => {
     const activeCollectionId = event.target.value
