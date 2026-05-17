@@ -7,7 +7,7 @@ export function renderNetworkRows(state) {
     ${entries.length ? entries.slice(0, 200).map(entry => `
       <div class="table-row row-network">
         <div>${escapeHtml(entry.method || '—')}</div>
-        <div title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</div>
+        <div class="cell-network-url" title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</div>
         <div>${entry.status ?? '—'}</div>
         <div>${escapeHtml(entry.resourceType || '')}</div>
         <div>${escapeHtml(entry.matchedRuleName || t('rules.passThrough'))}</div>
@@ -20,7 +20,7 @@ export function renderNetworkRows(state) {
 
 export function renderNetworkPage(state) {
   return `
-    <section class="card">
+    <section class="card sticky-toolbar">
       <div class="toolbar">
         <input class="input" id="full-network-url" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilter.url || '')}" />
         <select class="select" id="full-network-method">${['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS'].map(m => `<option value="${m}" ${state.networkFilter.method === m ? 'selected' : ''}>${m}</option>`).join('')}</select>

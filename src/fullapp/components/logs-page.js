@@ -4,7 +4,7 @@ import { t } from '../../shared/i18n.js'
 export function renderLogsPage(state) {
   const logs = state.filteredLogs || state.logs
   return `
-    <section class="card">
+    <section class="card sticky-toolbar">
       <div class="toolbar">
         <select class="select" id="full-logs-level">${['ANY','error','warn','info'].map(level => `<option value="${level}" ${state.logsFilter.level === level ? 'selected' : ''}>${level}</option>`).join('')}</select>
         <input class="input" id="full-logs-search" placeholder="${t('common.search')} ${t('logs.title').toLowerCase()}" value="${escapeHtml(state.logsFilter.search || '')}" />

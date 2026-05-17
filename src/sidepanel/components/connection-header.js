@@ -23,9 +23,9 @@ export function renderConnectionHeader(state) {
           <p class="url-muted" title="${escapeHtml(primaryTab?.url || '')}">${escapeHtml(truncate(primaryTitle, 52))}</p>
         </div>
         <div class="header-actions compact">
-          <button class="btn" id="open-fullapp-btn">${t('common.open')}</button>
-          <button class="btn ${attached ? 'warning' : 'primary'}" id="attach-btn" ${state.attachBusy ? 'disabled' : ''}>${state.attachBusy ? t('status.connecting') : attached ? t('common.reattach') : t('common.attach')}</button>
-          <button class="btn ghost" id="detach-btn" ${(!attached || state.attachBusy) ? 'disabled' : ''}>${t('common.detach')}</button>
+          <button class="btn btn-open" id="open-fullapp-btn">${t('common.open')}</button>
+          <button class="btn btn-attach ${attached ? 'warning' : 'primary'}" id="attach-btn" ${state.attachBusy ? 'disabled' : ''}>${state.attachBusy ? t('status.connecting') : attached ? t('common.reattach') : t('common.attach')}</button>
+          <button class="btn ghost btn-detach" id="detach-btn" ${(!attached || state.attachBusy) ? 'disabled' : ''}>${t('common.detach')}</button>
         </div>
       </div>
       <div class="header-secondary">

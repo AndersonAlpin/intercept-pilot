@@ -1,4 +1,4 @@
-import { escapeHtml, truncate } from '../../shared/utils.js'
+import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 
 function statusBadge(status) {
@@ -31,7 +31,7 @@ export function renderNetworkQuickPanel(state) {
         ${entries.length ? entries.slice(0, 20).map(entry => `
             <div class="table-row">
               <div><strong>${escapeHtml(entry.method || '—')}</strong></div>
-            <div class="url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(truncate(entry.url, 52))}</strong><span>${escapeHtml(entry.matchedRuleName || t('rules.passThrough'))}</span></div>
+            <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</strong><span>${escapeHtml(entry.matchedRuleName || t('rules.passThrough'))}</span></div>
             <div>${statusBadge(entry.status)}</div>
             <div class="footer-actions">
               <button class="btn" data-create-from-request="${entry.id}">${t('rules.mockThis')}</button>
