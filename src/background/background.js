@@ -29,9 +29,23 @@ function parseHeaderLines(raw = '') {
     .filter(Boolean)
 }
 
-function normalizeProtocolHeaders(inputHeaders) {
-  if (!Array.isArray(inputHeaders)) return []
-  return inputHeaders.filter(h => h && h.name).map(h => ({ name: String(h.name), value: String(h.value ?? '') }))
+function getRequestHeader(params, headerName) {
+  const target = String(headerName || '').toLowerCase()
+  const headers = params?.request?.headers
+  if (!headers || typeof headers !== 'object') return ''
+  for (const [name, value] of Object.entries(headers)) {
+    if (String(name).toLowerCase() !== target) continue
+    return String(value ?? '')
+  }
+  return ''
+}
+
+function ensureResponseHeader(headers, name, value) {
+  const target = String(name || '').toLowerCase()
+  if (!target || value == null) return headers
+  const hasHeader = headers.some(item => String(item?.name || '').toLowerCase() === target)
+  if (!hasHeader) headers.push({ name: String(name), value: String(value) })
+  return headers
 }
 
 function getEntryKey(params) {
@@ -270,15 +284,34 @@ async function applyRule(params, rule) {
 
   const headers = applyResponseHeaders ? parseHeaderLines(action.responseHeaders || '') : []
   const contentType = action.contentType || 'application/json'
-  if (applyResponseHeaders && !headers.some(h => h.name.toLowerCase() === 'content-type')) {
-    headers.push({ name: 'content-type', value: contentType })
+  const origin = getRequestHeader(params, 'origin')
+  const corsOrigin = origin || '*'
+
+  if (applyResponseHeaders) {
+    if (!headers.some(h => h.name.toLowerCase() === 'content-type')) {
+      headers.push({ name: 'content-type', value: contentType })
+    }
+  } else {
+    // Keep mocks usable by default even when custom headers are disabled.
+    ensureResponseHeader(headers, 'content-type', contentType)
+  }
+
+  ensureResponseHeader(headers, 'access-control-allow-origin', corsOrigin)
+  ensureResponseHeader(headers, 'access-control-allow-credentials', 'true')
+  ensureResponseHeader(headers, 'vary', 'Origin')
+
+  if (String(params.request.method || '').toUpperCase() === 'OPTIONS') {
+    const reqMethod = getRequestHeader(params, 'access-control-request-method') || 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+    const reqHeaders = getRequestHeader(params, 'access-control-request-headers') || '*'
+    ensureResponseHeader(headers, 'access-control-allow-methods', reqMethod)
+    ensureResponseHeader(headers, 'access-control-allow-headers', reqHeaders)
   }
 
   await sendAttachedCommand('Fetch.fulfillRequest', {
     requestId: params.requestId,
     responseCode: Number(action.statusCode || 200),
     responsePhrase: String(action.statusText || 'OK'),
-    responseHeaders: applyResponseHeaders ? headers : normalizeProtocolHeaders(params.responseHeaders),
+    responseHeaders: headers,
     body: encodeBody(action.responseBody || '{\n  "ok": true\n}')
   })
 }
