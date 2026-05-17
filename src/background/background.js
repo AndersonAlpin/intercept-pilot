@@ -235,12 +235,17 @@ async function getFullState() {
 async function maybeAutoAttach() {
   const state = await getState()
   if (!state.settings?.autoAttach) return false
-  if (runtimeState.attachedTabId) return false
   const targetId = runtimeState.candidateTab?.id || runtimeState.lastAttachableTab?.id
   if (!targetId) return false
+  if (runtimeState.attachedTabId === targetId) return false
+  if (runtimeState.attachingTabId === targetId) return false
   try {
     const result = await attachToTab(targetId)
-    await pushLog({ level: 'info', scope: 'debugger', message: `Auto-attached to tab ${targetId} via ${result.attachedVia || 'tabId'}` })
+    await pushLog({
+      level: 'info',
+      scope: 'debugger',
+      message: `Auto-attached to tab ${targetId} via ${result.attachedVia || 'tabId'}`
+    })
     return true
   } catch {
     return false
