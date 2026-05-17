@@ -3,7 +3,7 @@ import { t } from '../../shared/i18n.js'
 
 function hasActiveLogsFilter(state) {
   const f = state.logsFilter
-  return Boolean((f.level && f.level !== 'ANY') || f.search)
+  return Boolean((f.level && f.level !== 'ANY') || (f.scope && f.scope !== 'ANY') || f.search)
 }
 
 export function renderLogsPage(state) {
@@ -18,6 +18,7 @@ export function renderLogsPage(state) {
       <section class="card filters-card logs-filters-card">
         <div class="filters-row">
           <select class="select" id="full-logs-level">${['ANY','error','warn','info'].map(level => `<option value="${level}" ${state.logsFilter.level === level ? 'selected' : ''}>${level}</option>`).join('')}</select>
+          <select class="select" id="full-logs-scope">${['ANY','app','web'].map(scope => `<option value="${scope}" ${state.logsFilter.scope === scope ? 'selected' : ''}>${scope === 'ANY' ? t('logs.scopeAny') : scope === 'app' ? t('logs.scopeApp') : t('logs.scopeWeb')}</option>`).join('')}</select>
           <input class="input" id="full-logs-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter.search || '')}" />
           <button class="btn" id="full-clear-logs">${t('logs.clearLogs')}</button>
           <span class="results-count">${escapeHtml(countText)}</span>

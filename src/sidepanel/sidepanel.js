@@ -39,6 +39,7 @@ const appState = {
     interceptedOnly: false
   },
   logsErrorOnly: false,
+  logsScope: 'ANY',
 
   quickRuleEditorOpen: false,
   quickRuleForm: makeRule({
@@ -103,6 +104,14 @@ function hydrateQuickRule(seed = {}) {
   }
 }
 
+function filteredLogs() {
+  return appState.logs.filter(log => {
+    if (appState.logsErrorOnly && log.level !== 'error') return false
+    if (appState.logsScope !== 'ANY' && String(log.scope || 'app') !== appState.logsScope) return false
+    return true
+  })
+}
+
 function render() {
   const root = $('#app')
   const header = renderConnectionHeader(appState)
@@ -117,6 +126,7 @@ function render() {
     body = renderNetworkQuickPanel(appState)
   }
   if (appState.currentTab === 'logs') {
+    appState.filteredLogs = filteredLogs()
     body = renderLogsQuickPanel(appState)
   }
 
@@ -397,6 +407,10 @@ function bindEvents() {
 
   $('#logs-error-only')?.addEventListener('change', event => {
     appState.logsErrorOnly = event.target.checked
+    render()
+  })
+  $('#logs-scope')?.addEventListener('change', event => {
+    appState.logsScope = event.target.value
     render()
   })
   $('#logs-clear-btn')?.addEventListener('click', async () => {

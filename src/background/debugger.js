@@ -52,6 +52,7 @@ export async function attachToTab(tabId) {
     resetRuntimeCollections()
 
     await sendAttachedCommand('Network.enable').catch(() => {})
+    await sendAttachedCommand('Runtime.enable').catch(() => {})
     await sendAttachedCommand('Fetch.enable', {
       patterns: [
         { urlPattern: 'http://*', requestStage: 'Request' },

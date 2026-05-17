@@ -29,6 +29,29 @@ function parseHeaderLines(raw = '') {
     .filter(Boolean)
 }
 
+function stringifyConsoleArg(arg) {
+  if (arg == null) return ''
+  if (arg.value != null) return String(arg.value)
+  if (arg.unserializableValue != null) return String(arg.unserializableValue)
+  if (arg.description) return String(arg.description)
+  if (arg.type === 'undefined') return 'undefined'
+  if (arg.type === 'object' && arg.subtype === 'null') return 'null'
+  if (arg.type) return `[${arg.type}]`
+  return ''
+}
+
+function getRuntimeEventUrl(params = {}) {
+  const directUrl = String(params?.url || '')
+  if (directUrl) return directUrl
+  const firstFrameUrl = String(params?.stackTrace?.callFrames?.[0]?.url || '')
+  if (firstFrameUrl) return firstFrameUrl
+  const parentFrameUrl = String(params?.stackTrace?.parent?.callFrames?.[0]?.url || '')
+  if (parentFrameUrl) return parentFrameUrl
+  const exceptionFrameUrl = String(params?.exceptionDetails?.stackTrace?.callFrames?.[0]?.url || '')
+  if (exceptionFrameUrl) return exceptionFrameUrl
+  return ''
+}
+
 function getRequestHeader(params, headerName) {
   const target = String(headerName || '').toLowerCase()
   const headers = params?.request?.headers
@@ -403,6 +426,34 @@ async function clearNetworkEntries() {
   return []
 }
 
+async function handleRuntimeConsoleApiCalled(source, params) {
+  if (!isAttachedSource(source)) return
+  const levelMap = { error: 'error', warning: 'warn' }
+  const level = levelMap[String(params?.type || '').toLowerCase()] || 'info'
+  const parts = Array.isArray(params?.args) ? params.args.map(stringifyConsoleArg).filter(Boolean) : []
+  const message = parts.join(' ') || `[console.${String(params?.type || 'log')}]`
+  const url = getRuntimeEventUrl(params)
+  await pushLog({
+    level,
+    scope: 'web',
+    message,
+    url
+  })
+}
+
+async function handleRuntimeExceptionThrown(source, params) {
+  if (!isAttachedSource(source)) return
+  const details = params?.exceptionDetails || {}
+  const exceptionText = String(details?.exception?.description || details?.exception?.value || details?.text || 'Unhandled exception')
+  const url = getRuntimeEventUrl(params)
+  await pushLog({
+    level: 'error',
+    scope: 'web',
+    message: exceptionText,
+    url
+  })
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   await ensureState()
   await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
@@ -456,6 +507,8 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
     if (method === 'Network.responseReceived') return handleNetworkResponseReceived(source, params)
     if (method === 'Network.loadingFinished') return handleLoadingFinished(source, params)
     if (method === 'Network.loadingFailed') return handleLoadingFailed(source, params)
+    if (method === 'Runtime.consoleAPICalled') return handleRuntimeConsoleApiCalled(source, params)
+    if (method === 'Runtime.exceptionThrown') return handleRuntimeExceptionThrown(source, params)
   } catch (error) {
     await pushLog({ level: 'error', scope: 'debugger', message: error?.message || String(error), url: params?.request?.url || '' })
   }

@@ -75,6 +75,35 @@ button,input,select,textarea { font: inherit; color: inherit; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
 }
 .compact-card h2 { margin: 0; font-size: 16px; }
+.logs-panel .list { padding-top: 2px; }
+.logs-sticky-bar {
+  gap: 8px !important;
+  box-shadow: none !important;
+}
+.logs-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-bottom: 2px;
+}
+.logs-scope-row .select {
+  width: 100%;
+}
+.logs-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.logs-actions-row .switch {
+  flex: 1;
+  min-width: 0;
+}
+.logs-actions-row .btn {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 7px 12px;
+}
 .row { display: flex; gap: 8px; align-items: center; }
 .space-between { justify-content: space-between; }
 .card > .row.space-between { padding: 2px; }

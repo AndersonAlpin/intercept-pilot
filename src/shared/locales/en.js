@@ -148,7 +148,10 @@ const en = {
   },
   logs: {
     title: 'Logs',
-    errorOnly: 'error only',
+    errorOnly: 'Error only',
+    scopeAny: 'All scopes',
+    scopeApp: 'App',
+    scopeWeb: 'Web',
     clearLogs: 'Clear logs',
     noLogs: 'No logs.',
     noResults: 'No logs match these filters.'
@@ -158,8 +161,8 @@ const en = {
     filterUrl: 'Filter URL',
     filterMethod: 'Method',
     filterStatus: 'Status',
-    matchedOnly: 'matched only',
-    interceptedOnly: 'intercepted only',
+    matchedOnly: 'Matched only',
+    interceptedOnly: 'Intercepted only',
     noRequests: 'No requests captured yet.',
     noResults: 'No requests match these filters.',
     resultsCount: '{filtered} of {total}',

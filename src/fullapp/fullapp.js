@@ -52,6 +52,7 @@ const state = {
   },
   logsFilter: {
     level: 'ANY',
+    scope: 'ANY',
     search: ''
   },
   filteredNetworkEntries: [],
@@ -89,6 +90,7 @@ function applyLocalFilters() {
 
   state.filteredLogs = state.logs.filter(log => {
     if (state.logsFilter.level !== 'ANY' && log.level !== state.logsFilter.level) return false
+    if (state.logsFilter.scope !== 'ANY' && String(log.scope || 'app') !== state.logsFilter.scope) return false
     const text = state.logsFilter.search.trim().toLowerCase()
     if (text && !(`${log.message || ''} ${log.url || ''}`).toLowerCase().includes(text)) return false
     return true
@@ -559,6 +561,11 @@ function bindEvents() {
 
   $('#full-logs-level')?.addEventListener('change', event => {
     state.logsFilter.level = event.target.value
+    applyLocalFilters()
+    render()
+  })
+  $('#full-logs-scope')?.addEventListener('change', event => {
+    state.logsFilter.scope = event.target.value
     applyLocalFilters()
     render()
   })
