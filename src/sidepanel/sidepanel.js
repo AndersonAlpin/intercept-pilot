@@ -229,6 +229,7 @@ function bindEvents() {
   })
 
   $('#open-fullapp-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
+  $('#side-open-auto-attach-settings')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, page: 'settings' }))
   $('#manage-collections-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
   $('#open-diagnostics-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
 
@@ -253,7 +254,6 @@ function bindEvents() {
     appState.attachBusy = false
     await refreshState()
   })
-
   $('#reload-tab-btn')?.addEventListener('click', async () => {
     const result = await sendMessage({ type: MSG.TAB_RELOAD })
     if (result?.error) toastError(translateBackendError(result.error))

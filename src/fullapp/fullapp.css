@@ -34,8 +34,31 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .tab-focus-link { margin: 2px 0 0; border: 0; background: transparent; color: var(--text); padding: 0; font: inherit; text-align: left; cursor: pointer; }
 .tab-focus-link:hover { color: #c9d9ff; text-decoration: underline; }
 .tab-focus-link:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .25); }
+.auto-attach-link { margin: 2px 0 0; border: 0; background: transparent; color: var(--accent); padding: 0; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.auto-attach-link:hover { color: #a8c2ff; text-decoration: underline; }
+.auto-attach-link:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .25); }
 .muted { color: var(--text-muted); font-size: 12px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; padding-left: 8px; }
+.actions-menu { position: relative; }
+.actions-menu summary { list-style: none; }
+.actions-menu summary::-webkit-details-marker { display: none; }
+.actions-menu[open] .btn { border-color: var(--accent); }
+.actions-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 210px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-1);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, .45);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 20;
+}
+.actions-menu-list .btn { width: 100%; text-align: left; }
 .app-content { flex: 1; min-height: 0; overflow: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
 .app-content.app-content-split { overflow: hidden; }
 .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -74,6 +97,8 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn.primary { border-color: var(--accent); background: var(--accent); }
 .btn.primary:hover:not(:disabled) { background: #7298ff; border-color: #7298ff; }
+.btn.warning { background: rgba(245, 158, 11, .22); border-color: rgba(245, 158, 11, .55); }
+.btn.warning:hover:not(:disabled) { background: rgba(245, 158, 11, .32); border-color: rgba(245, 158, 11, .75); }
 .btn.danger { border-color: var(--danger); background: var(--danger); color: #fff; }
 .btn.danger:hover:not(:disabled) { background: #ff7077; border-color: #ff7077; color: #fff; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }

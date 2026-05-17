@@ -338,6 +338,10 @@ function bindEvents() {
     await sendMessage({ type: MSG.DEBUG_DETACH })
     await refreshState()
   })
+  $('#full-open-auto-attach-settings')?.addEventListener('click', () => {
+    state.page = 'settings'
+    render()
+  })
   $('#full-reload-btn')?.addEventListener('click', async () => {
     const result = await sendMessage({ type: MSG.TAB_RELOAD })
     if (result?.error) toastError(translateBackendError(result.error))

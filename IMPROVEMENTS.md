@@ -2,7 +2,7 @@
 
 ## Etapa 1 — Redesign estrutural e Full App básico
 
-> Status: **em andamento pelo Codex**
+> Status: **finalizada**
 
 Objetivo: reorganizar o MockPilot para separar melhor o uso rápido no sidepanel do gerenciamento avançado no Full App.
 
@@ -68,7 +68,7 @@ O Full App deve centralizar fluxos avançados:
   - `applyResponseBody: true`
   - `applyResponseHeaders: false`
 
-### Entregas já implementadas (até v0.3.9)
+### Entregas já implementadas (Etapa 1 concluída)
 
 - Full App funcional com navegação por páginas:
   - Dashboard
@@ -100,7 +100,14 @@ O Full App deve centralizar fluxos avançados:
   - Correção de headers/CORS para reduzir falhas de regra que fazia match mas quebrava no frontend
 - Auto-attach:
   - Reanexo automático ao trocar para outra aba HTTP(S) quando a opção está ativa
-- Versão atualizada para `0.3.9`.
+- UX de attach com auto-attach (Full App + Sidepanel):
+  - Com auto-attach desligado: fluxo manual (`Anexar/Reanexar`, `Desanexar`, `Recarregar`)
+  - Com auto-attach ligado: estado claro de auto-attach ativo
+  - `Recarregar` mantido como ação principal
+  - Ações manuais movidas para menu secundário (`Desativar auto-attach`, `Desanexar agora`)
+  - Toast informativo ao desanexar manualmente com auto-attach ligado
+  - i18n atualizado para os novos textos de attach
+- Versão atualizada para `0.4.0`.
 
 ---
 
@@ -496,15 +503,14 @@ Objetivo: melhorar pequenos feedbacks sem atrapalhar o fluxo.
 
 ## Em andamento
 
-1. Redesign estrutural e Full App básico.
+1. Etapa 2 — Polimento visual e usabilidade do Sidepanel.
 
 ## Próximas etapas recomendadas
 
-2. Polimento visual e usabilidade do Sidepanel.
-3. Rule Hit Counter e Live State.
-4. Rule Presets / Quick Scenarios.
-5. Persistência de filtros do Network.
-6. Import/Export Bundle. **(solicitar prompt detalhado)**
+2. Rule Hit Counter e Live State.
+3. Rule Presets / Quick Scenarios.
+4. Persistência de filtros do Network.
+5. Import/Export Bundle. **(solicitar prompt detalhado)**
 
 ## Etapas maiores
 

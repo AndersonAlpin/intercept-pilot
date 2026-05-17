@@ -5,16 +5,19 @@ export function renderConnectionHeader(state) {
   const attachedTab = state.attachedTab || null
   const candidateTab = state.candidateTab || state.lastAttachableTab || null
   const attached = Boolean(state.attachedTabId && attachedTab)
+  const autoAttachEnabled = Boolean(state.settings?.autoAttach)
   const statusClass = state.attachBusy ? 'is-busy' : attached ? 'is-attached' : 'is-detached'
   const statusText = state.attachBusy
     ? t('status.connecting')
     : attached
       ? t('status.attachedTabNumber', { position: attachedTab.position || '?' })
       : t('status.notAttached')
+  const eligibilityText = attached || candidateTab ? '' : t('status.noEligibleTab')
   const primaryTab = attached ? attachedTab : candidateTab
   const primaryTitle = primaryTab?.title || t('status.noAttachableTab')
   const primaryUrl = primaryTab?.url || ''
   const canFocusTab = Boolean(primaryTab?.id)
+  const canReload = Boolean(state.attachedTab?.id || state.candidateTab?.id || state.lastAttachableTab?.id)
 
   return `
     <header class="header">
@@ -22,20 +25,30 @@ export function renderConnectionHeader(state) {
         <div class="brand">
           <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
           <p class="attach-status ${statusClass}">${statusText}</p>
+          ${eligibilityText ? `<p class="url-muted">${escapeHtml(eligibilityText)}</p>` : ''}
           ${canFocusTab
             ? `<button class="tab-focus-link" id="side-focus-tab-btn" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</button>`
             : `<p class="url-muted" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</p>`
           }
+          ${autoAttachEnabled ? `<button class="auto-attach-link" id="side-open-auto-attach-settings" title="${escapeHtml(t('status.openAutoAttachSettings'))}" aria-label="${escapeHtml(t('status.openAutoAttachSettings'))}">${t('status.autoAttachActive')}</button>` : ''}
         </div>
-        <div class="header-actions compact">
+        <div class="header-actions compact ${autoAttachEnabled ? 'is-auto' : ''}">
           <button class="btn btn-open" id="open-fullapp-btn">${t('common.open')}</button>
-          <button class="btn btn-attach ${attached ? 'warning' : 'primary'}" id="attach-btn" ${state.attachBusy ? 'disabled' : ''}>${state.attachBusy ? t('status.connecting') : attached ? t('common.reattach') : t('common.attach')}</button>
-          <button class="btn ghost btn-detach" id="detach-btn" ${(!attached || state.attachBusy) ? 'disabled' : ''}>${t('common.detach')}</button>
+          ${autoAttachEnabled
+            ? `
+              <button class="btn btn-reload-main" id="reload-tab-btn" ${(!canReload || state.attachBusy) ? 'disabled' : ''}>${t('common.reload')}</button>
+            `
+            : `
+              <button class="btn btn-attach ${attached ? 'warning' : 'primary'}" id="attach-btn" ${state.attachBusy ? 'disabled' : ''}>${state.attachBusy ? t('status.connecting') : attached ? t('common.reattach') : t('common.attach')}</button>
+              <button class="btn ghost btn-detach" id="detach-btn" ${(!attached || state.attachBusy) ? 'disabled' : ''}>${t('common.detach')}</button>
+            `}
         </div>
       </div>
-      <div class="header-secondary">
-        <button class="link-btn" id="reload-tab-btn" ${(!attached || state.attachBusy) ? 'disabled' : ''}>${t('status.reloadHint')}</button>
-      </div>
+      ${autoAttachEnabled ? '' : `
+        <div class="header-secondary">
+          <button class="link-btn" id="reload-tab-btn" ${(!canReload || state.attachBusy) ? 'disabled' : ''}>${t('status.reloadHint')}</button>
+        </div>
+      `}
     </header>
   `
 }

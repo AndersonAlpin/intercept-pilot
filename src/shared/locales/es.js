@@ -6,12 +6,14 @@ const es = {
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Estado',
     method: 'Método', level: 'Nivel', settings: 'Configuración', close: 'Cerrar', yes: 'Sí', no: 'No',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Descargar JSON',
-    moreActions: 'Más acciones', advanced: 'Avanzado', confirm: 'Confirmar', activate: 'Activar', deactivate: 'Desactivar'
+    moreActions: 'Más acciones', disableAutoAttach: 'Desactivar auto-adjuntar', detachNow: 'Desadjuntar ahora', configureHosts: 'Configurar hosts', advanced: 'Avanzado', confirm: 'Confirmar', activate: 'Activar', deactivate: 'Desactivar'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
     connecting: 'Conectando...', attached: 'Adjuntado a la pestaña actual', attachedCurrent: 'Adjuntado a la pestaña actual', attachedOther: 'Adjuntado en otra pestaña', attachedTabNumber: 'Adjuntado a la pestaña {position}', notAttached: 'No adjuntado',
-    noActiveUrl: 'Sin URL activa', noAttachableTab: 'No hay pestaña adjuntable disponible',
+    autoAttachActive: 'Auto-adjuntar activo',
+    openAutoAttachSettings: 'Abrir configuración de auto-adjuntar',
+    noActiveUrl: 'Sin URL activa', noAttachableTab: 'No hay pestaña adjuntable disponible', noEligibleTab: 'No hay pestaña elegible',
     tabPosition: 'Pestaña {position}', currentTabLabel: 'Actual', reloadHint: 'Recarga la página actual para aplicar reglas'
   },
   navigation: {
@@ -121,7 +123,8 @@ const es = {
     exportError: 'No se pudo exportar el JSON.',
     importError: 'No se pudo importar el JSON.',
     ruleImportError: 'No se pudo importar la regla.',
-    collectionImportError: 'No se pudo importar la colección.'
+    collectionImportError: 'No se pudo importar la colección.',
+    autoAttachStillActive: 'El auto-adjuntar sigue activo.'
   },
   badges: { mock: 'mock', fail: 'fallo', delay: 'delay', pass: 'pass', ok: 'ok', conflict: 'conflicto', error: 'error', warn: 'aviso', info: 'info' }
 }

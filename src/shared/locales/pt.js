@@ -6,12 +6,14 @@ const pt = {
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Status',
     method: 'Método', level: 'Nível', settings: 'Configurações', close: 'Fechar', yes: 'Sim', no: 'Não',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Baixar JSON',
-    moreActions: 'Mais ações', advanced: 'Avançado', confirm: 'Confirmar', activate: 'Ativar', deactivate: 'Desativar'
+    moreActions: 'Mais ações', disableAutoAttach: 'Desativar auto-anexar', detachNow: 'Desanexar agora', configureHosts: 'Configurar hosts', advanced: 'Avançado', confirm: 'Confirmar', activate: 'Ativar', deactivate: 'Desativar'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
     connecting: 'Conectando...', attached: 'Anexado à aba atual', attachedCurrent: 'Anexado à aba atual', attachedOther: 'Anexado em outra aba', attachedTabNumber: 'Anexado à aba {position}', notAttached: 'Não anexado',
-    noActiveUrl: 'Sem URL ativa', noAttachableTab: 'Nenhuma aba anexável disponível',
+    autoAttachActive: 'Auto-anexar ativo',
+    openAutoAttachSettings: 'Abrir configurações de auto-anexar',
+    noActiveUrl: 'Sem URL ativa', noAttachableTab: 'Nenhuma aba anexável disponível', noEligibleTab: 'Nenhuma aba elegível',
     tabPosition: 'Aba {position}', currentTabLabel: 'Atual', reloadHint: 'Recarregue a página atual para aplicar as regras'
   },
   navigation: {
@@ -121,7 +123,8 @@ const pt = {
     exportError: 'Não foi possível exportar o JSON.',
     importError: 'Não foi possível importar o JSON.',
     ruleImportError: 'Não foi possível importar a regra.',
-    collectionImportError: 'Não foi possível importar a coleção.'
+    collectionImportError: 'Não foi possível importar a coleção.',
+    autoAttachStillActive: 'O auto-anexar continua ativo.'
   },
   badges: { mock: 'mock', fail: 'falha', delay: 'atraso', pass: 'pass', ok: 'ok', conflict: 'conflito', error: 'erro', warn: 'aviso', info: 'info' }
 }

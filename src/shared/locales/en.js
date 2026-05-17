@@ -31,6 +31,9 @@ const en = {
     exportJson: 'Export JSON',
     downloadJson: 'Download JSON',
     moreActions: 'More actions',
+    disableAutoAttach: 'Disable auto-attach',
+    detachNow: 'Detach now',
+    configureHosts: 'Configure hosts',
     advanced: 'Advanced',
     confirm: 'Confirm', activate: 'Activate', deactivate: 'Deactivate'
   },
@@ -49,8 +52,11 @@ const en = {
     notAttached: 'Not attached',
     noActiveUrl: 'No active URL',
     noAttachableTab: 'No attachable tab available',
+    noEligibleTab: 'No eligible tab',
     tabPosition: 'Tab {position}',
     currentTabLabel: 'Current',
+    openAutoAttachSettings: 'Open auto-attach settings',
+    autoAttachActive: 'Auto-attach active',
     reloadHint: 'Reload current page to apply rules'
   },
   navigation: {
@@ -243,7 +249,8 @@ const en = {
     exportError: 'Could not export JSON.',
     importError: 'Could not import JSON.',
     ruleImportError: 'Could not import rule.',
-    collectionImportError: 'Could not import collection.'
+    collectionImportError: 'Could not import collection.',
+    autoAttachStillActive: 'Auto-attach is still active.'
   },
   badges: {
     mock: 'mock',
