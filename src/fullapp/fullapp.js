@@ -593,9 +593,14 @@ function bindEvents() {
       maxNetworkEntries: Number($('#settings-max-network')?.value || 300),
       maxLogs: Number($('#settings-max-logs')?.value || 300)
     }
-    await sendMessage({ type: MSG.SETTINGS_UPDATE, payload })
+    const result = await sendMessage({ type: MSG.SETTINGS_UPDATE, payload })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      return
+    }
     setLocale(payload.language)
     await refreshState()
+    toastSuccess(t('fullapp.settingsSaved'))
   })
 }
 
