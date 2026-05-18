@@ -52,7 +52,7 @@ export function renderRulesQuickPanel(state) {
           </div>
         `).join('') : `<div class="empty">${t('rules.noRules')}</div>`}
       </div>
-      <p class="small">${t('rules.advancedEditor')}</p>
+      <p class="small"><button class="link-btn" id="quick-open-advanced-hint">${t('rules.advancedEditor')}</button></p>
     </div>
   `
 }
