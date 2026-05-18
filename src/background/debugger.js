@@ -123,7 +123,7 @@ export async function attachToTab(tabId) {
         await pushLog({
           level: 'error',
           scope: 'debugger',
-          message: `Attach blocked by other extension(s) on the page: ${labelText}. Disable the listed extension(s) on this tab and try Attach again.`,
+          message: `Attach blocked by other extension(s) on the page: ${labelText}. Disable them, reload the page and try Attach again.`,
           url: tab.url || ''
         }).catch(() => {})
         throw new Error(buildCrossExtensionErrorCode(labels))

@@ -288,7 +288,7 @@ const en = {
     attachNoActiveTab: 'Open an HTTP(S) page in a tab first, then click Attach.',
     attachHttpOnly: 'Attach only works on HTTP(S) pages. Open a website in a regular tab first.',
     attachCannotAttach: 'Cannot attach the debugger to this tab.',
-    attachCrossExtension: 'Attach blocked by another extension on this tab. Detected extension(s): {ids}. Disable them on this tab and try Attach again.',
+    attachCrossExtension: 'Attach blocked by another extension on this tab. Detected extension(s): {ids}. Disable them, reload the page and try Attach again.',
     reloadNoTab: 'No tab available to reload.'
   },
   toasts: {

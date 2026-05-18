@@ -171,7 +171,7 @@ const es = {
     attachNoActiveTab: 'Abre una página HTTP(S) en una pestaña primero y haz clic en Adjuntar.',
     attachHttpOnly: 'Adjuntar solo funciona en páginas HTTP(S). Abre un sitio en una pestaña normal primero.',
     attachCannotAttach: 'No se pudo adjuntar el depurador a esta pestaña.',
-    attachCrossExtension: 'Adjuntar bloqueado por otra extensión en esta pestaña. Extensión(es) detectada(s): {ids}. Desactívalas en esta pestaña e intenta Adjuntar de nuevo.',
+    attachCrossExtension: 'Adjuntar bloqueado por otra extensión en esta pestaña. Extensión(es) detectada(s): {ids}. Desactívalas, recarga la página e intenta Adjuntar de nuevo.',
     reloadNoTab: 'No hay pestaña disponible para recargar.'
   },
   toasts: {
