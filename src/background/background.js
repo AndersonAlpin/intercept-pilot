@@ -746,6 +746,16 @@ chrome.tabs.onRemoved.addListener(async tabId => {
   await broadcastConnectionState()
 })
 
+async function refreshTabPositions() {
+  await ensureRehydrated()
+  await updateConnectionFromActiveTab()
+  await broadcastConnectionState()
+}
+
+chrome.tabs.onMoved.addListener(() => refreshTabPositions())
+chrome.tabs.onDetached.addListener(() => refreshTabPositions())
+chrome.tabs.onAttached.addListener(() => refreshTabPositions())
+
 chrome.debugger.onEvent.addListener(async (source, method, params) => {
   await ensureRehydrated()
   try {
