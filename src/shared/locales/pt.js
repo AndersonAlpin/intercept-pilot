@@ -68,7 +68,18 @@ const pt = {
       applyResponseHeaders: 'Aplicar headers da resposta'
     }
   },
-  logs: { title: 'Logs', errorOnly: 'Somente erro', scopeAny: 'Todos os escopos', scopeApp: 'App', scopeWeb: 'Web', clearLogs: 'Limpar logs', noLogs: 'Sem logs.', noResults: 'Nenhum log corresponde a esses filtros.' },
+  logs: {
+    title: 'Logs',
+    errorOnly: 'Somente erro',
+    scopeAny: 'Todos os escopos',
+    scopeApp: 'App',
+    scopeWeb: 'Web',
+    clearLogs: 'Limpar logs',
+    noLogs: 'Sem logs.',
+    webOnlyEmpty: 'Sem logs Web.',
+    noResults: 'Nenhum log corresponde a esses filtros.',
+    columns: { message: 'Mensagem', time: 'Hora', url: 'URL' }
+  },
   network: {
     title: 'Rede', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Status',
     matchedOnly: 'Somente match', interceptedOnly: 'Somente interceptadas', noRequests: 'Sem requisições capturadas.',
@@ -124,6 +135,12 @@ const pt = {
     attached: 'Anexado', enabledRules: 'Regras ativas', matchedRecently: 'Matches recentes', errors: 'Erros',
     currentContext: 'Contexto atual', activeCollection: 'Coleção ativa', recentNetwork: 'Entradas de rede recentes', recentLogs: 'Logs recentes'
   },
+  diagnostics: {
+    activeCollectionId: 'ID da coleção ativa',
+    extensionEvents: 'Eventos da extensão (recentes)',
+    noExtensionLogs: 'Sem eventos da extensão.',
+    openWebLogs: 'Abrir logs Web'
+  },
   fullapp: {
     noRuleSelected: 'Selecione uma regra para editar.', ruleEditor: 'Editor de Regra',
     importPlaceholder: 'Cole o JSON para importar', importStrategy: 'Importa como cópia. Dados existentes não são sobrescritos. Nomes duplicados são incrementados.',
@@ -131,8 +148,8 @@ const pt = {
     exportAllData: 'Exportar todos os dados', importJson: 'Importar JSON', importPickFile: 'Escolher arquivo JSON', saveSettings: 'Salvar configurações',
     autoAttach: 'Auto-anexar', autoReloadAfterRuleChange: 'Auto recarregar após alterar regra',
     maxNetworkEntries: 'Máximo de entradas de rede', maxLogs: 'Máximo de logs',
-    attachedUrl: 'URL anexada', attachedTabId: 'attachedTabId', isAttached: 'isAttached', enabledRules: 'regras ativas',
-    invalidRules: 'regras inválidas', recentRuntimeLogs: 'Logs recentes do runtime', noLogs: 'Sem logs.',
+    attachedUrl: 'URL Anexada', attachedTabId: 'ID da Aba Anexada', isAttached: 'Status de Anexo', enabledRules: 'Regras Ativas',
+    invalidRules: 'Regras Inválidas', recentRuntimeLogs: 'Logs recentes do runtime', noLogs: 'Sem logs.',
     newRule: 'Nova regra', exportCollection: 'Exportar coleção', importRule: 'Importar', settingsSaved: 'Configurações salvas.',
     importCompleted: 'Importação concluída (merge por id).', exportCopiedCollection: 'JSON da coleção atual copiado.', exportCopiedAll: 'JSON de todos os dados copiado.'
   },
@@ -206,3 +223,4 @@ const pt = {
 }
 
 export default pt
+

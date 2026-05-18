@@ -9,9 +9,6 @@ export function renderLogsQuickPanel(state) {
         <div class="logs-head">
           <h2>${t('logs.title')}</h2>
         </div>
-        <div class="logs-scope-row">
-          <select class="select" id="logs-scope">${['ANY','app','web'].map(scope => `<option value="${scope}" ${state.logsScope === scope ? 'selected' : ''}>${scope === 'ANY' ? t('logs.scopeAny') : scope === 'app' ? t('logs.scopeApp') : t('logs.scopeWeb')}</option>`).join('')}</select>
-        </div>
         <div class="logs-actions-row">
           <label class="switch"><input type="checkbox" id="logs-error-only" ${state.logsErrorOnly ? 'checked' : ''}/> ${t('logs.errorOnly')}</label>
           <button class="btn" id="logs-clear-btn">${t('logs.clearLogs')}</button>
@@ -27,9 +24,10 @@ export function renderLogsQuickPanel(state) {
             <div class="item-meta">${escapeHtml(log.timestamp || '')}</div>
             ${log.url ? `<div class="item-meta">${escapeHtml(log.url)}</div>` : ''}
           </div>
-        `).join('') : `<div class="empty">${t('logs.noLogs')}</div>`}
+        `).join('') : `<div class="empty">${t('logs.webOnlyEmpty')}</div>`}
       </div>
       <div class="footer-actions"><button class="btn" id="open-diagnostics-btn">${t('common.diagnostics')} ↗</button></div>
     </div>
   `
 }
+

@@ -43,7 +43,6 @@ const appState = {
   },
   networkFiltersHydrated: false,
   logsErrorOnly: false,
-  logsScope: 'ANY',
 
   quickRuleEditorOpen: false,
   editorMode: 'create',
@@ -92,10 +91,6 @@ function isRenderableNetworkEntry(entry) {
   return Boolean(method || url)
 }
 
-function normalizeLogScope(scope) {
-  return String(scope || '').toLowerCase() === 'web' ? 'web' : 'app'
-}
-
 function filteredNetworkEntries() {
   return appState.networkEntries.filter(entry => {
     if (!isRenderableNetworkEntry(entry)) return false
@@ -140,7 +135,7 @@ function hydrateQuickRule(seed = {}) {
 function filteredLogs() {
   return appState.logs.filter(log => {
     if (appState.logsErrorOnly && log.level !== 'error') return false
-    if (appState.logsScope !== 'ANY' && normalizeLogScope(log.scope) !== appState.logsScope) return false
+    if (String(log.scope || '').toLowerCase() !== 'web') return false
     return true
   })
 }
@@ -569,10 +564,6 @@ function bindEvents() {
 
   $('#logs-error-only')?.addEventListener('change', event => {
     appState.logsErrorOnly = event.target.checked
-    render()
-  })
-  $('#logs-scope')?.addEventListener('change', event => {
-    appState.logsScope = event.target.value
     render()
   })
   $('#logs-clear-btn')?.addEventListener('click', async () => {

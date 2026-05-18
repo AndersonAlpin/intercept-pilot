@@ -22,7 +22,6 @@ export function renderDashboardPage(state) {
       <h3>${t('dashboard.currentContext')}</h3>
       <p>${t('dashboard.activeCollection')}: <strong>${displayCollectionName(activeCollection)}</strong></p>
       <p>${t('dashboard.recentNetwork')}: ${state.networkEntries.length}</p>
-      <p>${t('dashboard.recentLogs')}: ${state.logs.length}</p>
     </section>
   `
 }

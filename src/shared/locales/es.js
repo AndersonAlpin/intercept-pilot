@@ -68,7 +68,18 @@ const es = {
       applyResponseHeaders: 'Aplicar headers de la respuesta'
     }
   },
-  logs: { title: 'Logs', errorOnly: 'Solo errores', scopeAny: 'Todos los ámbitos', scopeApp: 'App', scopeWeb: 'Web', clearLogs: 'Limpiar logs', noLogs: 'Sin logs.', noResults: 'Ningún log coincide con estos filtros.' },
+  logs: {
+    title: 'Logs',
+    errorOnly: 'Solo errores',
+    scopeAny: 'Todos los ámbitos',
+    scopeApp: 'App',
+    scopeWeb: 'Web',
+    clearLogs: 'Limpiar logs',
+    noLogs: 'Sin logs.',
+    webOnlyEmpty: 'Sin logs Web.',
+    noResults: 'Ningún log coincide con estos filtros.',
+    columns: { message: 'Mensaje', time: 'Hora', url: 'URL' }
+  },
   network: {
     title: 'Red', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Estado',
     matchedOnly: 'Solo matched', interceptedOnly: 'Solo interceptadas', noRequests: 'Sin requests capturadas.',
@@ -124,15 +135,21 @@ const es = {
     attached: 'Adjuntado', enabledRules: 'Reglas habilitadas', matchedRecently: 'Matches recientes', errors: 'Errores',
     currentContext: 'Contexto actual', activeCollection: 'Colección activa', recentNetwork: 'Entradas de red recientes', recentLogs: 'Logs recientes'
   },
+  diagnostics: {
+    activeCollectionId: 'ID de colección activa',
+    extensionEvents: 'Eventos de la extensión (recientes)',
+    noExtensionLogs: 'Sin eventos de la extensión.',
+    openWebLogs: 'Abrir logs Web'
+  },
   fullapp: {
     noRuleSelected: 'Selecciona una regla para editar.', ruleEditor: 'Editor de reglas',
     importPlaceholder: 'Pega JSON para importar', importStrategy: 'Importa como copia. Los datos existentes no se sobrescriben. Los nombres duplicados se incrementan.',
     noImportExportAction: 'Sin acciones de import/export todavía.', exportCurrentCollection: 'Exportar colección actual',
     exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', importPickFile: 'Elegir archivo JSON', saveSettings: 'Guardar configuración',
     autoAttach: 'Auto-adjuntar', autoReloadAfterRuleChange: 'Auto-recargar tras cambio de regla',
-    maxNetworkEntries: 'Máx. entradas de red', maxLogs: 'Máx. logs', attachedUrl: 'URL adjuntada',
-    attachedTabId: 'attachedTabId', isAttached: 'isAttached', enabledRules: 'reglas habilitadas',
-    invalidRules: 'reglas inválidas', recentRuntimeLogs: 'Logs recientes de runtime', noLogs: 'Sin logs.',
+    maxNetworkEntries: 'Máx. entradas de red', maxLogs: 'Máx. logs', attachedUrl: 'URL Adjuntada',
+    attachedTabId: 'ID de la Pestaña Adjuntada', isAttached: 'Estado de Adjunción', enabledRules: 'Reglas Habilitadas',
+    invalidRules: 'Reglas Inválidas', recentRuntimeLogs: 'Logs recientes de runtime', noLogs: 'Sin logs.',
     newRule: 'Nueva regla', exportCollection: 'Exportar colección', importRule: 'Importar', settingsSaved: 'Configuración guardada.',
     importCompleted: 'Importación completada (merge por id).', exportCopiedCollection: 'JSON de colección copiado.', exportCopiedAll: 'JSON de todos los datos copiado.'
   },
@@ -206,3 +223,4 @@ const es = {
 }
 
 export default es
+

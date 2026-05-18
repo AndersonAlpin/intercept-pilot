@@ -164,7 +164,9 @@ const en = {
     scopeWeb: 'Web',
     clearLogs: 'Clear logs',
     noLogs: 'No logs.',
-    noResults: 'No logs match these filters.'
+    webOnlyEmpty: 'No web logs.',
+    noResults: 'No logs match these filters.',
+    columns: { message: 'Message', time: 'Time', url: 'URL' }
   },
   network: {
     title: 'Network',
@@ -232,6 +234,12 @@ const en = {
     recentNetwork: 'Recent network entries',
     recentLogs: 'Recent logs'
   },
+  diagnostics: {
+    activeCollectionId: 'Active collection ID',
+    extensionEvents: 'Extension events (recent)',
+    noExtensionLogs: 'No extension events.',
+    openWebLogs: 'Open web logs'
+  },
   fullapp: {
     noRuleSelected: 'Select a rule to edit.',
     ruleEditor: 'Rule Editor',
@@ -247,11 +255,11 @@ const en = {
     autoReloadAfterRuleChange: 'Auto reload after rule change',
     maxNetworkEntries: 'Max network entries',
     maxLogs: 'Max logs',
-    attachedUrl: 'attachedUrl',
-    attachedTabId: 'attachedTabId',
-    isAttached: 'isAttached',
-    enabledRules: 'enabledRules',
-    invalidRules: 'invalidRules',
+    attachedUrl: 'Attached URL',
+    attachedTabId: 'Attached Tab ID',
+    isAttached: 'Attach Status',
+    enabledRules: 'Enabled Rules',
+    invalidRules: 'Invalid Rules',
     recentRuntimeLogs: 'Recent runtime logs',
     noLogs: 'No logs.',
     newRule: 'New rule',
@@ -342,3 +350,4 @@ const en = {
 }
 
 export default en
+
