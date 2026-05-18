@@ -196,6 +196,104 @@ function render() {
   restoreFocusSnapshot(focusSnapshot)
 }
 
+function bindTopbarEvents() {
+  $('#full-attach-btn')?.addEventListener('click', async () => {
+    const preferredTabId = state.candidateTab?.id || state.lastAttachableTab?.id || null
+    const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      return
+    }
+    await refreshState()
+  })
+  $('#full-detach-btn')?.addEventListener('click', async () => {
+    await sendMessage({ type: MSG.DEBUG_DETACH })
+    await refreshState()
+  })
+  $('#full-open-auto-attach-settings')?.addEventListener('click', () => {
+    state.page = 'settings'
+    render()
+  })
+  $('#full-reload-btn')?.addEventListener('click', async () => {
+    const result = await sendMessage({ type: MSG.TAB_RELOAD })
+    if (result?.error) toastError(translateBackendError(result.error))
+  })
+  $('#full-focus-tab-btn')?.addEventListener('click', async () => {
+    const targetTabId = state.attachedTab?.id || state.candidateTab?.id || state.lastAttachableTab?.id || null
+    if (!targetTabId) return
+    await chrome.tabs.update(targetTabId, { active: true }).catch(() => {})
+    const tab = await chrome.tabs.get(targetTabId).catch(() => null)
+    if (tab?.windowId != null) {
+      await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {})
+    }
+  })
+}
+
+function refreshTopbarOnly() {
+  const topbarEl = document.querySelector('.topbar')
+  if (!topbarEl) {
+    render()
+    return
+  }
+  const focusSnapshot = captureFocusSnapshot()
+  topbarEl.outerHTML = renderTopbar(state)
+  bindTopbarEvents()
+  restoreFocusSnapshot(focusSnapshot)
+}
+
+function sameTabRef(a, b) {
+  const left = a || null
+  const right = b || null
+  return (left?.id ?? null) === (right?.id ?? null)
+    && (left?.url ?? null) === (right?.url ?? null)
+    && (left?.title ?? null) === (right?.title ?? null)
+}
+
+function connectionChanged(current, next) {
+  return (current.attachedTabId ?? null) !== (next.attachedTabId ?? null)
+    || !sameTabRef(current.attachedTab, next.attachedTab)
+    || !sameTabRef(current.activeTab, next.activeTab)
+    || !sameTabRef(current.candidateTab, next.candidateTab)
+    || !sameTabRef(current.lastAttachableTab, next.lastAttachableTab)
+}
+
+let pendingConnectionPatch = null
+const flushConnectionUpdate = debounce(() => {
+  if (!pendingConnectionPatch) return
+  const patch = pendingConnectionPatch
+  pendingConnectionPatch = null
+
+  const current = {
+    attachedTabId: state.attachedTabId ?? null,
+    attachedTab: state.attachedTab ?? null,
+    activeTab: state.activeTab ?? null,
+    candidateTab: state.candidateTab ?? null,
+    lastAttachableTab: state.lastAttachableTab ?? null
+  }
+  const next = {
+    attachedTabId: patch.attachedTabId ?? current.attachedTabId,
+    attachedTab: patch.attachedTab ?? current.attachedTab,
+    activeTab: patch.activeTab ?? current.activeTab,
+    candidateTab: patch.candidateTab ?? current.candidateTab,
+    lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab
+  }
+
+  const changed = connectionChanged(current, next)
+  state.attachedTabId = next.attachedTabId
+  state.attachedTab = next.attachedTab
+  state.activeTab = next.activeTab
+  state.candidateTab = next.candidateTab
+  state.lastAttachableTab = next.lastAttachableTab
+
+  if (!changed) return
+  refreshTopbarOnly()
+}, 120)
+
+function queueConnectionPatch(patch) {
+  pendingConnectionPatch = { ...(pendingConnectionPatch || {}), ...patch }
+  flushConnectionUpdate()
+}
+
 function openInspector(entryId) {
   const entry = state.networkEntries.find(e => e.id === entryId)
   if (!entry) return
@@ -496,37 +594,7 @@ async function openFullPage(page) {
 
 function bindEvents() {
   document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => openFullPage(button.dataset.page)))
-
-  $('#full-attach-btn')?.addEventListener('click', async () => {
-    const preferredTabId = state.candidateTab?.id || state.lastAttachableTab?.id || null
-    const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
-    if (result?.error) {
-      toastError(translateBackendError(result.error))
-      return
-    }
-    await refreshState()
-  })
-  $('#full-detach-btn')?.addEventListener('click', async () => {
-    await sendMessage({ type: MSG.DEBUG_DETACH })
-    await refreshState()
-  })
-  $('#full-open-auto-attach-settings')?.addEventListener('click', () => {
-    state.page = 'settings'
-    render()
-  })
-  $('#full-reload-btn')?.addEventListener('click', async () => {
-    const result = await sendMessage({ type: MSG.TAB_RELOAD })
-    if (result?.error) toastError(translateBackendError(result.error))
-  })
-  $('#full-focus-tab-btn')?.addEventListener('click', async () => {
-    const targetTabId = state.attachedTab?.id || state.candidateTab?.id || state.lastAttachableTab?.id || null
-    if (!targetTabId) return
-    await chrome.tabs.update(targetTabId, { active: true }).catch(() => {})
-    const tab = await chrome.tabs.get(targetTabId).catch(() => null)
-    if (tab?.windowId != null) {
-      await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {})
-    }
-  })
+  bindTopbarEvents()
 
   $('#full-rules-collection')?.addEventListener('change', async event => {
     await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { activeCollectionId: event.target.value } })
@@ -883,13 +951,9 @@ function bindEvents() {
 chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:network') {
     state.networkEntries = message.networkEntries
-    if (state.page === 'network' || state.page === 'dashboard') {
+    if (state.page === 'network') {
       applyLocalFilters()
-      if (state.page === 'network') {
-        refreshNetworkTableOnly()
-      } else {
-        render()
-      }
+      refreshNetworkTableOnly()
     }
     if (state.inspector) {
       const entry = state.networkEntries.find(e => e.id === state.inspector.entryId)
@@ -905,39 +969,19 @@ chrome.runtime.onMessage.addListener(message => {
     }
   }
   if (message?.type === 'state:attached') {
-    if (state.attachedTabId !== message.attachedTabId) {
-      state.attachedTabId = message.attachedTabId
-      render()
-    }
+    queueConnectionPatch({ attachedTabId: message.attachedTabId ?? null })
   }
   if (message?.type === 'state:connection') {
-    const next = {
+    queueConnectionPatch({
       attachedTabId: message.attachedTabId ?? null,
       attachedTab: message.attachedTab ?? null,
       activeTab: message.activeTab ?? null,
       candidateTab: message.candidateTab ?? null,
       lastAttachableTab: message.lastAttachableTab ?? null
-    }
-    const current = {
-      attachedTabId: state.attachedTabId,
-      attachedTab: state.attachedTab,
-      activeTab: state.activeTab,
-      candidateTab: state.candidateTab,
-      lastAttachableTab: state.lastAttachableTab
-    }
-    const changed = JSON.stringify(current) !== JSON.stringify(next)
-    state.attachedTabId = next.attachedTabId
-    state.attachedTab = next.attachedTab
-    state.activeTab = next.activeTab
-    state.candidateTab = next.candidateTab
-    state.lastAttachableTab = next.lastAttachableTab
-    if (changed) render()
+    })
   }
   if (message?.type === 'state:activeTab') {
-    if (JSON.stringify(state.activeTab) !== JSON.stringify(message.activeTab)) {
-      state.activeTab = message.activeTab
-      render()
-    }
+    queueConnectionPatch({ activeTab: message.activeTab ?? null })
   }
   if (message?.type === 'state:hit') {
     const rule = state.rules.find(r => r.id === message.ruleId)
@@ -965,6 +1009,15 @@ chrome.runtime.onMessage.addListener(message => {
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') return
+
+  const onlyLogsChanged = Boolean(changes.logs)
+    && !changes.settings
+    && !changes.collections
+    && !changes.rules
+
+  if (onlyLogsChanged && state.page !== 'logs' && state.page !== 'diagnostics') {
+    return
+  }
 
   if (changes.settings) {
     if (isOnlyNetworkFiltersDiff(changes.settings.oldValue, changes.settings.newValue)) {

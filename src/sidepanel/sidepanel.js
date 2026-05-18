@@ -171,6 +171,110 @@ function render() {
   restoreFocusSnapshot(focusSnapshot)
 }
 
+function bindHeaderEvents() {
+  $('#open-fullapp-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
+  $('#side-open-auto-attach-settings')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, page: 'settings' }))
+  $('#attach-btn')?.addEventListener('click', async () => {
+    appState.attachBusy = true
+    refreshHeaderOnly()
+    const preferredTabId = appState.candidateTab?.id || appState.lastAttachableTab?.id || null
+    const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
+    appState.attachBusy = false
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      refreshHeaderOnly()
+      return
+    }
+    await refreshState()
+  })
+  $('#detach-btn')?.addEventListener('click', async () => {
+    appState.attachBusy = true
+    refreshHeaderOnly()
+    await sendMessage({ type: MSG.DEBUG_DETACH })
+    appState.attachBusy = false
+    await refreshState()
+  })
+  $('#reload-tab-btn')?.addEventListener('click', async () => {
+    const result = await sendMessage({ type: MSG.TAB_RELOAD })
+    if (result?.error) toastError(translateBackendError(result.error))
+  })
+  $('#side-focus-tab-btn')?.addEventListener('click', async () => {
+    const targetTabId = appState.attachedTab?.id || appState.candidateTab?.id || appState.lastAttachableTab?.id || null
+    if (!targetTabId) return
+    await chrome.tabs.update(targetTabId, { active: true }).catch(() => {})
+    const tab = await chrome.tabs.get(targetTabId).catch(() => null)
+    if (tab?.windowId != null) {
+      await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {})
+    }
+  })
+}
+
+function refreshHeaderOnly() {
+  const headerEl = document.querySelector('.header')
+  if (!headerEl) {
+    render()
+    return
+  }
+  const focusSnapshot = captureFocusSnapshot()
+  headerEl.outerHTML = renderConnectionHeader(appState)
+  updateHeaderOffset()
+  bindHeaderEvents()
+  restoreFocusSnapshot(focusSnapshot)
+}
+
+function sameTabRef(a, b) {
+  const left = a || null
+  const right = b || null
+  return (left?.id ?? null) === (right?.id ?? null)
+    && (left?.url ?? null) === (right?.url ?? null)
+    && (left?.title ?? null) === (right?.title ?? null)
+}
+
+function connectionChanged(current, next) {
+  return (current.attachedTabId ?? null) !== (next.attachedTabId ?? null)
+    || !sameTabRef(current.attachedTab, next.attachedTab)
+    || !sameTabRef(current.activeTab, next.activeTab)
+    || !sameTabRef(current.candidateTab, next.candidateTab)
+    || !sameTabRef(current.lastAttachableTab, next.lastAttachableTab)
+}
+
+let pendingConnectionPatch = null
+const flushConnectionUpdate = debounce(() => {
+  if (!pendingConnectionPatch) return
+  const patch = pendingConnectionPatch
+  pendingConnectionPatch = null
+
+  const current = {
+    attachedTabId: appState.attachedTabId ?? null,
+    attachedTab: appState.attachedTab ?? null,
+    activeTab: appState.activeTab ?? null,
+    candidateTab: appState.candidateTab ?? null,
+    lastAttachableTab: appState.lastAttachableTab ?? null
+  }
+  const next = {
+    attachedTabId: patch.attachedTabId ?? current.attachedTabId,
+    attachedTab: patch.attachedTab ?? current.attachedTab,
+    activeTab: patch.activeTab ?? current.activeTab,
+    candidateTab: patch.candidateTab ?? current.candidateTab,
+    lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab
+  }
+
+  const changed = connectionChanged(current, next)
+  appState.attachedTabId = next.attachedTabId
+  appState.attachedTab = next.attachedTab
+  appState.activeTab = next.activeTab
+  appState.candidateTab = next.candidateTab
+  appState.lastAttachableTab = next.lastAttachableTab
+
+  if (!changed) return
+  refreshHeaderOnly()
+}, 120)
+
+function queueConnectionPatch(patch) {
+  pendingConnectionPatch = { ...(pendingConnectionPatch || {}), ...patch }
+  flushConnectionUpdate()
+}
+
 function updateHeaderOffset() {
   const headerEl = document.querySelector('.header')
   if (!headerEl) return
@@ -299,45 +403,9 @@ function bindEvents() {
     })
   })
 
-  $('#open-fullapp-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
-  $('#side-open-auto-attach-settings')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, page: 'settings' }))
+  bindHeaderEvents()
   $('#manage-collections-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
   $('#open-diagnostics-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
-
-  $('#attach-btn')?.addEventListener('click', async () => {
-    appState.attachBusy = true
-    render()
-    const preferredTabId = appState.candidateTab?.id || appState.lastAttachableTab?.id || null
-    const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
-    appState.attachBusy = false
-    if (result?.error) {
-      toastError(translateBackendError(result.error))
-      render()
-      return
-    }
-    await refreshState()
-  })
-
-  $('#detach-btn')?.addEventListener('click', async () => {
-    appState.attachBusy = true
-    render()
-    await sendMessage({ type: MSG.DEBUG_DETACH })
-    appState.attachBusy = false
-    await refreshState()
-  })
-  $('#reload-tab-btn')?.addEventListener('click', async () => {
-    const result = await sendMessage({ type: MSG.TAB_RELOAD })
-    if (result?.error) toastError(translateBackendError(result.error))
-  })
-  $('#side-focus-tab-btn')?.addEventListener('click', async () => {
-    const targetTabId = appState.attachedTab?.id || appState.candidateTab?.id || appState.lastAttachableTab?.id || null
-    if (!targetTabId) return
-    await chrome.tabs.update(targetTabId, { active: true }).catch(() => {})
-    const tab = await chrome.tabs.get(targetTabId).catch(() => null)
-    if (tab?.windowId != null) {
-      await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {})
-    }
-  })
 
   $('#active-collection-select')?.addEventListener('change', async event => {
     const activeCollectionId = event.target.value
@@ -523,39 +591,19 @@ chrome.runtime.onMessage.addListener(message => {
     if (appState.currentTab === 'logs') render()
   }
   if (message?.type === 'state:attached') {
-    if (appState.attachedTabId !== message.attachedTabId) {
-      appState.attachedTabId = message.attachedTabId
-      render()
-    }
+    queueConnectionPatch({ attachedTabId: message.attachedTabId ?? null })
   }
   if (message?.type === 'state:connection') {
-    const next = {
+    queueConnectionPatch({
       attachedTabId: message.attachedTabId ?? null,
       attachedTab: message.attachedTab ?? null,
       activeTab: message.activeTab ?? null,
       candidateTab: message.candidateTab ?? null,
       lastAttachableTab: message.lastAttachableTab ?? null
-    }
-    const current = {
-      attachedTabId: appState.attachedTabId,
-      attachedTab: appState.attachedTab,
-      activeTab: appState.activeTab,
-      candidateTab: appState.candidateTab,
-      lastAttachableTab: appState.lastAttachableTab
-    }
-    const changed = JSON.stringify(current) !== JSON.stringify(next)
-    appState.attachedTabId = next.attachedTabId
-    appState.attachedTab = next.attachedTab
-    appState.activeTab = next.activeTab
-    appState.candidateTab = next.candidateTab
-    appState.lastAttachableTab = next.lastAttachableTab
-    if (changed) render()
+    })
   }
   if (message?.type === 'state:activeTab') {
-    if (JSON.stringify(appState.activeTab) !== JSON.stringify(message.activeTab)) {
-      appState.activeTab = message.activeTab
-      render()
-    }
+    queueConnectionPatch({ activeTab: message.activeTab ?? null })
   }
   if (message?.type === 'state:hit') {
     const rule = appState.rules.find(r => r.id === message.ruleId)

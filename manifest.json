@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MockPilot",
   "description": "Mock HTTP requests and responses from a side panel.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "minimum_chrome_version": "116",
   "permissions": [
     "sidePanel",
