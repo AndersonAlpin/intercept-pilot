@@ -3,6 +3,58 @@ import { KNOWN_EXTENSIONS } from '../shared/known-extensions.js'
 import { runtimeState, getAttachedDebuggee, resetRuntimeCollections } from './runtime-state.js'
 import { pushLog } from './logger.js'
 
+const SESSION_KEYS = ['attachedTabId', 'attachedDebuggee']
+
+async function persistAttachedSession() {
+  if (!chrome.storage?.session) return
+  await chrome.storage.session
+    .set({
+      attachedTabId: runtimeState.attachedTabId,
+      attachedDebuggee: runtimeState.attachedDebuggee
+    })
+    .catch(() => {})
+}
+
+export async function clearPersistedAttachedSession() {
+  if (!chrome.storage?.session) return
+  await chrome.storage.session.remove(SESSION_KEYS).catch(() => {})
+}
+
+let rehydrationPromise = null
+
+export function ensureRehydrated() {
+  if (!rehydrationPromise) rehydrationPromise = rehydrateFromSession()
+  return rehydrationPromise
+}
+
+async function rehydrateFromSession() {
+  if (!chrome.storage?.session) return false
+  const stored = await chrome.storage.session.get(SESSION_KEYS).catch(() => null)
+  const attachedTabId = stored?.attachedTabId
+  const attachedDebuggee = stored?.attachedDebuggee
+  if (!attachedTabId) return false
+
+  const debuggee = attachedDebuggee || { tabId: attachedTabId }
+  const stillAttached = await verifyDebuggeeStillAttached(debuggee)
+  if (!stillAttached) {
+    await clearPersistedAttachedSession()
+    return false
+  }
+
+  runtimeState.attachedTabId = attachedTabId
+  runtimeState.attachedDebuggee = debuggee
+  return true
+}
+
+async function verifyDebuggeeStillAttached(debuggee) {
+  try {
+    await chrome.debugger.sendCommand(debuggee, 'Browser.getVersion')
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function sendAttachedCommand(method, params = {}) {
   const debuggee = getAttachedDebuggee()
   if (!debuggee) throw new Error('Debugger is not attached')
@@ -139,6 +191,7 @@ export async function attachToTab(tabId) {
     runtimeState.attachedDebuggee = attachedVia === 'targetId' ? { targetId: attachedTargetId } : { tabId }
     runtimeState.tabMeta.set(tabId, { url: tab.url || '', title: tab.title || '' })
     resetRuntimeCollections()
+    await persistAttachedSession()
 
     await sendAttachedCommand('Network.enable').catch(() => {})
     await sendAttachedCommand('Runtime.enable').catch(() => {})
@@ -165,5 +218,6 @@ export async function detachCurrentTab() {
   runtimeState.attachedDebuggee = null
   runtimeState.fetchEnabled = false
   resetRuntimeCollections()
+  await clearPersistedAttachedSession()
   return { attachedTabId: null }
 }

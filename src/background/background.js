@@ -3,7 +3,7 @@ import { ensureState, getState, setState, saveCollection, deleteCollection, save
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
-import { attachToTab, detachCurrentTab, isAttachedSource, sendAttachedCommand } from './debugger.js'
+import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureRehydrated, isAttachedSource, sendAttachedCommand } from './debugger.js'
 import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule } from './rule-engine.js'
@@ -694,6 +694,14 @@ chrome.runtime.onInstalled.addListener(async () => {
   await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
 })
 
+;(async () => {
+  const rehydrated = await ensureRehydrated()
+  if (rehydrated) {
+    await updateConnectionFromActiveTab()
+    await broadcastConnectionState()
+  }
+})()
+
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   const tab = await chrome.tabs.get(tabId).catch(() => null)
   if (tab) runtimeState.tabMeta.set(tabId, { url: tab.url || '', title: tab.title || '' })
@@ -739,6 +747,7 @@ chrome.tabs.onRemoved.addListener(async tabId => {
 })
 
 chrome.debugger.onEvent.addListener(async (source, method, params) => {
+  await ensureRehydrated()
   try {
     if (method === 'Fetch.requestPaused') return handleRequestPaused(source, params)
     if (method === 'Network.requestWillBeSent') return handleNetworkRequestWillBeSent(source, params)
@@ -755,10 +764,12 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 })
 
 chrome.debugger.onDetach.addListener(async (source, reason) => {
+  await ensureRehydrated()
   if ((source.tabId && source.tabId === runtimeState.attachedTabId) || (source.targetId && runtimeState.attachedDebuggee?.targetId === source.targetId)) {
     runtimeState.attachedTabId = null
     runtimeState.attachedDebuggee = null
     runtimeState.requestRuleMap.clear()
+    await clearPersistedAttachedSession()
     await flushHits().catch(() => {})
     await pushLog({ level: 'warn', scope: 'debugger', message: `Detached: ${reason}` })
     await updateConnectionFromActiveTab()
@@ -774,6 +785,7 @@ if (chrome.runtime.onSuspend) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   ;(async () => {
+    await ensureRehydrated()
     const type = message?.type
     switch (type) {
       case 'state:get':
