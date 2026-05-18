@@ -10,14 +10,17 @@ export function renderDiagnosticsPage(state) {
   const enabledRules = state.rules.filter(rule => rule.enabled).length
   const appLogs = state.logs.filter(log => normalizeLogScope(log.scope) === 'app')
   const recentAppLogs = appLogs.slice(0, 12)
+  const attachedTabIdLabel = state.attachedTabId == null ? '—' : String(state.attachedTabId)
+  const attachedUrlLabel = String(state.attachedTab?.url || '').trim() || '—'
+  const activeCollectionIdLabel = String(state.settings?.activeCollectionId || '').trim() || '—'
   return `
     <section class="card">
       <h3>${t('common.diagnostics')}</h3>
       <div class="grid two">
         <div><strong>${t('fullapp.isAttached')}</strong><div>${state.attachedTabId ? t('common.yes') : t('common.no')}</div></div>
-        <div><strong>${t('fullapp.attachedTabId')}</strong><div>${escapeHtml(String(state.attachedTabId ?? 'null'))}</div></div>
-        <div><strong>${t('fullapp.attachedUrl')}</strong><div>${escapeHtml(state.attachedTab?.url || '')}</div></div>
-        <div><strong>${t('diagnostics.activeCollectionId')}</strong><div>${escapeHtml(state.settings?.activeCollectionId || '')}</div></div>
+        <div><strong>${t('fullapp.attachedTabId')}</strong><div>${escapeHtml(attachedTabIdLabel)}</div></div>
+        <div><strong>${t('fullapp.attachedUrl')}</strong><div>${escapeHtml(attachedUrlLabel)}</div></div>
+        <div><strong>${t('diagnostics.activeCollectionId')}</strong><div>${escapeHtml(activeCollectionIdLabel)}</div></div>
         <div><strong>${t('fullapp.enabledRules')}</strong><div>${enabledRules}</div></div>
         <div><strong>${t('fullapp.invalidRules')}</strong><div>${invalidRules.length}</div></div>
       </div>
