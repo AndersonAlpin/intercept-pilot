@@ -176,7 +176,7 @@ function bindHeaderEvents() {
     const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
     appState.attachBusy = false
     if (result?.error) {
-      toastError(translateBackendError(result.error))
+      toastError(translateBackendError(result.error), backendErrorDuration(result.error))
       refreshHeaderOnly()
       return
     }
@@ -360,9 +360,31 @@ function readQuickRuleForm() {
 
 function translateBackendError(code) {
   if (!code) return t('rules.saveError')
+  if (typeof code === 'string' && (code === 'attachCrossExtension' || code.startsWith('attachCrossExtension:'))) {
+    return t('errors.attachCrossExtension', { ids: parseCrossExtensionLabels(code) })
+  }
   const key = `errors.${code}`
   const value = t(key)
   return value === key ? code : value
+}
+
+function backendErrorDuration(code) {
+  if (typeof code !== 'string') return undefined
+  if (code === 'attachCrossExtension' || code.startsWith('attachCrossExtension:')) return 5000
+  return undefined
+}
+
+function parseCrossExtensionLabels(code) {
+  if (!code.startsWith('attachCrossExtension:')) return 'unknown'
+  const suffix = code.slice('attachCrossExtension:'.length)
+  try {
+    const parsed = JSON.parse(suffix)
+    if (Array.isArray(parsed) && parsed.length) return parsed.map(String).join(', ')
+  } catch {
+    const list = suffix.split(',').filter(Boolean)
+    if (list.length) return list.join(', ')
+  }
+  return 'unknown'
 }
 
 async function saveQuickRule() {
@@ -437,6 +459,7 @@ function bindEvents() {
 
   $('#quick-save-rule')?.addEventListener('click', saveQuickRule)
   $('#quick-open-advanced')?.addEventListener('click', openAdvancedFromQuick)
+  $('#quick-open-advanced-hint')?.addEventListener('click', openAdvancedFromQuick)
 
   document.querySelectorAll('[data-rule-edit]').forEach(button => {
     button.addEventListener('click', () => {

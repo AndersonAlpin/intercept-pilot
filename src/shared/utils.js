@@ -14,6 +14,11 @@ export function isHttpUrl(url = '') {
   return /^https?:\/\//i.test(String(url || ''))
 }
 
+export function isCrossExtensionAccessError(error) {
+  const message = String(error?.message || error || '')
+  return message.includes('Cannot access a chrome-extension:// URL of different extension')
+}
+
 export function safeRegex(pattern) {
   try {
     return new RegExp(pattern)

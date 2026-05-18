@@ -201,7 +201,7 @@ function bindTopbarEvents() {
     const preferredTabId = state.candidateTab?.id || state.lastAttachableTab?.id || null
     const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
     if (result?.error) {
-      toastError(translateBackendError(result.error))
+      toastError(translateBackendError(result.error), backendErrorDuration(result.error))
       return
     }
     await refreshState()
@@ -425,9 +425,31 @@ async function applyPreset(presetId) {
 
 function translateBackendError(code) {
   if (!code) return t('rules.saveError')
+  if (typeof code === 'string' && (code === 'attachCrossExtension' || code.startsWith('attachCrossExtension:'))) {
+    return t('errors.attachCrossExtension', { ids: parseCrossExtensionLabels(code) })
+  }
   const key = `errors.${code}`
   const value = t(key)
   return value === key ? code : value
+}
+
+function backendErrorDuration(code) {
+  if (typeof code !== 'string') return undefined
+  if (code === 'attachCrossExtension' || code.startsWith('attachCrossExtension:')) return 5000
+  return undefined
+}
+
+function parseCrossExtensionLabels(code) {
+  if (!code.startsWith('attachCrossExtension:')) return 'unknown'
+  const suffix = code.slice('attachCrossExtension:'.length)
+  try {
+    const parsed = JSON.parse(suffix)
+    if (Array.isArray(parsed) && parsed.length) return parsed.map(String).join(', ')
+  } catch {
+    const list = suffix.split(',').filter(Boolean)
+    if (list.length) return list.join(', ')
+  }
+  return 'unknown'
 }
 
 async function importRuleBundle(bundle) {

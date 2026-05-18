@@ -171,6 +171,7 @@ const pt = {
     attachNoActiveTab: 'Abra uma página HTTP(S) em uma aba primeiro e clique em Anexar.',
     attachHttpOnly: 'Anexar só funciona em páginas HTTP(S). Abra um site em uma aba comum primeiro.',
     attachCannotAttach: 'Não foi possível anexar o debugger a esta aba.',
+    attachCrossExtension: 'Anexar bloqueado por outra extensão nesta aba. Extensão(ões) detectada(s): {ids}. Desligue-as nesta aba e tente Anexar novamente.',
     reloadNoTab: 'Nenhuma aba disponível para recarregar.'
   },
   toasts: {

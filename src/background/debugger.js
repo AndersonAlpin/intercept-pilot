@@ -1,5 +1,7 @@
-import { isHttpUrl } from '../shared/utils.js'
+import { isCrossExtensionAccessError, isHttpUrl } from '../shared/utils.js'
+import { KNOWN_EXTENSIONS } from '../shared/known-extensions.js'
 import { runtimeState, getAttachedDebuggee, resetRuntimeCollections } from './runtime-state.js'
+import { pushLog } from './logger.js'
 
 export async function sendAttachedCommand(method, params = {}) {
   const debuggee = getAttachedDebuggee()
@@ -20,6 +22,81 @@ export async function findPageTargetIdForTab(tabId) {
   return pageTarget?.id || null
 }
 
+async function getCrossExtensionFrameIdsViaWebNavigation(tabId) {
+  if (!tabId || !chrome.webNavigation?.getAllFrames) return []
+  const frames = await chrome.webNavigation.getAllFrames({ tabId }).catch(() => [])
+  if (!Array.isArray(frames)) return []
+
+  const ownExtensionId = chrome.runtime.id
+  const extensionIds = new Set()
+  for (const frame of frames) {
+    const url = String(frame?.url || '')
+    const match = url.match(/^chrome-extension:\/\/([^/]+)\//i)
+    if (!match?.[1]) continue
+    if (match[1] === ownExtensionId) continue
+    extensionIds.add(match[1])
+  }
+  return [...extensionIds]
+}
+
+async function getCrossExtensionFrameIdsViaDom(tabId) {
+  if (!tabId || !chrome.scripting?.executeScript) return []
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId, allFrames: false },
+      world: 'MAIN',
+      func: ownExtensionId => {
+        const iframes = Array.from(document.querySelectorAll('iframe[src^="chrome-extension://"]'))
+        const extensionIds = new Set()
+        for (const iframe of iframes) {
+          const src = String(iframe.getAttribute('src') || '')
+          const match = src.match(/^chrome-extension:\/\/([^/]+)\//i)
+          if (!match?.[1]) continue
+          if (match[1] === ownExtensionId) continue
+          extensionIds.add(match[1])
+        }
+        return [...extensionIds]
+      },
+      args: [chrome.runtime.id]
+    })
+    return Array.isArray(result?.result) ? result.result : []
+  } catch {
+    return []
+  }
+}
+
+async function getCrossExtensionFrameIds(tabId) {
+  const viaWebNav = await getCrossExtensionFrameIdsViaWebNavigation(tabId)
+  if (viaWebNav.length) return viaWebNav
+  return await getCrossExtensionFrameIdsViaDom(tabId)
+}
+
+async function resolveExtensionLabel(id) {
+  if (!id) return ''
+  if (chrome.management?.get) {
+    try {
+      const info = await chrome.management.get(id)
+      if (info?.name) return `${info.name} (${id})`
+    } catch {
+      // Permission missing, extension uninstalled, or other error — fall through
+    }
+  }
+  const known = KNOWN_EXTENSIONS[id]
+  if (known) return `${known} (${id})`
+  return id
+}
+
+async function resolveExtensionLabels(ids) {
+  if (!Array.isArray(ids) || !ids.length) return []
+  return Promise.all(ids.map(id => resolveExtensionLabel(id)))
+}
+
+function buildCrossExtensionErrorCode(labels) {
+  const list = Array.isArray(labels) ? labels.filter(Boolean) : []
+  if (!list.length) return 'attachCrossExtension'
+  return `attachCrossExtension:${JSON.stringify(list)}`
+}
+
 export async function attachToTab(tabId) {
   if (!tabId) throw new Error('attachNoTab')
   if (runtimeState.attachedTabId === tabId) return { attachedTabId: tabId }
@@ -38,12 +115,24 @@ export async function attachToTab(tabId) {
 
     try {
       await chrome.debugger.attach({ tabId }, '1.3')
-    } catch {
-      const targetId = await findPageTargetIdForTab(tabId)
-      if (!targetId) throw new Error('attachCannotAttach')
-      await chrome.debugger.attach({ targetId }, '1.3')
+    } catch (initialError) {
+      if (isCrossExtensionAccessError(initialError)) {
+        const ids = await getCrossExtensionFrameIds(tabId)
+        const labels = await resolveExtensionLabels(ids)
+        const labelText = labels.length ? labels.join(', ') : 'unknown'
+        await pushLog({
+          level: 'error',
+          scope: 'debugger',
+          message: `Attach blocked by other extension(s) on the page: ${labelText}. Disable the listed extension(s) on this tab and try Attach again.`,
+          url: tab.url || ''
+        }).catch(() => {})
+        throw new Error(buildCrossExtensionErrorCode(labels))
+      }
+      const fallbackTargetId = await findPageTargetIdForTab(tabId)
+      if (!fallbackTargetId) throw new Error('attachCannotAttach')
+      await chrome.debugger.attach({ targetId: fallbackTargetId }, '1.3')
       attachedVia = 'targetId'
-      attachedTargetId = targetId
+      attachedTargetId = fallbackTargetId
     }
 
     runtimeState.attachedTabId = tabId
