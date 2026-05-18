@@ -18,6 +18,7 @@ export const MSG = {
   RULES_TOGGLE: 'rules:toggle',
 
   NETWORK_CLEAR: 'network:clear',
+  NETWORK_GET_BODY: 'network:getBody',
   LOGS_CLEAR: 'logs:clear',
   RULE_CREATE_FROM_REQUEST: 'rule:createFromRequest'
 }

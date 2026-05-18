@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
-import { ensureState, getState, saveCollection, deleteCollection, saveRule, deleteRule, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
+import { ensureState, getState, setState, saveCollection, deleteCollection, saveRule, deleteRule, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
@@ -102,6 +102,16 @@ function upsertNetworkEntry(key, patch, max = 300) {
       responseHeaders: [],
       responseMimeType: '',
       errorText: '',
+      requestHeaders: [],
+      requestPostData: null,
+      requestPostDataTruncated: false,
+      errorType: '',
+      timing: null,
+      documentUrl: '',
+      responseBody: null,
+      responseBodyBase64Encoded: false,
+      responseBodyTruncated: false,
+      responseBodyLoaded: 'idle',
       ...patch
     }
     runtimeState.networkEntries.unshift(entry)
@@ -240,7 +250,11 @@ async function maybeAutoAttach() {
   if (runtimeState.attachedTabId === targetId) return false
   if (runtimeState.attachingTabId === targetId) return false
   try {
+    const previousAttachedTabId = runtimeState.attachedTabId
     const result = await attachToTab(targetId)
+    if (previousAttachedTabId !== targetId) {
+      await resetMatchedStateForNewPageCycle(targetId)
+    }
     await pushLog({
       level: 'info',
       scope: 'debugger',
@@ -266,6 +280,107 @@ async function maybeAutoReloadAfterRuleChange() {
   return true
 }
 
+function ensureHitCounter(rule) {
+  let current = runtimeState.hitCounters.get(rule.id)
+  if (!current) {
+    current = {
+      count: Number(rule.diagnostics?.matchCount || 0),
+      lastMatchedAt: rule.diagnostics?.lastMatchedAt || null,
+      lastError: rule.diagnostics?.lastError || '',
+      dirty: false
+    }
+    runtimeState.hitCounters.set(rule.id, current)
+  }
+  return current
+}
+
+function scheduleHitFlush() {
+  if (!runtimeState.hitFirstDirtyAt) runtimeState.hitFirstDirtyAt = Date.now()
+  clearTimeout(runtimeState.hitFlushTimer)
+  const elapsed = Date.now() - runtimeState.hitFirstDirtyAt
+  const remaining = Math.max(0, 10000 - elapsed)
+  const wait = Math.min(2000, remaining)
+  runtimeState.hitFlushTimer = setTimeout(flushHits, wait)
+}
+
+async function flushHits() {
+  runtimeState.hitFlushTimer = null
+  runtimeState.hitFirstDirtyAt = null
+  const state = await getState()
+  let mutated = false
+  const updatedRules = state.rules.map(rule => {
+    const live = runtimeState.hitCounters.get(rule.id)
+    if (!live || !live.dirty) return rule
+    mutated = true
+    return {
+      ...rule,
+      diagnostics: {
+        ...(rule.diagnostics || {}),
+        matchCount: live.count,
+        lastMatchedAt: live.lastMatchedAt,
+        lastError: live.lastError ?? rule.diagnostics?.lastError ?? ''
+      }
+    }
+  })
+  if (!mutated) return
+  await setState({ ...state, rules: updatedRules })
+  for (const v of runtimeState.hitCounters.values()) v.dirty = false
+}
+
+function recordHit(rule) {
+  const current = ensureHitCounter(rule)
+  current.count += 1
+  current.lastMatchedAt = new Date().toISOString()
+  current.dirty = true
+  scheduleHitFlush()
+  broadcast({
+    type: 'state:hit',
+    ruleId: rule.id,
+    matchCount: current.count,
+    lastMatchedAt: current.lastMatchedAt
+  })
+}
+
+function recordRuleError(rule, message) {
+  const current = ensureHitCounter(rule)
+  current.lastError = String(message || 'Unknown error')
+  current.dirty = true
+  scheduleHitFlush()
+}
+
+function clearRuleError(rule) {
+  const current = runtimeState.hitCounters.get(rule.id)
+  if (!current || !current.lastError) return
+  current.lastError = ''
+  current.dirty = true
+  scheduleHitFlush()
+}
+
+async function resetMatchedStateForNewPageCycle(tabId) {
+  if (!runtimeState.attachedTabId || runtimeState.attachedTabId !== tabId) return
+  const state = await getState()
+  let changed = false
+  const nextRules = state.rules.map(rule => {
+    if (!rule.diagnostics?.lastMatchedAt) return rule
+    changed = true
+    return {
+      ...rule,
+      diagnostics: {
+        ...(rule.diagnostics || {}),
+        lastMatchedAt: null
+      }
+    }
+  })
+  if (!changed) return
+
+  for (const counter of runtimeState.hitCounters.values()) {
+    counter.lastMatchedAt = null
+  }
+
+  await setState({ ...state, rules: nextRules })
+  broadcast({ type: 'state:hit-reset' })
+}
+
 async function applyRule(params, rule) {
   const action = rule.action || {}
   const actionType = action.type || 'mockResponse'
@@ -285,20 +400,42 @@ async function applyRule(params, rule) {
   })
   publishNetwork()
 
-  if (actionType === 'delayOnly' && Number(action.delayMs || 0) > 0) {
-    await new Promise(resolve => setTimeout(resolve, Number(action.delayMs)))
+  if (actionType === 'delayOnly') {
+    if (Number(action.delayMs || 0) > 0) {
+      await new Promise(resolve => setTimeout(resolve, Number(action.delayMs)))
+    }
+    try {
+      await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
+      recordHit(rule)
+      clearRuleError(rule)
+    } catch (err) {
+      recordRuleError(rule, err?.message || 'CDP continueRequest failed')
+    }
+    return
   }
 
   if (actionType === 'failRequest') {
-    await sendAttachedCommand('Fetch.failRequest', {
-      requestId: params.requestId,
-      errorReason: String(action.failReason || 'Failed')
-    })
+    try {
+      await sendAttachedCommand('Fetch.failRequest', {
+        requestId: params.requestId,
+        errorReason: String(action.failReason || 'Failed')
+      })
+      recordHit(rule)
+      clearRuleError(rule)
+    } catch (err) {
+      recordRuleError(rule, err?.message || 'CDP failRequest failed')
+    }
     return
   }
 
   if (actionType === 'passThrough') {
-    await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
+    try {
+      await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
+      recordHit(rule)
+      clearRuleError(rule)
+    } catch (err) {
+      recordRuleError(rule, err?.message || 'CDP continueRequest failed')
+    }
     return
   }
 
@@ -306,7 +443,13 @@ async function applyRule(params, rule) {
   const applyResponseBody = action.applyResponseBody !== false
 
   if (!applyResponseBody) {
-    await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
+    try {
+      await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
+      recordHit(rule)
+      clearRuleError(rule)
+    } catch (err) {
+      recordRuleError(rule, err?.message || 'CDP continueRequest failed')
+    }
     return
   }
 
@@ -335,13 +478,19 @@ async function applyRule(params, rule) {
     ensureResponseHeader(headers, 'access-control-allow-headers', reqHeaders)
   }
 
-  await sendAttachedCommand('Fetch.fulfillRequest', {
-    requestId: params.requestId,
-    responseCode: Number(action.statusCode || 200),
-    responsePhrase: String(action.statusText || 'OK'),
-    responseHeaders: headers,
-    body: encodeBody(action.responseBody || '{\n  "ok": true\n}')
-  })
+  try {
+    await sendAttachedCommand('Fetch.fulfillRequest', {
+      requestId: params.requestId,
+      responseCode: Number(action.statusCode || 200),
+      responsePhrase: String(action.statusText || 'OK'),
+      responseHeaders: headers,
+      body: encodeBody(action.responseBody || '{\n  "ok": true\n}')
+    })
+    recordHit(rule)
+    clearRuleError(rule)
+  } catch (err) {
+    recordRuleError(rule, err?.message || 'CDP fulfillRequest failed')
+  }
 }
 
 async function handleRequestPaused(source, params) {
@@ -373,43 +522,86 @@ async function handleRequestPaused(source, params) {
   }
 
   runtimeState.requestRuleMap.set(getEntryKey(params), rule)
-  rule.diagnostics = {
-    ...(rule.diagnostics || {}),
-    matchCount: Number(rule.diagnostics?.matchCount || 0) + 1,
-    lastMatchedAt: new Date().toISOString()
-  }
-  await saveRule(rule)
   await applyRule(params, rule)
 }
 
 function handleNetworkRequestWillBeSent(source, params) {
   if (!isAttachedSource(source)) return
+  const MAX_POST = 64 * 1024
+  const rawPost = params.request?.postData
+  let trimmedPost = null
+  let postTruncated = false
+  if (typeof rawPost === 'string') {
+    if (rawPost.length > MAX_POST) {
+      trimmedPost = rawPost.slice(0, MAX_POST)
+      postTruncated = true
+    } else {
+      trimmedPost = rawPost
+    }
+  }
   upsertNetworkEntry(params.requestId, {
     requestId: params.requestId,
     networkId: params.requestId,
-    url: params.request.url,
-    method: params.request.method,
+    url: params.request?.url || '',
+    method: params.request?.method || '',
     resourceType: params.type,
-    startedAt: Date.now()
+    startedAt: Date.now(),
+    documentUrl: params.documentURL || '',
+    requestHeaders: Object.entries(params.request?.headers || {})
+      .map(([name, value]) => ({ name, value: String(value ?? '') })),
+    requestPostData: trimmedPost,
+    requestPostDataTruncated: postTruncated
   })
   publishNetwork()
+}
+
+function handleNetworkRequestWillBeSentExtraInfo(source, params) {
+  if (!isAttachedSource(source)) return
+  const key = params.requestId
+  const idx = runtimeState.networkIndex.get(key)
+  if (idx == null) return
+  const current = runtimeState.networkEntries[idx]
+  const existing = new Map(
+    (current.requestHeaders || []).map(h => [String(h.name).toLowerCase(), h])
+  )
+  for (const [name, value] of Object.entries(params.headers || {})) {
+    existing.set(String(name).toLowerCase(), { name, value: String(value ?? '') })
+  }
+  upsertNetworkEntry(key, { requestHeaders: Array.from(existing.values()) })
 }
 
 function handleNetworkResponseReceived(source, params) {
   if (!isAttachedSource(source)) return
   const key = params.requestId
   const existingRule = runtimeState.requestRuleMap.get(key)
+  const response = params.response || {}
   upsertNetworkEntry(key, {
-    status: params.response.status,
-    statusText: params.response.statusText || '',
-    responseHeaders: Object.entries(params.response.headers || {}).map(([name, value]) => ({ name, value: String(value) })),
-    responseMimeType: params.response.mimeType || '',
+    status: response.status,
+    statusText: response.statusText || '',
+    responseHeaders: Object.entries(response.headers || {}).map(([name, value]) => ({ name, value: String(value) })),
+    responseMimeType: response.mimeType || '',
     resourceType: params.type,
     matchedRuleId: existingRule?.id || null,
     matchedRuleName: existingRule?.name || null,
-    appliedAction: existingRule?.action?.type || 'passThrough'
+    appliedAction: existingRule?.action?.type || 'passThrough',
+    timing: response.timing || null
   })
   publishNetwork()
+}
+
+function handleNetworkResponseReceivedExtraInfo(source, params) {
+  if (!isAttachedSource(source)) return
+  const key = params.requestId
+  const idx = runtimeState.networkIndex.get(key)
+  if (idx == null) return
+  const current = runtimeState.networkEntries[idx]
+  const existing = new Map(
+    (current.responseHeaders || []).map(h => [String(h.name).toLowerCase(), h])
+  )
+  for (const [name, value] of Object.entries(params.headers || {})) {
+    existing.set(String(name).toLowerCase(), { name, value: String(value ?? '') })
+  }
+  upsertNetworkEntry(key, { responseHeaders: Array.from(existing.values()) })
 }
 
 function handleLoadingFinished(source, params) {
@@ -420,8 +612,46 @@ function handleLoadingFinished(source, params) {
 
 function handleLoadingFailed(source, params) {
   if (!isAttachedSource(source)) return
-  upsertNetworkEntry(params.requestId, { endedAt: Date.now(), status: 0, errorText: params.errorText || 'Failed' })
+  upsertNetworkEntry(params.requestId, {
+    endedAt: Date.now(),
+    status: 0,
+    errorText: params.errorText || 'Failed',
+    errorType: String(params.type || '')
+  })
   publishNetwork()
+}
+
+async function handleNetworkGetBody(message) {
+  const entry = runtimeState.networkEntries.find(e => e.id === message.entryId)
+  if (!entry) return { error: 'entry_not_found' }
+  if (entry.responseBodyLoaded === 'loaded') {
+    return {
+      body: entry.responseBody,
+      base64Encoded: entry.responseBodyBase64Encoded,
+      truncated: entry.responseBodyTruncated
+    }
+  }
+  entry.responseBodyLoaded = 'loading'
+  try {
+    const result = await sendAttachedCommand('Network.getResponseBody', {
+      requestId: entry.requestId
+    })
+    const MAX = 256 * 1024
+    let body = String(result?.body || '')
+    let truncated = false
+    if (body.length > MAX) {
+      body = body.slice(0, MAX)
+      truncated = true
+    }
+    entry.responseBody = body
+    entry.responseBodyBase64Encoded = !!result?.base64Encoded
+    entry.responseBodyTruncated = truncated
+    entry.responseBodyLoaded = 'loaded'
+    return { body, base64Encoded: !!result?.base64Encoded, truncated }
+  } catch (err) {
+    entry.responseBodyLoaded = 'error'
+    return { error: err?.message || 'body_unavailable' }
+  }
 }
 
 async function clearNetworkEntries() {
@@ -473,6 +703,9 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
 })
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'loading') {
+    await resetMatchedStateForNewPageCycle(tabId)
+  }
   if (changeInfo.url || changeInfo.title) {
     runtimeState.tabMeta.set(tabId, { url: changeInfo.url || tab.url || '', title: changeInfo.title || tab.title || '' })
     const updatedRef = toTabRef(tab)
@@ -509,7 +742,9 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
   try {
     if (method === 'Fetch.requestPaused') return handleRequestPaused(source, params)
     if (method === 'Network.requestWillBeSent') return handleNetworkRequestWillBeSent(source, params)
+    if (method === 'Network.requestWillBeSentExtraInfo') return handleNetworkRequestWillBeSentExtraInfo(source, params)
     if (method === 'Network.responseReceived') return handleNetworkResponseReceived(source, params)
+    if (method === 'Network.responseReceivedExtraInfo') return handleNetworkResponseReceivedExtraInfo(source, params)
     if (method === 'Network.loadingFinished') return handleLoadingFinished(source, params)
     if (method === 'Network.loadingFailed') return handleLoadingFailed(source, params)
     if (method === 'Runtime.consoleAPICalled') return handleRuntimeConsoleApiCalled(source, params)
@@ -524,11 +759,18 @@ chrome.debugger.onDetach.addListener(async (source, reason) => {
     runtimeState.attachedTabId = null
     runtimeState.attachedDebuggee = null
     runtimeState.requestRuleMap.clear()
+    await flushHits().catch(() => {})
     await pushLog({ level: 'warn', scope: 'debugger', message: `Detached: ${reason}` })
     await updateConnectionFromActiveTab()
     await broadcastConnectionState()
   }
 })
+
+if (chrome.runtime.onSuspend) {
+  chrome.runtime.onSuspend.addListener(() => {
+    flushHits().catch(() => {})
+  })
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   ;(async () => {
@@ -575,7 +817,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const targetTab = await resolveAttachTargetTab(message, sender)
         const tabId = targetTab?.id
         if (!tabId) throw new Error('attachNoActiveTab')
+        const previousAttachedTabId = runtimeState.attachedTabId
         const result = await attachToTab(tabId)
+        // Reattach manual sempre inicia novo ciclo de validacao visual de "Acionada".
+        if (previousAttachedTabId !== tabId) {
+          await resetMatchedStateForNewPageCycle(tabId)
+        } else {
+          const state = await getState()
+          const hasMatched = state.rules.some(rule => rule.diagnostics?.lastMatchedAt)
+          if (hasMatched) {
+            const nextRules = state.rules.map(rule => ({
+              ...rule,
+              diagnostics: {
+                ...(rule.diagnostics || {}),
+                lastMatchedAt: null
+              }
+            }))
+            for (const counter of runtimeState.hitCounters.values()) {
+              counter.lastMatchedAt = null
+            }
+            await setState({ ...state, rules: nextRules })
+            broadcast({ type: 'state:hit-reset' })
+          }
+        }
         const attachedRef = toTabRef(targetTab)
         if (attachedRef) {
           runtimeState.lastAttachableTab = attachedRef
@@ -688,6 +952,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       case 'network:clear':
         sendResponse({ networkEntries: await clearNetworkEntries() })
+        return
+      case 'network:getBody':
+        sendResponse(await handleNetworkGetBody(message))
         return
       case 'logs:clear':
         await setLogs([])

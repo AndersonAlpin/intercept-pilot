@@ -1,10 +1,15 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 
+function displayCollectionName(collection) {
+  if (collection?.id === 'collection-default') return t('collections.defaultName')
+  return collection?.name || ''
+}
+
 export function renderCollectionSwitcher(state) {
   const activeId = state.settings?.activeCollectionId || state.collections[0]?.id || ''
   const current = state.collections.find(item => item.id === activeId)
-  const options = state.collections.map(collection => `<option value="${collection.id}" ${collection.id === activeId ? 'selected' : ''}>${escapeHtml(collection.name)}</option>`).join('')
+  const options = state.collections.map(collection => `<option value="${collection.id}" ${collection.id === activeId ? 'selected' : ''}>${escapeHtml(displayCollectionName(collection))}</option>`).join('')
 
   return `
     <div class="card compact-card">

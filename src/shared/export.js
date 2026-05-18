@@ -74,3 +74,7 @@ export function buildCollectionFilename(collection) {
   const name = sanitizeFileName(collection?.name || 'collection')
   return `mockpilot-collection-${name}.json`
 }
+
+export async function copyTextToClipboard(text) {
+  await navigator.clipboard.writeText(String(text ?? ''))
+}

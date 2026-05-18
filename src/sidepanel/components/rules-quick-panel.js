@@ -1,6 +1,8 @@
 import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
+import { getRuleState } from '../../shared/rule-state.js'
+import { renderPresetPicker } from '../../fullapp/components/preset-picker.js'
 
 function actionBadge(rule) {
   const type = rule.action?.type || 'mockResponse'
@@ -34,6 +36,8 @@ export function renderRulesQuickPanel(state) {
                 <input type="checkbox" data-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
                 <span class="status-toggle-track" aria-hidden="true"></span>
               </label>
+              <span class="rule-state-dot" data-rule-state="${rule.id}" data-state="${getRuleState(rule)}" title="${escapeHtml(t(`rules.states.${getRuleState(rule)}`))}"></span>
+              <span class="rule-hits-badge" data-rule-hit="${rule.id}">${Number(rule.diagnostics?.matchCount || 0)}</span>
               ${actionBadge(rule)}
             </div>
             <strong>${escapeHtml(truncate(rule.name, 48))}</strong>
@@ -63,6 +67,7 @@ export function renderQuickRuleEditor(state) {
           <h2>${form.id ? t('rules.editRule') : t('rules.createRule')}</h2>
           <button class="modal-close" id="quick-editor-close-x" aria-label="${t('common.close')}">×</button>
         </div>
+        ${renderPresetPicker({ compact: true })}
         <div class="column">
           <label class="switch"><input type="checkbox" id="quick-enabled" ${form.enabled ? 'checked' : ''}/> ${t('common.enabled')}</label>
           <input class="input" id="quick-name" placeholder="${t('rules.ruleName')}" value="${escapeHtml(form.name)}" />

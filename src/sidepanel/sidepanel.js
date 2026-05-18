@@ -2,6 +2,9 @@ import { MSG, sendMessage } from '../shared/messaging.js'
 import { makeRule } from '../shared/models.js'
 import { validateRule } from '../shared/validators.js'
 import { setLocale, t } from '../shared/i18n.js'
+import { DEFAULT_NETWORK_FILTER_SIDE } from '../shared/constants.js'
+import { debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff } from '../shared/utils.js'
+import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import {
   createRuleBundle,
   copyJsonToClipboard,
@@ -38,10 +41,13 @@ const appState = {
     status: '',
     interceptedOnly: false
   },
+  networkFiltersHydrated: false,
   logsErrorOnly: false,
   logsScope: 'ANY',
 
   quickRuleEditorOpen: false,
+  editorMode: 'create',
+  editorPristine: true,
   quickRuleForm: makeRule({
     name: '',
     match: { urlPattern: '', matchType: 'contains', method: 'ANY', resourceType: 'ANY' },
@@ -51,6 +57,29 @@ const appState = {
 
 function $(selector) {
   return document.querySelector(selector)
+}
+
+function captureFocusSnapshot() {
+  const active = document.activeElement
+  if (!active || !(active instanceof HTMLElement) || !active.id) return null
+  if (!(active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)) return null
+  return {
+    id: active.id,
+    selectionStart: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+    selectionEnd: typeof active.selectionEnd === 'number' ? active.selectionEnd : null
+  }
+}
+
+function restoreFocusSnapshot(snapshot) {
+  if (!snapshot?.id) return
+  const el = document.getElementById(snapshot.id)
+  if (!el || !(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return
+  el.focus({ preventScroll: true })
+  if (typeof snapshot.selectionStart === 'number' && typeof snapshot.selectionEnd === 'number') {
+    try {
+      el.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd)
+    } catch {}
+  }
 }
 
 function activeCollectionId() {
@@ -118,6 +147,7 @@ function filteredLogs() {
 
 function render() {
   const root = $('#app')
+  const focusSnapshot = captureFocusSnapshot()
   const header = renderConnectionHeader(appState)
   const tabs = renderTabs(appState.currentTab)
 
@@ -138,6 +168,7 @@ function render() {
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   updateHeaderOffset()
   bindEvents()
+  restoreFocusSnapshot(focusSnapshot)
 }
 
 function updateHeaderOffset() {
@@ -149,6 +180,8 @@ function updateHeaderOffset() {
 
 function closeQuickEditor() {
   appState.quickRuleEditorOpen = false
+  appState.editorMode = 'create'
+  appState.editorPristine = true
   render()
 }
 
@@ -160,6 +193,44 @@ async function refreshState() {
   if (!appState.settings?.activeCollectionId) {
     appState.settings = { ...(appState.settings || {}), activeCollectionId: appState.collections[0]?.id || '' }
   }
+  if (!appState.networkFiltersHydrated) {
+    appState.networkFilters = {
+      ...DEFAULT_NETWORK_FILTER_SIDE,
+      ...(appState.settings?.networkFilters?.sidepanel || {})
+    }
+    appState.networkFiltersHydrated = true
+  }
+  render()
+}
+
+const persistSidepanelNetworkFilter = debounce(async () => {
+  await sendMessage({
+    type: MSG.SETTINGS_UPDATE,
+    payload: {
+      networkFilters: {
+        ...(appState.settings.networkFilters || {}),
+        sidepanel: { ...appState.networkFilters }
+      }
+    }
+  })
+}, 300)
+
+async function applyPresetSidepanel(presetId) {
+  const preset = getPresetById(presetId)
+  if (!preset || !appState.quickRuleForm) return
+  const needsConfirm = appState.editorMode === 'edit' || !appState.editorPristine
+  if (needsConfirm) {
+    const ok = await confirmDialog({
+      title: t('presets.applyTitle'),
+      message: t('presets.applyConfirm', { preset: t(preset.labelKey) }),
+      confirmLabel: t('presets.applyConfirmBtn'),
+      cancelLabel: t('common.cancel')
+    })
+    if (!ok) return
+  }
+  appState.quickRuleForm = applyPresetToRule(appState.quickRuleForm, preset)
+  appState.editorPristine = false
+  toastSuccess(t('toasts.presetApplied', { preset: t(preset.labelKey) }))
   render()
 }
 
@@ -290,6 +361,8 @@ function bindEvents() {
   $('#quick-new-rule-btn')?.addEventListener('click', () => {
     appState.quickRuleEditorOpen = true
     appState.quickRuleForm = hydrateQuickRule({ id: null, name: '', collectionId: activeCollectionId() })
+    appState.editorMode = 'create'
+    appState.editorPristine = true
     render()
   })
 
@@ -308,6 +381,8 @@ function bindEvents() {
       if (!rule) return
       appState.quickRuleEditorOpen = true
       appState.quickRuleForm = hydrateQuickRule(rule)
+      appState.editorMode = 'edit'
+      appState.editorPristine = false
       render()
     })
   })
@@ -373,20 +448,35 @@ function bindEvents() {
 
   $('#network-filter-text')?.addEventListener('input', event => {
     appState.networkFilters.text = event.target.value
+    persistSidepanelNetworkFilter()
     render()
   })
   $('#network-filter-method')?.addEventListener('change', event => {
     appState.networkFilters.method = event.target.value
+    persistSidepanelNetworkFilter()
     render()
   })
   $('#network-filter-status')?.addEventListener('input', event => {
     appState.networkFilters.status = event.target.value
+    persistSidepanelNetworkFilter()
     render()
   })
   $('#network-filter-intercepted')?.addEventListener('change', event => {
     appState.networkFilters.interceptedOnly = event.target.checked
+    persistSidepanelNetworkFilter()
     render()
   })
+
+  document.querySelectorAll('[data-preset-apply]').forEach(btn => {
+    btn.addEventListener('click', () => applyPresetSidepanel(btn.dataset.presetApply))
+  })
+
+  const quickBackdrop = document.querySelector('.modal-backdrop')
+  if (quickBackdrop && appState.quickRuleEditorOpen) {
+    const markDirty = () => { appState.editorPristine = false }
+    quickBackdrop.addEventListener('input', markDirty)
+    quickBackdrop.addEventListener('change', markDirty)
+  }
 
   document.querySelectorAll('[data-create-from-request]').forEach(button => {
     button.addEventListener('click', async () => {
@@ -402,10 +492,10 @@ function bindEvents() {
   })
 
   document.querySelectorAll('[data-open-inspect]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const entry = appState.networkEntries.find(item => item.id === button.dataset.openInspect)
-      const inspectUrl = entry?.url || ''
-      await sendMessage({ type: MSG.APP_OPEN_FULL, inspectUrl })
+    button.addEventListener('click', () => {
+      const entryId = button.dataset.openInspect
+      const url = chrome.runtime.getURL(`src/fullapp/fullapp.html?page=network&inspect=${encodeURIComponent(entryId)}`)
+      chrome.tabs.create({ url })
     })
   })
 
@@ -433,25 +523,74 @@ chrome.runtime.onMessage.addListener(message => {
     if (appState.currentTab === 'logs') render()
   }
   if (message?.type === 'state:attached') {
-    appState.attachedTabId = message.attachedTabId
-    render()
+    if (appState.attachedTabId !== message.attachedTabId) {
+      appState.attachedTabId = message.attachedTabId
+      render()
+    }
   }
   if (message?.type === 'state:connection') {
-    appState.attachedTabId = message.attachedTabId ?? null
-    appState.attachedTab = message.attachedTab ?? null
-    appState.activeTab = message.activeTab ?? null
-    appState.candidateTab = message.candidateTab ?? null
-    appState.lastAttachableTab = message.lastAttachableTab ?? null
-    render()
+    const next = {
+      attachedTabId: message.attachedTabId ?? null,
+      attachedTab: message.attachedTab ?? null,
+      activeTab: message.activeTab ?? null,
+      candidateTab: message.candidateTab ?? null,
+      lastAttachableTab: message.lastAttachableTab ?? null
+    }
+    const current = {
+      attachedTabId: appState.attachedTabId,
+      attachedTab: appState.attachedTab,
+      activeTab: appState.activeTab,
+      candidateTab: appState.candidateTab,
+      lastAttachableTab: appState.lastAttachableTab
+    }
+    const changed = JSON.stringify(current) !== JSON.stringify(next)
+    appState.attachedTabId = next.attachedTabId
+    appState.attachedTab = next.attachedTab
+    appState.activeTab = next.activeTab
+    appState.candidateTab = next.candidateTab
+    appState.lastAttachableTab = next.lastAttachableTab
+    if (changed) render()
   }
   if (message?.type === 'state:activeTab') {
-    appState.activeTab = message.activeTab
+    if (JSON.stringify(appState.activeTab) !== JSON.stringify(message.activeTab)) {
+      appState.activeTab = message.activeTab
+      render()
+    }
+  }
+  if (message?.type === 'state:hit') {
+    const rule = appState.rules.find(r => r.id === message.ruleId)
+    if (rule) {
+      rule.diagnostics = rule.diagnostics || {}
+      rule.diagnostics.matchCount = message.matchCount
+      rule.diagnostics.lastMatchedAt = message.lastMatchedAt
+    }
+    const hitEl = document.querySelector(`[data-rule-hit="${message.ruleId}"]`)
+    if (hitEl) hitEl.textContent = String(message.matchCount)
+    const stateEl = document.querySelector(`[data-rule-state="${message.ruleId}"]`)
+    if (stateEl) {
+      stateEl.setAttribute('data-state', 'matched')
+    }
+  }
+  if (message?.type === 'state:hit-reset') {
+    for (const rule of appState.rules) {
+      if (rule?.diagnostics) rule.diagnostics.lastMatchedAt = null
+    }
     render()
   }
 })
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') return
+  if (changes.settings) {
+    if (isOnlyNetworkFiltersDiff(changes.settings.oldValue, changes.settings.newValue)) {
+      return
+    }
+  }
+  if (changes.rules) {
+    if (isHitOnlyDiff(changes.rules.oldValue, changes.rules.newValue)) {
+      return
+    }
+  }
   if (changes.settings || changes.collections || changes.rules) {
     refreshState()
   }

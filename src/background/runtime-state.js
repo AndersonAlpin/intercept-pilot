@@ -9,7 +9,10 @@ export const runtimeState = {
   networkEntries: [],
   networkIndex: new Map(),
   requestRuleMap: new Map(),
-  tabMeta: new Map()
+  tabMeta: new Map(),
+  hitCounters: new Map(),
+  hitFlushTimer: null,
+  hitFirstDirtyAt: null
 }
 
 export function getAttachedDebuggee() {

@@ -1,12 +1,14 @@
 import { MSG, sendMessage } from '../shared/messaging.js'
-import { clone } from '../shared/utils.js'
+import { clone, debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff } from '../shared/utils.js'
 import { makeCollection, makeRule } from '../shared/models.js'
 import { validateRule } from '../shared/validators.js'
 import { setLocale, t } from '../shared/i18n.js'
+import { DEFAULT_NETWORK_FILTER_FULL } from '../shared/constants.js'
 import {
   createRuleBundle,
   createCollectionBundle,
   copyJsonToClipboard,
+  copyTextToClipboard,
   downloadJsonFile,
   getUniqueName,
   buildRuleFilename,
@@ -17,6 +19,8 @@ import {
 } from '../shared/export.js'
 import { toastSuccess, toastError } from '../shared/toast.js'
 import { confirmDialog, promptDialog } from '../shared/dialogs.js'
+import { getPresetById, applyPresetToRule } from '../shared/presets.js'
+import { entryToCurl, entryToFetch } from '../shared/network-format.js'
 import { renderAppShell } from './components/app-shell.js'
 import { renderSidebar } from './components/sidebar.js'
 import { renderTopbar } from './components/topbar.js'
@@ -28,6 +32,7 @@ import { renderNetworkPage, renderNetworkRows, isRenderableNetworkEntry } from '
 import { renderLogsPage } from './components/logs-page.js'
 import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
+import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from './components/network-inspector-modal.js'
 
 const state = {
   page: 'dashboard',
@@ -43,6 +48,8 @@ const state = {
   settings: {},
 
   editingRule: null,
+  editorMode: 'create',
+  editorPristine: true,
   rulesSearch: '',
   collectionsSearch: '',
   networkFilter: {
@@ -58,11 +65,37 @@ const state = {
   },
   filteredNetworkEntries: [],
   filteredLogs: [],
-  lastImportExportMessage: ''
+  lastImportExportMessage: '',
+  inspector: null,
+  selectedNetworkEntryId: null,
+  networkFilterHydrated: false
 }
 
 function $(selector) {
   return document.querySelector(selector)
+}
+
+function captureFocusSnapshot() {
+  const active = document.activeElement
+  if (!active || !(active instanceof HTMLElement) || !active.id) return null
+  if (!(active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)) return null
+  return {
+    id: active.id,
+    selectionStart: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+    selectionEnd: typeof active.selectionEnd === 'number' ? active.selectionEnd : null
+  }
+}
+
+function restoreFocusSnapshot(snapshot) {
+  if (!snapshot?.id) return
+  const el = document.getElementById(snapshot.id)
+  if (!el || !(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return
+  el.focus({ preventScroll: true })
+  if (typeof snapshot.selectionStart === 'number' && typeof snapshot.selectionEnd === 'number') {
+    try {
+      el.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd)
+    } catch {}
+  }
 }
 
 function normalizeLogScope(scope) {
@@ -76,6 +109,10 @@ async function refreshState() {
   setLocale(state.settings?.language || 'en')
   if (state.editingRule) {
     state.editingRule = state.rules.find(rule => rule.id === state.editingRule.id) || null
+  }
+  if (!state.networkFilterHydrated) {
+    hydrateNetworkFilterFromSettings()
+    state.networkFilterHydrated = true
   }
   applyLocalFilters()
   render()
@@ -146,19 +183,145 @@ function renderPage() {
 
 function render() {
   const root = $('#app')
+  const focusSnapshot = captureFocusSnapshot()
   const isSplitScrollPage = state.page === 'network' || state.page === 'logs' || state.page === 'rules' || state.page === 'collections'
   root.innerHTML = renderAppShell({
     sidebar: renderSidebar(state.page),
     topbar: renderTopbar(state),
     content: renderPage(),
     contentClass: isSplitScrollPage ? 'app-content-split' : ''
-  })
+  }) + renderNetworkInspectorModal(state)
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindEvents()
+  restoreFocusSnapshot(focusSnapshot)
+}
+
+function openInspector(entryId) {
+  const entry = state.networkEntries.find(e => e.id === entryId)
+  if (!entry) return
+  state.selectedNetworkEntryId = entryId
+  state.inspector = { entryId, tab: 'overview' }
+  render()
+}
+
+function closeInspector() {
+  state.inspector = null
+  render()
+}
+
+function setInspectorTab(tab) {
+  if (!state.inspector) return
+  state.inspector.tab = tab
+  render()
+  if (tab === 'response') {
+    const entry = state.networkEntries.find(e => e.id === state.inspector.entryId)
+    if (entry && entry.responseBodyLoaded === 'idle' && !expectsNoBody(entry)) {
+      loadInspectorBody()
+    }
+  }
+}
+
+async function loadInspectorBody() {
+  if (!state.inspector) return
+  const entryId = state.inspector.entryId
+  const entry = state.networkEntries.find(e => e.id === entryId)
+  if (!entry) return
+  entry.responseBodyLoaded = 'loading'
+  refreshInspectorBodyOnly()
+  const result = await sendMessage({ type: MSG.NETWORK_GET_BODY, entryId })
+  if (result?.error) {
+    entry.responseBodyLoaded = 'error'
+    toastError(t('toasts.bodyLoadError'))
+  } else {
+    entry.responseBody = result.body
+    entry.responseBodyBase64Encoded = result.base64Encoded
+    entry.responseBodyTruncated = result.truncated
+    entry.responseBodyLoaded = 'loaded'
+  }
+  refreshInspectorBodyOnly()
+}
+
+function refreshInspectorBodyOnly() {
+  if (!state.inspector) return
+  const bodyEl = document.querySelector('#inspector-body')
+  if (!bodyEl) return
+  const entry = state.networkEntries.find(e => e.id === state.inspector.entryId)
+  if (!entry) {
+    closeInspector()
+    return
+  }
+  bodyEl.innerHTML = renderInspectorBody(entry, state.inspector.tab || 'overview')
+  bindInspectorBodyEvents()
+}
+
+function bindInspectorBodyEvents() {
+  document.querySelector('[data-inspector-load-body]')?.addEventListener('click', loadInspectorBody)
+  document.querySelectorAll('[data-inspector-copy-header]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const [name, value] = String(btn.dataset.inspectorCopyHeader || '').split('::')
+      try {
+        await copyTextToClipboard(`${name}: ${value}`)
+        toastSuccess(t('toasts.headerCopied'))
+      } catch {
+        toastError(t('toasts.copyError'))
+      }
+    })
+  })
+  document.querySelectorAll('[data-inspector-copy-all]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const entry = state.networkEntries.find(e => e.id === state.inspector?.entryId)
+      if (!entry) return
+      const which = btn.dataset.inspectorCopyAll
+      const headers = which === 'request' ? entry.requestHeaders : entry.responseHeaders
+      const text = (headers || []).map(h => `${h.name}: ${h.value}`).join('\n')
+      try {
+        await copyTextToClipboard(text)
+        toastSuccess(t('toasts.headersCopied'))
+      } catch {
+        toastError(t('toasts.copyError'))
+      }
+    })
+  })
+  document.querySelectorAll('[data-inspector-copy-body]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const entry = state.networkEntries.find(e => e.id === state.inspector?.entryId)
+      if (!entry) return
+      const kind = btn.dataset.inspectorCopyBody
+      const text = kind === 'request' ? (entry.requestPostData || '') : (entry.responseBody || '')
+      if (!text) return
+      try {
+        await copyTextToClipboard(text)
+        toastSuccess(t('toasts.bodyCopied'))
+      } catch {
+        toastError(t('toasts.copyError'))
+      }
+    })
+  })
 }
 
 function closeEditor() {
   state.editingRule = null
+  state.editorMode = 'create'
+  state.editorPristine = true
+  render()
+}
+
+async function applyPreset(presetId) {
+  const preset = getPresetById(presetId)
+  if (!preset || !state.editingRule) return
+  const needsConfirm = state.editorMode === 'edit' || !state.editorPristine
+  if (needsConfirm) {
+    const ok = await confirmDialog({
+      title: t('presets.applyTitle'),
+      message: t('presets.applyConfirm', { preset: t(preset.labelKey) }),
+      confirmLabel: t('presets.applyConfirmBtn'),
+      cancelLabel: t('common.cancel')
+    })
+    if (!ok) return
+  }
+  state.editingRule = applyPresetToRule(state.editingRule, preset)
+  state.editorPristine = false
+  toastSuccess(t('toasts.presetApplied', { preset: t(preset.labelKey) }))
   render()
 }
 
@@ -266,12 +429,21 @@ async function importBundleFromText(raw) {
 
 function bindCreateRuleFromRequestEvents() {
   document.querySelectorAll('[data-full-create-from-request]').forEach(button => {
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', async event => {
+      event.stopPropagation()
       const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.fullCreateFromRequest })
       if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
       state.page = 'rules'
       state.editingRule = result.createdRule || null
+      state.editorMode = 'create'
+      state.editorPristine = true
       await refreshState()
+    })
+  })
+  document.querySelectorAll('[data-entry-id]').forEach(row => {
+    row.addEventListener('click', event => {
+      if (event.target.closest('[data-full-create-from-request]')) return
+      openInspector(row.dataset.entryId)
     })
   })
 }
@@ -373,6 +545,8 @@ function bindEvents() {
 
   $('#full-new-rule-btn')?.addEventListener('click', () => {
     state.editingRule = makeRule({ collectionId: state.settings.activeCollectionId }, state.settings.activeCollectionId)
+    state.editorMode = 'create'
+    state.editorPristine = true
     render()
   })
 
@@ -381,9 +555,22 @@ function bindEvents() {
       const rule = state.rules.find(item => item.id === button.dataset.fullRuleEdit)
       if (!rule) return
       state.editingRule = clone(rule)
+      state.editorMode = 'edit'
+      state.editorPristine = false
       render()
     })
   })
+
+  document.querySelectorAll('[data-preset-apply]').forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(btn.dataset.presetApply))
+  })
+
+  const editorBackdrop = document.querySelector('[data-modal-backdrop]:not([data-inspector-backdrop])')
+  if (editorBackdrop && state.editingRule) {
+    const markDirty = () => { state.editorPristine = false }
+    editorBackdrop.addEventListener('input', markDirty)
+    editorBackdrop.addEventListener('change', markDirty)
+  }
 
   document.querySelectorAll('[data-full-rule-delete]').forEach(button => {
     button.addEventListener('click', async () => {
@@ -552,24 +739,30 @@ function bindEvents() {
     state.networkFilter.url = event.target.value
     applyLocalFilters()
     refreshNetworkTableOnly()
+    persistFullAppNetworkFilter()
   })
   $('#full-network-method')?.addEventListener('change', event => {
     state.networkFilter.method = event.target.value
     applyLocalFilters()
     refreshNetworkTableOnly()
+    persistFullAppNetworkFilter()
   })
   $('#full-network-status')?.addEventListener('input', event => {
     state.networkFilter.status = event.target.value
     applyLocalFilters()
     refreshNetworkTableOnly()
+    persistFullAppNetworkFilter()
   })
   $('#full-network-intercepted')?.addEventListener('change', event => {
     state.networkFilter.interceptedOnly = event.target.checked
     applyLocalFilters()
     refreshNetworkTableOnly()
+    persistFullAppNetworkFilter()
   })
   $('#full-network-clear')?.addEventListener('click', async () => {
     await sendMessage({ type: MSG.NETWORK_CLEAR })
+    state.selectedNetworkEntryId = null
+    state.inspector = null
     await refreshState()
   })
 
@@ -619,6 +812,55 @@ function bindEvents() {
     }
   })
 
+  // Network Inspector modal binds
+  document.querySelector('[data-inspector-backdrop]')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeInspector()
+  })
+  $('#inspector-close-x')?.addEventListener('click', closeInspector)
+  document.querySelectorAll('[data-inspector-tab]').forEach(btn => {
+    btn.addEventListener('click', () => setInspectorTab(btn.dataset.inspectorTab))
+  })
+  document.querySelectorAll('[data-inspector-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const entry = state.networkEntries.find(e => e.id === state.inspector?.entryId)
+      if (!entry) return
+      const action = btn.dataset.inspectorAction
+      if (action === 'create-rule') {
+        const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: entry.id })
+        if (result?.error) {
+          toastError(translateBackendError(result.error))
+          return
+        }
+        state.inspector = null
+        state.page = 'rules'
+        state.editingRule = result.createdRule || null
+        state.editorMode = 'create'
+        state.editorPristine = true
+        await refreshState()
+        return
+      }
+      if (action === 'copy-fetch') {
+        try {
+          await copyTextToClipboard(entryToFetch(entry))
+          toastSuccess(t('toasts.fetchCopied'))
+        } catch {
+          toastError(t('toasts.copyError'))
+        }
+        return
+      }
+      if (action === 'copy-curl') {
+        try {
+          await copyTextToClipboard(entryToCurl(entry))
+          toastSuccess(t('toasts.curlCopied'))
+        } catch {
+          toastError(t('toasts.copyError'))
+        }
+        return
+      }
+    })
+  })
+  bindInspectorBodyEvents()
+
   $('#settings-save-btn')?.addEventListener('click', async () => {
     const payload = {
       autoAttach: $('#settings-auto-attach')?.checked ?? false,
@@ -649,6 +891,11 @@ chrome.runtime.onMessage.addListener(message => {
         render()
       }
     }
+    if (state.inspector) {
+      const entry = state.networkEntries.find(e => e.id === state.inspector.entryId)
+      if (entry) refreshInspectorBodyOnly()
+      else closeInspector()
+    }
   }
   if (message?.type === 'state:logs') {
     state.logs = message.logs
@@ -658,48 +905,131 @@ chrome.runtime.onMessage.addListener(message => {
     }
   }
   if (message?.type === 'state:attached') {
-    state.attachedTabId = message.attachedTabId
-    render()
+    if (state.attachedTabId !== message.attachedTabId) {
+      state.attachedTabId = message.attachedTabId
+      render()
+    }
   }
   if (message?.type === 'state:connection') {
-    state.attachedTabId = message.attachedTabId ?? null
-    state.attachedTab = message.attachedTab ?? null
-    state.activeTab = message.activeTab ?? null
-    state.candidateTab = message.candidateTab ?? null
-    state.lastAttachableTab = message.lastAttachableTab ?? null
-    render()
+    const next = {
+      attachedTabId: message.attachedTabId ?? null,
+      attachedTab: message.attachedTab ?? null,
+      activeTab: message.activeTab ?? null,
+      candidateTab: message.candidateTab ?? null,
+      lastAttachableTab: message.lastAttachableTab ?? null
+    }
+    const current = {
+      attachedTabId: state.attachedTabId,
+      attachedTab: state.attachedTab,
+      activeTab: state.activeTab,
+      candidateTab: state.candidateTab,
+      lastAttachableTab: state.lastAttachableTab
+    }
+    const changed = JSON.stringify(current) !== JSON.stringify(next)
+    state.attachedTabId = next.attachedTabId
+    state.attachedTab = next.attachedTab
+    state.activeTab = next.activeTab
+    state.candidateTab = next.candidateTab
+    state.lastAttachableTab = next.lastAttachableTab
+    if (changed) render()
   }
   if (message?.type === 'state:activeTab') {
-    state.activeTab = message.activeTab
+    if (JSON.stringify(state.activeTab) !== JSON.stringify(message.activeTab)) {
+      state.activeTab = message.activeTab
+      render()
+    }
+  }
+  if (message?.type === 'state:hit') {
+    const rule = state.rules.find(r => r.id === message.ruleId)
+    if (rule) {
+      rule.diagnostics = rule.diagnostics || {}
+      rule.diagnostics.matchCount = message.matchCount
+      rule.diagnostics.lastMatchedAt = message.lastMatchedAt
+    }
+    const hitEl = document.querySelector(`[data-rule-hit="${message.ruleId}"]`)
+    if (hitEl) hitEl.textContent = String(message.matchCount)
+    const stateEl = document.querySelector(`[data-rule-state="${message.ruleId}"]`)
+    if (stateEl) {
+      stateEl.setAttribute('data-state', 'matched')
+      const label = stateEl.querySelector('.badge-label')
+      if (label) label.textContent = t('rules.states.matched')
+    }
+  }
+  if (message?.type === 'state:hit-reset') {
+    for (const rule of state.rules) {
+      if (rule?.diagnostics) rule.diagnostics.lastMatchedAt = null
+    }
     render()
   }
 })
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') return
+
+  if (changes.settings) {
+    if (isOnlyNetworkFiltersDiff(changes.settings.oldValue, changes.settings.newValue)) {
+      return
+    }
+  }
+  if (changes.rules) {
+    if (isHitOnlyDiff(changes.rules.oldValue, changes.rules.newValue)) {
+      // diagnostics-only changes (matchCount/lastMatchedAt) ja sao tratados via state:hit broadcast
+      return
+    }
+  }
   if (changes.settings || changes.collections || changes.rules || changes.logs) {
     refreshState()
   }
 })
 
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && state.editingRule) closeEditor()
+  if (event.key !== 'Escape') return
+  if (state.inspector) {
+    closeInspector()
+    return
+  }
+  if (state.editingRule) closeEditor()
 })
+
+function hydrateNetworkFilterFromSettings() {
+  state.networkFilter = {
+    ...DEFAULT_NETWORK_FILTER_FULL,
+    ...(state.settings?.networkFilters?.fullApp || {})
+  }
+}
+
+const persistFullAppNetworkFilter = debounce(async () => {
+  await sendMessage({
+    type: MSG.SETTINGS_UPDATE,
+    payload: {
+      networkFilters: {
+        ...(state.settings.networkFilters || {}),
+        fullApp: { ...state.networkFilter }
+      }
+    }
+  })
+}, 300)
 
 async function bootstrap() {
   await refreshState()
+
   const params = new URLSearchParams(window.location.search)
   const editId = params.get('edit')
   const draft = params.get('draft')
   const targetPage = params.get('page')
   const filterUrl = params.get('filterUrl')
+  const inspectId = params.get('inspect')
+
   if (editId) {
     const rule = state.rules.find(item => item.id === editId)
     window.history.replaceState({}, '', window.location.pathname)
     if (rule) {
       state.page = 'rules'
       state.editingRule = clone(rule)
+      state.editorMode = 'edit'
+      state.editorPristine = false
       render()
+      return
     }
   } else if (draft) {
     try {
@@ -707,12 +1037,25 @@ async function bootstrap() {
       if (draftRule && typeof draftRule === 'object') {
         state.page = 'rules'
         state.editingRule = draftRule
+        state.editorMode = 'create'
+        state.editorPristine = true
         window.history.replaceState({}, '', window.location.pathname)
         render()
+        return
       }
     } catch {
       window.history.replaceState({}, '', window.location.pathname)
     }
+  } else if (inspectId) {
+    state.page = 'network'
+    const entry = state.networkEntries.find(e => e.id === inspectId)
+    if (entry) {
+      state.selectedNetworkEntryId = inspectId
+      state.inspector = { entryId: inspectId, tab: 'overview' }
+    }
+    window.history.replaceState({}, '', window.location.pathname)
+    render()
+    return
   } else if (targetPage) {
     window.history.replaceState({}, '', window.location.pathname)
     state.page = targetPage
@@ -721,7 +1064,9 @@ async function bootstrap() {
       applyLocalFilters()
     }
     render()
+    return
   }
+  render()
 }
 
 bootstrap()

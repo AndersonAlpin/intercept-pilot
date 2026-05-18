@@ -1,6 +1,12 @@
-import { escapeHtml, truncate } from '../../shared/utils.js'
+import { escapeHtml, truncate, relativeTime } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
+import { getRuleState } from '../../shared/rule-state.js'
+
+function displayCollectionName(collection) {
+  if (collection?.id === 'collection-default') return t('collections.defaultName')
+  return collection?.name || ''
+}
 
 function actionBadge(rule) {
   const type = rule.action?.type || 'mockResponse'
@@ -10,12 +16,40 @@ function actionBadge(rule) {
   return `<span class="badge">${escapeHtml(t('rules.actionLabels.pass'))}</span>`
 }
 
+const STATE_ICONS = {
+  ready: 'check',
+  matched: 'zap',
+  disabled: 'eye-off',
+  error: 'alert',
+  conflict: 'git-merge'
+}
+
 function stateBadge(rule) {
-  if (rule.diagnostics?.lastError) return `<span class="badge danger">${escapeHtml(t('rules.states.error'))}</span>`
-  if (rule.diagnostics?.conflictIds?.length) return `<span class="badge warning">${escapeHtml(t('rules.states.conflict'))}</span>`
-  if (!rule.enabled) return `<span class="badge">${escapeHtml(t('rules.states.disabled'))}</span>`
-  if (Number(rule.diagnostics?.matchCount || 0) > 0) return `<span class="badge success">${escapeHtml(t('rules.states.matched'))}</span>`
-  return `<span class="badge">${escapeHtml(t('rules.states.ready'))}</span>`
+  const state = getRuleState(rule)
+  const iconName = STATE_ICONS[state] || 'check'
+  return `
+    <span class="rule-state-badge badge" data-rule-state="${rule.id}" data-state="${state}">
+      ${icon(iconName, 12)}
+      <span class="badge-label">${escapeHtml(t(`rules.states.${state}`))}</span>
+    </span>
+  `
+}
+
+function hitsCell(rule) {
+  const count = Number(rule.diagnostics?.matchCount || 0)
+  const last = rule.diagnostics?.lastMatchedAt
+  let tooltip = ''
+  if (last) {
+    const rel = relativeTime(last)
+    if (rel) {
+      tooltip = t('rules.lastMatched', {
+        relative: t(rel.key, { value: rel.value ?? 0 })
+      })
+    }
+  } else {
+    tooltip = t('rules.lastMatchedNever')
+  }
+  return `<span class="rule-hits-cell" data-rule-hit="${rule.id}" title="${escapeHtml(tooltip)}">${count}</span>`
 }
 
 function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {
@@ -32,7 +66,7 @@ export function renderRulesPage(state) {
     const hay = `${rule.name || ''} ${rule.match?.urlPattern || ''} ${rule.match?.method || ''}`.toLowerCase()
     return hay.includes(search)
   })
-  const options = state.collections.map(collection => `<option value="${collection.id}" ${collection.id === activeCollectionId ? 'selected' : ''}>${escapeHtml(collection.name)}</option>`).join('')
+  const options = state.collections.map(collection => `<option value="${collection.id}" ${collection.id === activeCollectionId ? 'selected' : ''}>${escapeHtml(displayCollectionName(collection))}</option>`).join('')
 
   const header = `
     <div class="table-row row-rule rules-header" role="row">
@@ -61,7 +95,6 @@ export function renderRulesPage(state) {
           ${rules.length ? header : ''}
           ${rules.length ? rules.map(rule => {
           const urlPattern = rule.match?.urlPattern || ''
-          const hits = Number(rule.diagnostics?.matchCount || 0)
           return `
             <div class="table-row row-rule ${rule.diagnostics?.lastError ? 'row-error' : ''}" role="row">
               <div class="cell-rule">
@@ -77,7 +110,7 @@ export function renderRulesPage(state) {
               <div class="cell-method">${escapeHtml(rule.match?.method || 'ANY')}</div>
               <div>${actionBadge(rule)}</div>
               <div>${stateBadge(rule)}</div>
-              <div class="col-hits">${hits}</div>
+              <div class="col-hits">${hitsCell(rule)}</div>
               <div class="row-actions col-actions">
                 ${iconBtn({ icon: 'edit', label: t('common.edit'), action: 'edit', ruleId: rule.id })}
                 ${iconBtn({ icon: 'copy', label: t('common.copyJson'), action: 'copy', ruleId: rule.id })}

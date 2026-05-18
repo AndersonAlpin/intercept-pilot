@@ -54,6 +54,16 @@ function normalizeRules(stored, collections, settings) {
 
 function normalizeSettings(stored, collections) {
   const settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) }
+  settings.networkFilters = {
+    fullApp: {
+      ...DEFAULT_SETTINGS.networkFilters.fullApp,
+      ...(settings.networkFilters?.fullApp || {})
+    },
+    sidepanel: {
+      ...DEFAULT_SETTINGS.networkFilters.sidepanel,
+      ...(settings.networkFilters?.sidepanel || {})
+    }
+  }
   if (!collections.some(c => c.id === settings.activeCollectionId)) {
     settings.activeCollectionId = collections[0]?.id || DEFAULT_COLLECTION_ID
   }

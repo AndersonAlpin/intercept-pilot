@@ -18,10 +18,11 @@ const pt = {
   },
   navigation: {
     rules: 'Regras', network: 'Rede', logs: 'Logs', dashboard: 'Dashboard', collections: 'Coleções',
-    importExport: 'Importar / Exportar', diagnostics: 'Diagnóstico', settings: 'Configurações'
+    importExport: 'Importar', diagnostics: 'Diagnóstico', settings: 'Configurações'
   },
   collections: {
     title: 'Coleção', activeCollection: 'Coleção ativa', noCollections: 'Sem coleções.',
+    defaultName: 'Padrão',
     active: 'Ativa',
     newCollection: 'Nova coleção', newCollectionTitle: 'Nova coleção', newCollectionPlaceholder: 'Nome da coleção',
     setActive: 'Definir ativa', rename: 'Renomear', renameTitle: 'Renomear coleção', renamePlaceholder: 'Novo nome',
@@ -39,6 +40,8 @@ const pt = {
     deleteTitle: 'Excluir regra', deleteSuccess: 'Regra excluída.',
     createFromRequestError: 'Falha ao criar regra da requisição.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON da regra copiado.',
+    lastMatched: 'Última aplicação {relative}',
+    lastMatchedNever: 'Nunca acionada',
     columns: {
       rule: 'Regra', status: 'Status', method: 'Método', action: 'Ação', state: 'Estado', hits: 'Hits', actions: 'Ações'
     },
@@ -78,7 +81,44 @@ const pt = {
     resultPassThrough: 'Passou direto',
     resultMock200: 'Mock {status}',
     resultDelay: 'Delay',
-    resultFail: 'Falhou'
+    resultFail: 'Falhou',
+    inspector: {
+      overview: 'Visão geral',
+      request: 'Requisição',
+      response: 'Resposta',
+      timing: 'Tempo',
+      error: 'Erro',
+      method: 'Método',
+      url: 'URL',
+      status: 'Status',
+      duration: 'Duração',
+      resourceType: 'Tipo de recurso',
+      appliedRule: 'Regra aplicada',
+      handling: 'Tratamento',
+      requestId: 'ID da requisição',
+      timestamp: 'Timestamp',
+      queryParams: 'Query params',
+      noQueryParams: 'Sem query params',
+      requestHeaders: 'Headers da requisição',
+      requestBody: 'Corpo da requisição',
+      responseHeaders: 'Headers da resposta',
+      responseBody: 'Corpo da resposta',
+      loadBody: 'Carregar corpo da resposta',
+      loadingBody: 'Carregando corpo da resposta...',
+      bodyUnavailable: 'Não foi possível carregar o corpo da resposta',
+      bodyTruncated: 'Resposta truncada (mostrando primeiros 256KB)',
+      noBody: 'Sem corpo',
+      copyAsFetch: 'Copiar como fetch',
+      copyAsCurl: 'Copiar cURL',
+      copyHeader: 'Copiar header',
+      copyAllHeaders: 'Copiar todos os headers',
+      createRule: 'Criar regra a partir desta requisição',
+      inspect: 'Inspecionar',
+      startedAt: 'Iniciado em',
+      endedAt: 'Finalizado em',
+      errorType: 'Tipo do erro',
+      errorMessage: 'Mensagem do erro'
+    }
   },
   dashboard: {
     attached: 'Anexado', enabledRules: 'Regras ativas', matchedRecently: 'Matches recentes', errors: 'Erros',
@@ -86,7 +126,7 @@ const pt = {
   },
   fullapp: {
     noRuleSelected: 'Selecione uma regra para editar.', ruleEditor: 'Editor de Regra',
-    importPlaceholder: 'Cole o JSON para importar', importStrategy: 'Estratégia de importação: merge por id (MVP atual).',
+    importPlaceholder: 'Cole o JSON para importar', importStrategy: 'Importa como cópia. Dados existentes não são sobrescritos. Nomes duplicados são incrementados.',
     noImportExportAction: 'Nenhuma ação de import/export ainda.', exportCurrentCollection: 'Exportar coleção atual',
     exportAllData: 'Exportar todos os dados', importJson: 'Importar JSON', importPickFile: 'Escolher arquivo JSON', saveSettings: 'Salvar configurações',
     autoAttach: 'Auto-anexar', autoReloadAfterRuleChange: 'Auto recarregar após alterar regra',
@@ -131,7 +171,36 @@ const pt = {
     importError: 'Não foi possível importar o JSON.',
     ruleImportError: 'Não foi possível importar a regra.',
     collectionImportError: 'Não foi possível importar a coleção.',
-    autoAttachStillActive: 'O auto-anexar continua ativo.'
+    autoAttachStillActive: 'O auto-anexar continua ativo.',
+    presetApplied: "Preset '{preset}' aplicado",
+    bodyLoadError: 'Não foi possível carregar o corpo da resposta',
+    curlCopied: 'cURL copiado',
+    fetchCopied: 'fetch copiado',
+    headerCopied: 'Header copiado',
+    headersCopied: 'Todos os headers copiados',
+    bodyCopied: 'Corpo copiado'
+  },
+  presets: {
+    success200: 'Sucesso 200',
+    unauthorized401: 'Não autorizado 401',
+    forbidden403: 'Proibido 403',
+    rateLimited429: 'Limite excedido 429',
+    serverError500: 'Erro do servidor 500',
+    timeout: 'Timeout',
+    offline: 'Offline',
+    emptyList: 'Lista vazia',
+    emptyObject: 'Objeto vazio',
+    pickerLabel: 'Preset:',
+    applyTitle: 'Aplicar preset',
+    applyConfirm: "Sobrescrever campos da ação com o preset '{preset}'?",
+    applyConfirmBtn: 'Aplicar preset'
+  },
+  relativeTime: {
+    justNow: 'agora mesmo',
+    secondsAgo: 'há {value}s',
+    minutesAgo: 'há {value}min',
+    hoursAgo: 'há {value}h',
+    daysAgo: 'há {value}d'
   },
   badges: { mock: 'mock', fail: 'falha', delay: 'atraso', pass: 'pass', ok: 'ok', conflict: 'conflito', error: 'erro', warn: 'aviso', info: 'info' }
 }

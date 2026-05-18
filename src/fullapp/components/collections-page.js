@@ -2,13 +2,18 @@ import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 
+function displayCollectionName(collection) {
+  if (collection?.id === 'collection-default') return t('collections.defaultName')
+  return collection?.name || ''
+}
+
 export function renderCollectionsPage(state) {
   const counts = new Map()
   for (const rule of state.rules) counts.set(rule.collectionId, (counts.get(rule.collectionId) || 0) + 1)
   const search = String(state.collectionsSearch || '').trim().toLowerCase()
   const collections = state.collections.filter(collection => {
     if (!search) return true
-    const hay = `${collection.name || ''}`.toLowerCase()
+    const hay = `${displayCollectionName(collection)}`.toLowerCase()
     return hay.includes(search)
   })
 
@@ -36,7 +41,7 @@ export function renderCollectionsPage(state) {
           ${collections.length ? collections.map(collection => `
             <div class="table-row row-collection">
               <div class="cell-rule">
-                <strong>${escapeHtml(collection.name)}</strong>
+                <strong>${escapeHtml(displayCollectionName(collection))}</strong>
                 <span class="cell-rule-url">${counts.get(collection.id) || 0} ${t('collections.rulesCount')}</span>
               </div>
               <div>

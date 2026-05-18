@@ -7,6 +7,20 @@ export const STORAGE_KEYS = {
 
 export const DEFAULT_COLLECTION_ID = 'collection-default'
 
+export const DEFAULT_NETWORK_FILTER_FULL = {
+  url: '',
+  method: 'ANY',
+  status: '',
+  interceptedOnly: false
+}
+
+export const DEFAULT_NETWORK_FILTER_SIDE = {
+  text: '',
+  method: 'ANY',
+  status: '',
+  interceptedOnly: false
+}
+
 export const DEFAULT_SETTINGS = {
   activeCollectionId: DEFAULT_COLLECTION_ID,
   autoAttach: false,
@@ -14,7 +28,11 @@ export const DEFAULT_SETTINGS = {
   maxLogs: 300,
   autoReloadAfterRuleChange: false,
   theme: 'dark',
-  language: 'en'
+  language: 'en',
+  networkFilters: {
+    fullApp: { ...DEFAULT_NETWORK_FILTER_FULL },
+    sidepanel: { ...DEFAULT_NETWORK_FILTER_SIDE }
+  }
 }
 
 export const METHODS = ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']

@@ -1,5 +1,10 @@
 import { t } from '../../shared/i18n.js'
 
+function displayCollectionName(collection) {
+  if (collection?.id === 'collection-default') return t('collections.defaultName')
+  return collection?.name || t('collections.defaultName')
+}
+
 export function renderDashboardPage(state) {
   const enabledRules = state.rules.filter(rule => rule.enabled).length
   const matchedRecently = state.rules.filter(rule => Number(rule.diagnostics?.matchCount || 0) > 0).length
@@ -15,7 +20,7 @@ export function renderDashboardPage(state) {
     </section>
     <section class="card">
       <h3>${t('dashboard.currentContext')}</h3>
-      <p>${t('dashboard.activeCollection')}: <strong>${activeCollection?.name || 'Default'}</strong></p>
+      <p>${t('dashboard.activeCollection')}: <strong>${displayCollectionName(activeCollection)}</strong></p>
       <p>${t('dashboard.recentNetwork')}: ${state.networkEntries.length}</p>
       <p>${t('dashboard.recentLogs')}: ${state.logs.length}</p>
     </section>

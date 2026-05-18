@@ -44,3 +44,75 @@ export function escapeHtml(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;')
 }
+
+export function debounce(fn, wait) {
+  let timer = null
+  let lastArgs = null
+  let lastCtx = null
+  const wrapped = function (...args) {
+    lastArgs = args
+    lastCtx = this
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      timer = null
+      fn.apply(lastCtx, lastArgs)
+    }, wait)
+  }
+  wrapped.flush = function () {
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+      fn.apply(lastCtx, lastArgs)
+    }
+  }
+  wrapped.cancel = function () {
+    clearTimeout(timer)
+    timer = null
+  }
+  return wrapped
+}
+
+export function isHitOnlyDiff(oldRules, newRules) {
+  if (!Array.isArray(oldRules) || !Array.isArray(newRules)) return false
+  if (oldRules.length !== newRules.length) return false
+  for (let i = 0; i < oldRules.length; i++) {
+    const o = oldRules[i]
+    const n = newRules[i]
+    if (!o || !n || o.id !== n.id) return false
+    const oCmp = { ...o, diagnostics: { ...(o.diagnostics || {}), matchCount: 0, lastMatchedAt: null } }
+    const nCmp = { ...n, diagnostics: { ...(n.diagnostics || {}), matchCount: 0, lastMatchedAt: null } }
+    if (JSON.stringify(oCmp) !== JSON.stringify(nCmp)) return false
+  }
+  return true
+}
+
+export function isOnlyNetworkFiltersDiff(oldSettings, newSettings) {
+  const strip = obj => {
+    const copy = { ...(obj || {}) }
+    delete copy.networkFilters
+    return copy
+  }
+  return JSON.stringify(strip(oldSettings)) === JSON.stringify(strip(newSettings))
+}
+
+export function tryPrettyJson(text) {
+  if (text == null || text === '') return { pretty: '', isJson: false }
+  try {
+    const parsed = JSON.parse(text)
+    return { pretty: JSON.stringify(parsed, null, 2), isJson: true }
+  } catch {
+    return { pretty: String(text), isJson: false }
+  }
+}
+
+export function relativeTime(iso, now = Date.now()) {
+  if (!iso) return null
+  const ts = new Date(iso).getTime()
+  if (Number.isNaN(ts)) return null
+  const diff = Math.max(0, Math.floor((now - ts) / 1000))
+  if (diff < 5) return { key: 'relativeTime.justNow' }
+  if (diff < 60) return { key: 'relativeTime.secondsAgo', value: diff }
+  if (diff < 3600) return { key: 'relativeTime.minutesAgo', value: Math.floor(diff / 60) }
+  if (diff < 86400) return { key: 'relativeTime.hoursAgo', value: Math.floor(diff / 3600) }
+  return { key: 'relativeTime.daysAgo', value: Math.floor(diff / 86400) }
+}
