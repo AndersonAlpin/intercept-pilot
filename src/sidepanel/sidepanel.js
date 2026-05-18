@@ -223,6 +223,7 @@ function sameTabRef(a, b) {
   return (left?.id ?? null) === (right?.id ?? null)
     && (left?.url ?? null) === (right?.url ?? null)
     && (left?.title ?? null) === (right?.title ?? null)
+    && (left?.index ?? null) === (right?.index ?? null)
 }
 
 function connectionChanged(current, next) {
