@@ -24,3 +24,39 @@ export function renderDataAttrs(data = {}) {
   }
   return renderAttrs(attrs)
 }
+
+export function delegate(container, eventName, selector, handler, options) {
+  if (!(container instanceof Element) || !eventName || !selector || typeof handler !== 'function') {
+    return () => {}
+  }
+
+  const listener = event => {
+    const target = event.target instanceof Element
+      ? event.target
+      : event.target instanceof Node
+        ? event.target.parentElement
+        : null
+    const delegateTarget = target?.closest(selector)
+    if (!delegateTarget || !container.contains(delegateTarget)) return
+    handler({ event, target, delegateTarget })
+  }
+
+  container.addEventListener(eventName, listener, options)
+  return () => container.removeEventListener(eventName, listener, options)
+}
+
+export function patchHtml(targetOrSelector, html, options = {}) {
+  const root = options.root || document
+  const target = typeof targetOrSelector === 'string'
+    ? root.querySelector(targetOrSelector)
+    : targetOrSelector
+
+  if (!target) {
+    if (typeof options.fallback === 'function') options.fallback()
+    return null
+  }
+
+  target.innerHTML = html
+  if (typeof options.afterPatch === 'function') options.afterPatch(target)
+  return target
+}

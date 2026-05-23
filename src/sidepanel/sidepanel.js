@@ -13,6 +13,7 @@ import {
 } from '../shared/export.js'
 import { toastSuccess, toastError } from '../shared/toast.js'
 import { confirmDialog } from '../shared/dialogs.js'
+import { delegate, patchHtml } from '../shared/ui/dom.js'
 import { renderConnectionHeader } from './components/connection-header.js'
 import { renderCollectionSwitcher } from './components/collection-switcher.js'
 import { renderTabs } from './components/tabs.js'
@@ -171,29 +172,22 @@ function bindNetworkRowEvents() {
   const table = $('#network-entries-table')
   if (!table || table.dataset.bound === 'true') return
   table.dataset.bound = 'true'
-  table.addEventListener('click', async event => {
-    const target = event.target instanceof Element ? event.target : null
-    if (!target) return
 
-    const createButton = target.closest('[data-create-from-request]')
-    if (createButton && table.contains(createButton)) {
-      const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: createButton.dataset.createFromRequest })
-      if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
-      appState.currentTab = 'rules'
-      if (result.createdRule) {
-        appState.quickRuleEditorOpen = true
-        appState.quickRuleForm = hydrateQuickRule(result.createdRule)
-      }
-      await refreshState()
-      return
+  delegate(table, 'click', '[data-create-from-request]', async ({ delegateTarget: createButton }) => {
+    const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: createButton.dataset.createFromRequest })
+    if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
+    appState.currentTab = 'rules'
+    if (result.createdRule) {
+      appState.quickRuleEditorOpen = true
+      appState.quickRuleForm = hydrateQuickRule(result.createdRule)
     }
+    await refreshState()
+  })
 
-    const inspectButton = target.closest('[data-open-inspect]')
-    if (inspectButton && table.contains(inspectButton)) {
-      const entryId = inspectButton.dataset.openInspect
-      const url = chrome.runtime.getURL(`src/fullapp/fullapp.html?page=network&inspect=${encodeURIComponent(entryId)}`)
-      chrome.tabs.create({ url })
-    }
+  delegate(table, 'click', '[data-open-inspect]', ({ delegateTarget: inspectButton }) => {
+    const entryId = inspectButton.dataset.openInspect
+    const url = chrome.runtime.getURL(`src/fullapp/fullapp.html?page=network&inspect=${encodeURIComponent(entryId)}`)
+    chrome.tabs.create({ url })
   })
 }
 
@@ -201,10 +195,7 @@ function bindNetworkPaginationEvents() {
   const container = $('#network-pagination-controls')
   if (!container || container.dataset.bound === 'true') return
   container.dataset.bound = 'true'
-  container.addEventListener('click', event => {
-    const target = event.target instanceof Element ? event.target : null
-    const button = target?.closest('[data-side-network-page]')
-    if (!button || !container.contains(button)) return
+  delegate(container, 'click', '[data-side-network-page]', ({ delegateTarget: button }) => {
     const direction = button.dataset.sideNetworkPage
     const current = Number(appState.networkPagination?.page || 1)
     appState.networkPagination = {
@@ -223,11 +214,11 @@ function refreshSideNetworkOnly() {
     return
   }
   applyNetworkFilters()
-  table.innerHTML = renderNetworkQuickRows(appState)
+  patchHtml(table, renderNetworkQuickRows(appState))
   const countEl = $('#network-results-count')
   if (countEl) countEl.textContent = renderNetworkQuickCount(appState)
   const paginationEl = $('#network-pagination-controls')
-  if (paginationEl) paginationEl.innerHTML = renderNetworkQuickPagination(appState)
+  if (paginationEl) patchHtml(paginationEl, renderNetworkQuickPagination(appState))
   bindNetworkRowEvents()
   bindNetworkPaginationEvents()
 }

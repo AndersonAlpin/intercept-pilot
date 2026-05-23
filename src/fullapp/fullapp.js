@@ -21,6 +21,7 @@ import { toastSuccess, toastError } from '../shared/toast.js'
 import { confirmDialog, promptDialog } from '../shared/dialogs.js'
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import { entryToCurl, entryToFetch } from '../shared/network-format.js'
+import { delegate, patchHtml } from '../shared/ui/dom.js'
 import { renderAppShell } from './components/app-shell.js'
 import { renderSidebar } from './components/sidebar.js'
 import { renderTopbar } from './components/topbar.js'
@@ -692,23 +693,24 @@ async function importBundleFromText(raw) {
 }
 
 function bindCreateRuleFromRequestEvents() {
-  document.querySelectorAll('[data-full-create-from-request]').forEach(button => {
-    button.addEventListener('click', async event => {
-      event.stopPropagation()
-      const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.fullCreateFromRequest })
-      if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
-      state.page = 'rules'
-      state.editingRule = result.createdRule || null
-      state.editorMode = 'create'
-      state.editorPristine = true
-      await refreshState()
-    })
+  const table = $('#full-network-table')
+  if (!table || table.dataset.boundRows === 'true') return
+  table.dataset.boundRows = 'true'
+
+  delegate(table, 'click', '[data-full-create-from-request]', async ({ event, delegateTarget: button }) => {
+    event.stopPropagation()
+    const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.fullCreateFromRequest })
+    if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
+    state.page = 'rules'
+    state.editingRule = result.createdRule || null
+    state.editorMode = 'create'
+    state.editorPristine = true
+    await refreshState()
   })
-  document.querySelectorAll('[data-entry-id]').forEach(row => {
-    row.addEventListener('click', event => {
-      if (event.target.closest('[data-full-create-from-request]')) return
-      openInspector(row.dataset.entryId)
-    })
+
+  delegate(table, 'click', '[data-entry-id]', ({ target, delegateTarget: row }) => {
+    if (target.closest('[data-full-create-from-request]')) return
+    openInspector(row.dataset.entryId)
   })
 }
 
@@ -716,10 +718,10 @@ function refreshNetworkTableOnly() {
   if (state.page !== 'network') return
   const table = $('#full-network-table')
   if (!table) return
-  table.innerHTML = renderNetworkRows(state)
+  patchHtml(table, renderNetworkRows(state))
   const paginationEl = $('#full-network-pagination')
   if (paginationEl) {
-    paginationEl.innerHTML = renderNetworkFooter(state)
+    patchHtml(paginationEl, renderNetworkFooter(state))
   }
   bindCreateRuleFromRequestEvents()
   bindNetworkPaginationEvents()
@@ -729,10 +731,7 @@ function bindNetworkPaginationEvents() {
   const container = $('#full-network-pagination')
   if (!container || container.dataset.bound === 'true') return
   container.dataset.bound = 'true'
-  container.addEventListener('click', event => {
-    const target = event.target instanceof Element ? event.target : null
-    const button = target?.closest('[data-full-network-page]')
-    if (!button || !container.contains(button)) return
+  delegate(container, 'click', '[data-full-network-page]', ({ delegateTarget: button }) => {
     const direction = button.dataset.fullNetworkPage
     const current = Number(state.networkPagination?.page || 1)
     state.networkPagination = {
