@@ -1,4 +1,5 @@
 import { t } from '../../shared/i18n.js'
+import { getVisibleNetworkEntriesForCapture } from '../../shared/capture-context.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
@@ -10,6 +11,7 @@ export function renderDashboardPage(state) {
   const matchedRecently = state.rules.filter(rule => Number(rule.diagnostics?.matchCount || 0) > 0).length
   const errors = state.rules.filter(rule => rule.diagnostics?.lastError).length
   const activeCollection = state.collections.find(collection => collection.id === state.settings?.activeCollectionId)
+  const visibleNetworkEntries = getVisibleNetworkEntriesForCapture(state)
 
   return `
     <section class="grid cards4">
@@ -21,7 +23,7 @@ export function renderDashboardPage(state) {
     <section class="card">
       <h3>${t('dashboard.currentContext')}</h3>
       <p>${t('dashboard.activeCollection')}: <strong>${displayCollectionName(activeCollection)}</strong></p>
-      <p>${t('dashboard.recentNetwork')}: ${state.networkEntries.length}</p>
+      <p>${t('dashboard.recentNetwork')}: ${visibleNetworkEntries.length}</p>
     </section>
   `
 }

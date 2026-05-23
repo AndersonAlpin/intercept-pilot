@@ -4,6 +4,7 @@ import { makeCollection, makeRule } from '../shared/models.js'
 import { validateRule } from '../shared/validators.js'
 import { setLocale, t } from '../shared/i18n.js'
 import { DEFAULT_NETWORK_FILTER_FULL } from '../shared/constants.js'
+import { getVisibleLogsForCapture, getVisibleNetworkEntriesForCapture, normalizeLogScope } from '../shared/capture-context.js'
 import {
   createRuleBundle,
   createCollectionBundle,
@@ -44,6 +45,7 @@ const state = {
   rules: [],
   logs: [],
   networkEntries: [],
+  networkMeta: null,
   activeTab: null,
   attachedTab: null,
   compatActiveTab: null,
@@ -77,7 +79,9 @@ const state = {
     pageSize: 100
   },
   filteredNetworkEntries: [],
+  visibleNetworkEntries: [],
   filteredLogs: [],
+  visibleLogs: [],
   pagedLogs: [],
   lastImportExportMessage: '',
   inspector: null,
@@ -113,9 +117,19 @@ function restoreFocusSnapshot(snapshot) {
   }
 }
 
-function normalizeLogScope(scope) {
-  return String(scope || '').toLowerCase() === 'web' ? 'web' : 'app'
+function updateDataPanelScrollState(root = document) {
+  const target = root instanceof Element ? root : document
+  target.querySelectorAll('.data-panel__scroll').forEach(element => {
+    const hasVerticalScroll = element.scrollHeight > element.clientHeight + 1
+    element.classList.toggle('is-scrollable-y', hasVerticalScroll)
+  })
 }
+
+const updateDataPanelScrollStateSoon = debounce(() => {
+  requestAnimationFrame(() => updateDataPanelScrollState())
+}, 50)
+
+window.addEventListener('resize', updateDataPanelScrollStateSoon)
 
 async function refreshState() {
   const next = await sendMessage({ type: MSG.STATE_GET })
@@ -134,7 +148,9 @@ async function refreshState() {
 }
 
 function applyLocalFilters() {
-  state.filteredNetworkEntries = state.networkEntries.filter(entry => {
+  const visibleNetworkEntries = getVisibleNetworkEntriesForCapture(state)
+  state.visibleNetworkEntries = visibleNetworkEntries
+  state.filteredNetworkEntries = visibleNetworkEntries.filter(entry => {
     if (!isRenderableNetworkEntry(entry)) return false
     const f = state.networkFilter
     if (f.method !== 'ANY' && entry.method !== f.method) return false
@@ -148,9 +164,10 @@ function applyLocalFilters() {
   applyNetworkPagination()
 
   const logsScope = state.page === 'diagnostics' ? 'app' : 'web'
-  state.filteredLogs = state.logs.filter(log => {
+  const sourceLogs = logsScope === 'web' ? getVisibleLogsForCapture(state) : state.logs.filter(log => normalizeLogScope(log.scope) === 'app')
+  state.visibleLogs = sourceLogs
+  state.filteredLogs = sourceLogs.filter(log => {
     if (state.logsFilter.level !== 'ANY' && log.level !== state.logsFilter.level) return false
-    if (normalizeLogScope(log.scope) !== logsScope) return false
     const text = state.logsFilter.search.trim().toLowerCase()
     if (text && !(`${log.message || ''} ${log.url || ''}`).toLowerCase().includes(text)) return false
     return true
@@ -412,6 +429,7 @@ function render() {
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindEvents()
   restoreFocusSnapshot(focusSnapshot)
+  updateDataPanelScrollStateSoon()
 }
 
 function bindTopbarEvents() {
@@ -488,6 +506,7 @@ function connectionChanged(current, next) {
     || !sameTabRef(current.candidateTab, next.candidateTab)
     || !sameTabRef(current.lastAttachableTab, next.lastAttachableTab)
     || (current.compatActiveTabId ?? null) !== (next.compatActiveTabId ?? null)
+    || (current.networkMeta?.currentCaptureSessionId ?? null) !== (next.networkMeta?.currentCaptureSessionId ?? null)
 }
 
 let pendingConnectionPatch = null
@@ -503,7 +522,8 @@ const flushConnectionUpdate = debounce(() => {
     activeTab: state.activeTab ?? null,
     candidateTab: state.candidateTab ?? null,
     lastAttachableTab: state.lastAttachableTab ?? null,
-    compatActiveTabId: state.compatActiveTabId ?? null
+    compatActiveTabId: state.compatActiveTabId ?? null,
+    networkMeta: state.networkMeta ?? null
   }
   const next = {
     attachedTabId: patch.attachedTabId ?? current.attachedTabId,
@@ -512,7 +532,8 @@ const flushConnectionUpdate = debounce(() => {
     activeTab: patch.activeTab ?? current.activeTab,
     candidateTab: patch.candidateTab ?? current.candidateTab,
     lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab,
-    compatActiveTabId: patch.compatActiveTabId ?? current.compatActiveTabId
+    compatActiveTabId: patch.compatActiveTabId ?? current.compatActiveTabId,
+    networkMeta: patch.networkMeta ?? current.networkMeta
   }
 
   const changed = connectionChanged(current, next)
@@ -523,8 +544,14 @@ const flushConnectionUpdate = debounce(() => {
   state.candidateTab = next.candidateTab
   state.lastAttachableTab = next.lastAttachableTab
   state.compatActiveTabId = next.compatActiveTabId
+  state.networkMeta = next.networkMeta
 
   if (!changed) return
+  if (state.page === 'network' || state.page === 'logs' || state.page === 'dashboard') {
+    applyLocalFilters()
+    render()
+    return
+  }
   refreshTopbarOnly()
 }, 120)
 
@@ -820,6 +847,7 @@ function refreshNetworkTableOnly() {
   }
   bindCreateRuleFromRequestEvents()
   bindNetworkPaginationEvents()
+  updateDataPanelScrollStateSoon()
 }
 
 function bindNetworkPaginationEvents() {
@@ -1368,6 +1396,7 @@ function bindEvents() {
 chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:network') {
     state.networkEntries = message.networkEntries
+    state.networkMeta = message.networkMeta || state.networkMeta
     if (state.page === 'network') {
       applyLocalFilters()
       refreshNetworkTableOnly()
@@ -1397,7 +1426,8 @@ chrome.runtime.onMessage.addListener(message => {
       activeTab: message.activeTab ?? null,
       candidateTab: message.candidateTab ?? null,
       lastAttachableTab: message.lastAttachableTab ?? null,
-      compatActiveTabId: message.compatActiveTabId ?? null
+      compatActiveTabId: message.compatActiveTabId ?? null,
+      networkMeta: message.networkMeta ?? null
     })
   }
   if (message?.type === 'state:activeTab') {

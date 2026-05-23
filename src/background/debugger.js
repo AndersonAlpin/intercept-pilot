@@ -49,6 +49,8 @@ async function rehydrateFromSession() {
 
   runtimeState.attachedTabId = attachedTabId
   runtimeState.attachedDebuggee = debuggee
+  runtimeState.captureSessionSeq += 1
+  runtimeState.currentCaptureSessionId = `cdp:${attachedTabId}:${Date.now()}:${runtimeState.captureSessionSeq}`
   return true
 }
 
@@ -240,6 +242,8 @@ export async function attachToTab(tabId) {
 
     runtimeState.attachedTabId = tabId
     runtimeState.attachedDebuggee = attachedVia === 'targetId' ? { targetId: attachedTargetId } : { tabId }
+    runtimeState.captureSessionSeq += 1
+    runtimeState.currentCaptureSessionId = `cdp:${tabId}:${Date.now()}:${runtimeState.captureSessionSeq}`
     runtimeState.tabMeta.set(tabId, { url: tab.url || '', title: tab.title || '' })
     if (runtimeState.networkTabId != null && runtimeState.networkTabId !== tabId) {
       resetRuntimeCollections()
@@ -262,6 +266,7 @@ export async function detachCurrentTab() {
   runtimeState.attachedTabId = null
   runtimeState.attachedDebuggee = null
   runtimeState.fetchEnabled = false
+  runtimeState.currentCaptureSessionId = null
   runtimeState.debuggerDomainsReadyAt = null
   runtimeState.debuggerDomainsReadyForTabId = null
   runtimeState.currentNetworkCycleId = null

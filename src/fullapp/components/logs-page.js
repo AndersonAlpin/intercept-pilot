@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { hasActiveCaptureContext } from '../../shared/capture-context.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { formatShowingCount, formatShowingRange } from '../../shared/ui/count.js'
@@ -35,7 +36,7 @@ function levelBadge(level) {
 export function renderLogsPage(state) {
   const logs = state.filteredLogs || state.logs.filter(isWebLog)
   const pagedLogs = state.pagedLogs || logs
-  const total = state.logs.filter(isWebLog).length
+  const total = (state.visibleLogs || []).filter(isWebLog).length
   const pageSize = Number(state.logsPagination?.pageSize || 100)
   const page = Number(state.logsPagination?.page || 1)
   const start = logs.length ? ((page - 1) * pageSize) + 1 : 0
@@ -55,7 +56,9 @@ export function renderLogsPage(state) {
       singular: t('logs.entityOne'),
       plural: t('logs.entityMany')
     })
-  const emptyKey = hasActiveLogsFilter(state) ? 'logs.noResults' : 'logs.noLogs'
+  const emptyMessage = !hasActiveCaptureContext(state)
+    ? t('logs.activateCaptureToSeeLogs')
+    : t(hasActiveLogsFilter(state) ? 'logs.noResults' : 'logs.webOnlyEmpty')
 
   const header = `
     <div class="table-row row-logs rules-header" role="row">
@@ -82,7 +85,7 @@ export function renderLogsPage(state) {
           <div>${escapeHtml(log.timestamp || '')}</div>
           <div class="cell-network-url" title="${escapeHtml(log.url || '')}">${escapeHtml(log.url || '—')}</div>
         </div>
-      `).join('') : renderEmptyState({ message: t(emptyKey === 'logs.noLogs' ? 'logs.webOnlyEmpty' : emptyKey) })}
+      `).join('') : renderEmptyState({ message: emptyMessage })}
     </div>
   `
 

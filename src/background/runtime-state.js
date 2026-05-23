@@ -9,6 +9,8 @@ export const runtimeState = {
   fetchEnabled: false,
   networkTabId: null,
   networkMaxEntries: 300,
+  captureSessionSeq: 0,
+  currentCaptureSessionId: null,
   networkCycleSeq: 0,
   currentNetworkCycleId: null,
   currentNavigationStartedAt: null,

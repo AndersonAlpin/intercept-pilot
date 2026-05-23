@@ -126,6 +126,7 @@ const en = {
     mockThis: 'Create rule',
     inspect: 'Inspect ↗',
     noRequests: 'No requests yet.',
+    activateCaptureToSeeRequests: 'Start capture to see requests.',
     passThrough: 'passThrough',
     noMatch: 'No match',
     saveSuccess: 'Rule saved successfully.',
@@ -193,6 +194,7 @@ const en = {
     copyLog: 'Copy log',
     rawLog: 'Full log',
     noLogs: 'No logs.',
+    activateCaptureToSeeLogs: 'Start capture to see logs.',
     webOnlyEmpty: 'No web logs.',
     noResults: 'No logs match these filters.',
     columns: { message: 'Message', time: 'Time', url: 'URL' }

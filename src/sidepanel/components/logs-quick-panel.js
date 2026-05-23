@@ -1,6 +1,7 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
+import { hasActiveCaptureContext } from '../../shared/capture-context.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { formatShowingCount, formatShowingRange } from '../../shared/ui/count.js'
@@ -30,7 +31,7 @@ function isWebLog(log) {
 export function renderLogsQuickPanel(state) {
   const sourceLogs = state.filteredLogs || (state.logs || []).filter(isWebLog)
   const logs = state.pagedLogs || sourceLogs
-  const total = (state.logs || []).filter(isWebLog).length
+  const total = (state.visibleLogs || []).filter(isWebLog).length
   const pageSize = Number(state.logsPagination?.pageSize || 20)
   const page = Number(state.logsPagination?.page || 1)
   const start = sourceLogs.length ? ((page - 1) * pageSize) + 1 : 0
@@ -92,7 +93,7 @@ export function renderLogsQuickPanel(state) {
             <div class="item-meta">${escapeHtml(log.timestamp || '')}</div>
             ${log.url ? `<div class="item-meta log-url" title="${escapeHtml(log.url)}">${escapeHtml(log.url)}</div>` : ''}
           </div>
-        `).join('') : renderEmptyState({ message: t('logs.webOnlyEmpty') })}
+        `).join('') : renderEmptyState({ message: t(hasActiveCaptureContext(state) ? 'logs.webOnlyEmpty' : 'logs.activateCaptureToSeeLogs') })}
       </div>
       <div class="sidepanel-list-footer">
         ${renderButton({ id: 'open-diagnostics-btn', label: `${t('common.diagnostics')} ↗`, variant: 'info' })}

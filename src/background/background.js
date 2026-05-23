@@ -37,17 +37,24 @@ function isCompatActiveForTab(tabId, settings) {
 async function enableCompatForTab(tabId) {
   if (!tabId) return
   runtimeState.compatFallbackTabIds.add(Number(tabId))
+  startCaptureSession(Number(tabId), 'compat')
   await chrome.tabs.sendMessage(tabId, { type: 'compat:modeChanged', captureMode: 'compat' }).catch(() => {})
 }
 
 async function disableCompatForTab(tabId) {
   if (!tabId) return
   runtimeState.compatFallbackTabIds.delete(Number(tabId))
+  if (!runtimeState.attachedTabId && runtimeState.compatFallbackTabIds.size === 0) {
+    runtimeState.currentCaptureSessionId = null
+  }
   await chrome.tabs.sendMessage(tabId, { type: 'compat:modeChanged', captureMode: 'cdp' }).catch(() => {})
 }
 
 function clearCompatFallback(tabId) {
   if (tabId) runtimeState.compatFallbackTabIds.delete(Number(tabId))
+  if (!runtimeState.attachedTabId && runtimeState.compatFallbackTabIds.size === 0) {
+    runtimeState.currentCaptureSessionId = null
+  }
 }
 
 function getAutoCompatFallbackNotice(error) {
@@ -187,10 +194,18 @@ function clearNetworkEntryCollections() {
 
 function getNetworkCycleMeta() {
   return {
+    currentCaptureSessionId: runtimeState.currentCaptureSessionId,
     currentNetworkCycleId: runtimeState.currentNetworkCycleId,
     currentNavigationStartedAt: runtimeState.currentNavigationStartedAt,
     networkTabId: runtimeState.networkTabId
   }
+}
+
+function startCaptureSession(tabId, mode = 'cdp') {
+  if (!tabId) return null
+  runtimeState.captureSessionSeq += 1
+  runtimeState.currentCaptureSessionId = `${mode}:${tabId}:${Date.now()}:${runtimeState.captureSessionSeq}`
+  return runtimeState.currentCaptureSessionId
 }
 
 function beginNetworkCycle(tabId, reason = 'navigation') {
@@ -290,6 +305,7 @@ function upsertNetworkEntry(key, patch) {
       responseBodyBase64Encoded: false,
       responseBodyTruncated: false,
       responseBodyLoaded: 'idle',
+      captureSessionId: runtimeState.currentCaptureSessionId,
       networkCycleId: runtimeState.currentNetworkCycleId,
       networkTabId: runtimeState.networkTabId || runtimeState.attachedTabId,
       ...patch
@@ -412,7 +428,8 @@ async function broadcastConnectionState() {
     activeTab: runtimeState.activeTab,
     candidateTab: candidate,
     lastAttachableTab: runtimeState.lastAttachableTab,
-    compatActiveTabId
+    compatActiveTabId,
+    networkMeta: getNetworkCycleMeta()
   })
 }
 
@@ -1138,6 +1155,9 @@ async function handleRuntimeConsoleApiCalled(source, params) {
   await pushLog({
     level,
     scope: 'web',
+    tabId: source?.tabId || runtimeState.attachedTabId || null,
+    captureSessionId: runtimeState.currentCaptureSessionId || null,
+    networkCycleId: runtimeState.currentNetworkCycleId || null,
     message,
     url
   })
@@ -1151,6 +1171,9 @@ async function handleRuntimeExceptionThrown(source, params) {
   await pushLog({
     level: 'error',
     scope: 'web',
+    tabId: source?.tabId || runtimeState.attachedTabId || null,
+    captureSessionId: runtimeState.currentCaptureSessionId || null,
+    networkCycleId: runtimeState.currentNetworkCycleId || null,
     message: exceptionText,
     url
   })
@@ -1178,6 +1201,9 @@ async function handleLogEntryAdded(source, params) {
   await pushLog({
     level: normalizeBrowserLogLevel(entry.level),
     scope: 'web',
+    tabId: source?.tabId || runtimeState.attachedTabId || null,
+    captureSessionId: runtimeState.currentCaptureSessionId || null,
+    networkCycleId: runtimeState.currentNetworkCycleId || null,
     message,
     url: getLogEntryUrl(entry)
   })
@@ -1280,6 +1306,7 @@ chrome.debugger.onDetach.addListener(async (source, reason) => {
     runtimeState.attachedTabId = null
     runtimeState.attachedDebuggee = null
     runtimeState.fetchEnabled = false
+    runtimeState.currentCaptureSessionId = null
     runtimeState.currentNetworkCycleId = null
     runtimeState.currentNavigationStartedAt = null
     runtimeState.networkCycleInProgressTabId = null
@@ -1345,6 +1372,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ settings })
           if (previous.captureMode !== settings.captureMode) {
             runtimeState.compatFallbackTabIds.clear()
+            if (!runtimeState.attachedTabId) runtimeState.currentCaptureSessionId = null
             await notifyCompatModeChanged('cdp')
             await pushLog({ level: 'info', scope: 'runtime', message: `Capture mode changed to ${settings.captureMode}` })
           }

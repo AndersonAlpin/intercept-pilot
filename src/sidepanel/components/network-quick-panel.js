@@ -1,6 +1,7 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
+import { hasActiveCaptureContext } from '../../shared/capture-context.js'
 import { formatNetworkDisplayUrl } from '../../shared/network-display.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
@@ -39,7 +40,7 @@ function hasActiveFilter(state) {
 }
 
 export function renderNetworkQuickCount(state) {
-  const total = (state.networkEntries || []).filter(isRenderableNetworkEntry).length
+  const total = (state.visibleNetworkEntries || []).filter(isRenderableNetworkEntry).length
   const filtered = (state.filteredNetworkEntries || []).length
   if (!filtered) {
     return formatShowingCount({
@@ -89,6 +90,9 @@ export function renderNetworkQuickPagination(state) {
 export function renderNetworkQuickRows(state) {
   const entries = state.pagedNetworkEntries || state.filteredNetworkEntries || []
   if (!entries.length) {
+    if (!hasActiveCaptureContext(state)) {
+      return renderEmptyState({ message: t('network.activateCaptureToSeeRequests') })
+    }
     const lightCapture = state.settings?.captureMode === 'compat' || Boolean(state.compatActiveTabId)
     return renderEmptyState({
       message: t(hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'),

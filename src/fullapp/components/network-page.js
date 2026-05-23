@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { hasActiveCaptureContext } from '../../shared/capture-context.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { formatShowingCount, formatShowingRange } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
@@ -37,7 +38,7 @@ function getResultLabel(entry) {
 }
 
 function getNetworkPaginationSummary(state) {
-  const total = state.networkEntries.filter(isRenderableNetworkEntry).length
+  const total = (state.visibleNetworkEntries || []).filter(isRenderableNetworkEntry).length
   const filtered = state.filteredNetworkEntries?.length ?? total
   const pageSize = Number(state.networkPagination?.pageSize || 100)
   const page = Number(state.networkPagination?.page || 1)
@@ -64,6 +65,9 @@ function getNetworkPaginationSummary(state) {
 export function renderNetworkRows(state) {
   const entries = (state.pagedNetworkEntries || state.filteredNetworkEntries || state.networkEntries).filter(isRenderableNetworkEntry)
   if (!entries.length) {
+    if (!hasActiveCaptureContext(state)) {
+      return renderEmptyState({ message: t('network.activateCaptureToSeeRequests') })
+    }
     const lightCapture = state.settings?.captureMode === 'compat' || Boolean(state.compatActiveTabId)
     const key = hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'
     return renderEmptyState({

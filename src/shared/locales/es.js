@@ -52,7 +52,7 @@ const es = {
     createRule: 'Crear regla', editRule: 'Editar regla', ruleName: 'Nombre de regla', urlPattern: 'Patrón de URL',
     actionType: 'Tipo de acción', statusCode: 'Código de estado', delayMs: 'Delay ms',
     createEnabledRule: 'Crear regla habilitada', saveQuickEdit: 'Guardar edición rápida', mockThis: 'Crear regla', inspect: 'Inspeccionar ↗',
-    noRequests: 'Sin requests todavía.', passThrough: 'passThrough', noMatch: 'Sin match',
+    noRequests: 'Sin requests todavía.', activateCaptureToSeeRequests: 'Activa la captura para ver requests.', passThrough: 'passThrough', noMatch: 'Sin match',
     saveSuccess: 'Regla guardada.', saveError: 'Error al guardar regla.', deleteConfirm: '¿Eliminar esta regla?',
     deleteTitle: 'Eliminar regla', deleteSuccess: 'Regla eliminada.',
     createFromRequestError: 'Error al crear regla desde request.',
@@ -101,6 +101,7 @@ const es = {
     copyLog: 'Copiar log',
     rawLog: 'Log completo',
     noLogs: 'Sin logs.',
+    activateCaptureToSeeLogs: 'Activa la captura para ver logs.',
     webOnlyEmpty: 'Sin logs Web.',
     noResults: 'Ningún log coincide con estos filtros.',
     columns: { message: 'Mensaje', time: 'Hora', url: 'URL' }

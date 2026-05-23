@@ -3,6 +3,7 @@ import { makeRule } from '../shared/models.js'
 import { validateRule } from '../shared/validators.js'
 import { setLocale, t } from '../shared/i18n.js'
 import { DEFAULT_NETWORK_FILTER_SIDE } from '../shared/constants.js'
+import { getVisibleLogsForCapture, getVisibleNetworkEntriesForCapture } from '../shared/capture-context.js'
 import { debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff, matchesNetworkIgnorePatterns } from '../shared/utils.js'
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import {
@@ -29,6 +30,8 @@ const appState = {
   rules: [],
   logs: [],
   networkEntries: [],
+  networkMeta: null,
+  visibleNetworkEntries: [],
   activeTab: null,
   attachedTab: null,
   compatActiveTab: null,
@@ -60,6 +63,7 @@ const appState = {
     pageSize: 20
   },
   pagedLogs: [],
+  visibleLogs: [],
   selectedLogId: null,
 
   quickRuleEditorOpen: false,
@@ -110,7 +114,9 @@ function isRenderableNetworkEntry(entry) {
 }
 
 function filteredNetworkEntries() {
-  return appState.networkEntries.filter(entry => {
+  const visibleEntries = getVisibleNetworkEntriesForCapture(appState)
+  appState.visibleNetworkEntries = visibleEntries
+  return visibleEntries.filter(entry => {
     if (!isRenderableNetworkEntry(entry)) return false
     const filter = appState.networkFilters
     if (filter.method !== 'ANY' && entry.method !== filter.method) return false
@@ -152,10 +158,11 @@ function hydrateQuickRule(seed = {}) {
 }
 
 function filteredLogs() {
-  return appState.logs.filter(log => {
+  const visibleLogs = getVisibleLogsForCapture(appState)
+  appState.visibleLogs = visibleLogs
+  return visibleLogs.filter(log => {
     const filter = appState.logsFilter || { level: 'ANY', search: '' }
     if (filter.level !== 'ANY' && log.level !== filter.level) return false
-    if (String(log.scope || '').toLowerCase() !== 'web') return false
     const text = String(filter.search || '').trim().toLowerCase()
     if (text && !(`${log.message || ''} ${log.url || ''}`).toLowerCase().includes(text)) return false
     return true
@@ -390,6 +397,7 @@ function connectionChanged(current, next) {
     || !sameTabRef(current.candidateTab, next.candidateTab)
     || !sameTabRef(current.lastAttachableTab, next.lastAttachableTab)
     || (current.compatActiveTabId ?? null) !== (next.compatActiveTabId ?? null)
+    || (current.networkMeta?.currentCaptureSessionId ?? null) !== (next.networkMeta?.currentCaptureSessionId ?? null)
 }
 
 let pendingConnectionPatch = null
@@ -405,7 +413,8 @@ const flushConnectionUpdate = debounce(() => {
     activeTab: appState.activeTab ?? null,
     candidateTab: appState.candidateTab ?? null,
     lastAttachableTab: appState.lastAttachableTab ?? null,
-    compatActiveTabId: appState.compatActiveTabId ?? null
+    compatActiveTabId: appState.compatActiveTabId ?? null,
+    networkMeta: appState.networkMeta ?? null
   }
   const next = {
     attachedTabId: patch.attachedTabId ?? current.attachedTabId,
@@ -414,7 +423,8 @@ const flushConnectionUpdate = debounce(() => {
     activeTab: patch.activeTab ?? current.activeTab,
     candidateTab: patch.candidateTab ?? current.candidateTab,
     lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab,
-    compatActiveTabId: patch.compatActiveTabId ?? current.compatActiveTabId
+    compatActiveTabId: patch.compatActiveTabId ?? current.compatActiveTabId,
+    networkMeta: patch.networkMeta ?? current.networkMeta
   }
 
   const changed = connectionChanged(current, next)
@@ -425,8 +435,13 @@ const flushConnectionUpdate = debounce(() => {
   appState.candidateTab = next.candidateTab
   appState.lastAttachableTab = next.lastAttachableTab
   appState.compatActiveTabId = next.compatActiveTabId
+  appState.networkMeta = next.networkMeta
 
   if (!changed) return
+  if (appState.currentTab === 'network' || appState.currentTab === 'logs') {
+    render()
+    return
+  }
   refreshHeaderOnly()
 }, 120)
 
@@ -797,6 +812,7 @@ function bindEvents() {
 chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:network') {
     appState.networkEntries = message.networkEntries
+    appState.networkMeta = message.networkMeta || appState.networkMeta
     if (appState.currentTab === 'network') refreshSideNetworkOnly()
   }
   if (message?.type === 'state:logs') {
@@ -815,7 +831,8 @@ chrome.runtime.onMessage.addListener(message => {
       activeTab: message.activeTab ?? null,
       candidateTab: message.candidateTab ?? null,
       lastAttachableTab: message.lastAttachableTab ?? null,
-      compatActiveTabId: message.compatActiveTabId ?? null
+      compatActiveTabId: message.compatActiveTabId ?? null,
+      networkMeta: message.networkMeta ?? null
     })
   }
   if (message?.type === 'state:activeTab') {
