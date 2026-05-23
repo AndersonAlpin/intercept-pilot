@@ -1,5 +1,7 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { renderButton } from '../../shared/ui/button.js'
+import { renderEmptyState } from '../../shared/ui/empty-state.js'
 
 function hasActiveFilter(state) {
   const f = state.networkFilter
@@ -29,12 +31,10 @@ export function renderNetworkRows(state) {
   if (!entries.length) {
     const lightCapture = state.settings?.captureMode === 'compat' || Boolean(state.compatActiveTabId)
     const key = hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'
-    return `
-      <div class="empty">
-        <div>${escapeHtml(t(key))}</div>
-        ${lightCapture ? `<div class="empty-helper">${escapeHtml(t('network.lightCaptureHelper'))}</div>` : ''}
-      </div>
-    `
+    return renderEmptyState({
+      message: t(key),
+      helper: lightCapture ? t('network.lightCaptureHelper') : ''
+    })
   }
   const header = `
     <div class="table-row row-network rules-header" role="row">
@@ -57,7 +57,7 @@ export function renderNetworkRows(state) {
       <div>${escapeHtml(entry.resourceType || '')}</div>
       <div>${escapeHtml(getAppliedRuleLabel(entry))}</div>
       <div>${escapeHtml(getResultLabel(entry))}</div>
-      <div class="footer-actions"><button class="btn" data-full-create-from-request="${entry.id}">${t('network.createRule')}</button></div>
+      <div class="footer-actions">${renderButton({ label: t('network.createRule'), data: { 'full-create-from-request': entry.id } })}</div>
     </div>
   `).join('')
   return `${header}${rows}`
@@ -95,7 +95,7 @@ export function renderNetworkPage(state) {
           <select class="select" id="full-network-method">${['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS'].map(m => `<option value="${m}" ${state.networkFilter.method === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
           <input class="input" id="full-network-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilter.status || '')}" />
           <label class="switch"><input type="checkbox" id="full-network-intercepted" ${state.networkFilter.interceptedOnly ? 'checked' : ''}/> ${t('network.interceptedOnly')}</label>
-          <button class="btn" id="full-network-clear">${t('common.clear')}</button>
+          ${renderButton({ id: 'full-network-clear', label: t('common.clear') })}
         </div>
       </section>
       <section class="card data-card network-data-card">

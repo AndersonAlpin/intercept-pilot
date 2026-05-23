@@ -533,7 +533,7 @@ function bindEvents() {
   })
 
   bindHeaderEvents()
-  $('#manage-collections-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
+  $('#manage-collections-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, page: 'collections' }))
   $('#open-diagnostics-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
 
   $('#active-collection-select')?.addEventListener('change', async event => {

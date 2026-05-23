@@ -1,12 +1,15 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { renderBadge } from '../../shared/ui/badge.js'
+import { renderButton } from '../../shared/ui/button.js'
+import { renderEmptyState } from '../../shared/ui/empty-state.js'
 
 function statusBadge(status) {
-  if (status == null || status === '') return '<span class="badge">—</span>'
+  if (status == null || status === '') return renderBadge({ label: '—' })
   const code = Number(status)
-    if (code >= 400 || code === 0) return `<span class="badge danger">${status}</span>`
-    if (code >= 300) return `<span class="badge warning">${status}</span>`
-    return `<span class="badge success">${status}</span>`
+  if (code >= 400 || code === 0) return renderBadge({ label: status, variant: 'danger' })
+  if (code >= 300) return renderBadge({ label: status, variant: 'warning' })
+  return renderBadge({ label: status, variant: 'success' })
 }
 
 function getAppliedRuleLabel(entry) {
@@ -54,12 +57,10 @@ export function renderNetworkQuickRows(state) {
   const entries = state.pagedNetworkEntries || state.filteredNetworkEntries || []
   if (!entries.length) {
     const lightCapture = state.settings?.captureMode === 'compat' || Boolean(state.compatActiveTabId)
-    return `
-      <div class="empty">
-        <div>${escapeHtml(t(hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'))}</div>
-        ${lightCapture ? `<div class="empty-helper">${escapeHtml(t('network.lightCaptureHelper'))}</div>` : ''}
-      </div>
-    `
+    return renderEmptyState({
+      message: t(hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'),
+      helper: lightCapture ? t('network.lightCaptureHelper') : ''
+    })
   }
   return entries.map(entry => `
     <div class="table-row">
@@ -67,8 +68,8 @@ export function renderNetworkQuickRows(state) {
       <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</strong><span>${escapeHtml(getAppliedRuleLabel(entry))}</span></div>
       <div>${statusBadge(entry.status)}</div>
       <div class="footer-actions">
-        <button class="btn" data-create-from-request="${entry.id}">${t('rules.mockThis')}</button>
-        <button class="btn" data-open-inspect="${entry.id}">${t('rules.inspect')}</button>
+        ${renderButton({ label: t('rules.mockThis'), data: { 'create-from-request': entry.id } })}
+        ${renderButton({ label: t('rules.inspect'), data: { 'open-inspect': entry.id } })}
       </div>
     </div>
   `).join('')
@@ -81,8 +82,8 @@ export function renderNetworkQuickPanel(state) {
         <div class="row space-between">
           <h2>${t('network.title')}</h2>
           <div class="footer-actions">
-            <button class="btn" id="network-refresh-btn">${t('common.refresh')}</button>
-            <button class="btn" id="network-clear-btn">${t('common.clear')}</button>
+            ${renderButton({ id: 'network-refresh-btn', label: t('common.refresh') })}
+            ${renderButton({ id: 'network-clear-btn', label: t('common.clear') })}
           </div>
         </div>
         <div class="column">

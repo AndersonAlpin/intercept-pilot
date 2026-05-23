@@ -1,5 +1,8 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { renderBadge } from '../../shared/ui/badge.js'
+import { renderButton } from '../../shared/ui/button.js'
+import { renderEmptyState } from '../../shared/ui/empty-state.js'
 
 function hasActiveLogsFilter(state) {
   const f = state.logsFilter
@@ -8,7 +11,7 @@ function hasActiveLogsFilter(state) {
 
 function levelBadge(level) {
   const kind = level === 'error' ? 'danger' : level === 'warn' ? 'warning' : 'success'
-  return `<span class="badge ${kind}">${escapeHtml(level || 'info')}</span>`
+  return renderBadge({ label: level || 'info', variant: kind })
 }
 
 export function renderLogsPage(state) {
@@ -33,7 +36,7 @@ export function renderLogsPage(state) {
         <div class="filters-row">
           <select class="select" id="full-logs-level">${['ANY','error','warn','info'].map(level => `<option value="${level}" ${state.logsFilter.level === level ? 'selected' : ''}>${level}</option>`).join('')}</select>
           <input class="input" id="full-logs-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter.search || '')}" />
-          <button class="btn" id="full-clear-logs">${t('logs.clearLogs')}</button>
+          ${renderButton({ id: 'full-clear-logs', label: t('logs.clearLogs') })}
           <span class="results-count">${escapeHtml(countText)}</span>
         </div>
       </section>
@@ -47,7 +50,7 @@ export function renderLogsPage(state) {
               <div>${escapeHtml(log.timestamp || '')}</div>
               <div class="cell-network-url" title="${escapeHtml(log.url || '')}">${escapeHtml(log.url || '—')}</div>
             </div>
-          `).join('') : `<div class="empty">${escapeHtml(t(emptyKey === 'logs.noLogs' ? 'logs.webOnlyEmpty' : emptyKey))}</div>`}
+          `).join('') : renderEmptyState({ message: t(emptyKey === 'logs.noLogs' ? 'logs.webOnlyEmpty' : emptyKey) })}
         </div>
       </section>
     </section>
