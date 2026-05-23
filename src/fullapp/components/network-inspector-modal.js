@@ -1,6 +1,8 @@
 import { escapeHtml, tryPrettyJson } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
+import { renderButton } from '../../shared/ui/button.js'
+import { renderIconButton } from '../../shared/ui/icon-button.js'
 
 function parseQueryParams(url) {
   try {
@@ -36,7 +38,11 @@ function renderHeadersTable(headers, copyAllAction) {
   return `
     <div class="inspector-headers">
       <div class="inspector-headers-actions">
-        <button type="button" class="btn" data-inspector-copy-all="${copyAllAction}">${escapeHtml(t('network.inspector.copyAllHeaders'))}</button>
+        ${renderButton({
+          label: t('network.inspector.copyAllHeaders'),
+          variant: 'secondary',
+          data: { 'inspector-copy-all': copyAllAction }
+        })}
       </div>
       <table class="kv-table">
         <tbody>
@@ -44,7 +50,13 @@ function renderHeadersTable(headers, copyAllAction) {
             <tr>
               <th>${escapeHtml(h.name)}</th>
               <td>${escapeHtml(h.value)}</td>
-              <td class="kv-actions"><button type="button" class="icon-btn" data-inspector-copy-header="${escapeHtml(h.name)}::${escapeHtml(h.value)}" aria-label="${escapeHtml(t('network.inspector.copyHeader'))}">${icon('copy', 12)}</button></td>
+              <td class="kv-actions">${renderIconButton({
+                iconName: 'copy',
+                label: t('network.inspector.copyHeader'),
+                variant: 'ghost',
+                size: 12,
+                data: { 'inspector-copy-header': `${h.name}::${h.value}` }
+              })}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -61,7 +73,14 @@ function renderBody(text, options = {}) {
   const kind = options.kind || 'body'
   return `
     <div class="code-wrap">
-      <button type="button" class="icon-btn code-copy-btn" data-inspector-copy-body="${kind}" title="${escapeHtml(t('common.copy'))}" aria-label="${escapeHtml(t('common.copy'))}">${icon('copy', 12)}</button>
+      ${renderIconButton({
+        iconName: 'copy',
+        label: t('common.copy'),
+        variant: 'ghost',
+        className: 'code-copy-btn',
+        size: 12,
+        data: { 'inspector-copy-body': kind }
+      })}
       <pre class="code-block ${isJson ? 'code-json' : 'code-raw'}">${escapeHtml(pretty)}</pre>
     </div>
     ${options.truncated ? `<p class="muted">${escapeHtml(t('network.inspector.bodyTruncated'))}</p>` : ''}
@@ -135,11 +154,19 @@ function renderResponseBodySection(entry) {
     return `<p class="muted">${escapeHtml(t('network.inspector.bodyUnavailable'))}</p>`
   }
   if (status === 'idle') {
-    return `<button type="button" class="btn" data-inspector-load-body>${escapeHtml(t('network.inspector.loadBody'))}</button>`
+    return renderButton({
+      label: t('network.inspector.loadBody'),
+      variant: 'secondary',
+      data: { 'inspector-load-body': true }
+    })
   }
   if (status === 'error') {
     return `
-      <button type="button" class="btn" data-inspector-load-body>${escapeHtml(t('network.inspector.loadBody'))}</button>
+      ${renderButton({
+        label: t('network.inspector.loadBody'),
+        variant: 'secondary',
+        data: { 'inspector-load-body': true }
+      })}
       <p class="muted error">${escapeHtml(t('network.inspector.bodyUnavailable'))}</p>
     `
   }
@@ -228,9 +255,21 @@ export function renderNetworkInspectorModal(state) {
           ${renderInspectorBody(entry, tab)}
         </div>
         <footer class="modal-footer inspector-footer">
-          <button type="button" class="btn" data-inspector-action="create-rule">${escapeHtml(t('network.inspector.createRule'))}</button>
-          <button type="button" class="btn" data-inspector-action="copy-fetch">${escapeHtml(t('network.inspector.copyAsFetch'))}</button>
-          <button type="button" class="btn" data-inspector-action="copy-curl">${escapeHtml(t('network.inspector.copyAsCurl'))}</button>
+          ${renderButton({
+            label: t('network.inspector.createRule'),
+            variant: 'primary',
+            data: { 'inspector-action': 'create-rule' }
+          })}
+          ${renderButton({
+            label: t('network.inspector.copyAsFetch'),
+            variant: 'secondary',
+            data: { 'inspector-action': 'copy-fetch' }
+          })}
+          ${renderButton({
+            label: t('network.inspector.copyAsCurl'),
+            variant: 'secondary',
+            data: { 'inspector-action': 'copy-curl' }
+          })}
         </footer>
       </div>
     </div>

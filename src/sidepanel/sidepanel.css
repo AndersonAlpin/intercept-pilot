@@ -409,7 +409,7 @@ body.modal-open { overflow: hidden; }
 .icon-btn:disabled { opacity: .5; cursor: not-allowed; }
 .icon-btn.info { color: #bae6fd; border-color: rgba(56, 189, 248, .38); }
 .icon-btn.info:hover:not(:disabled) { background: rgba(56, 189, 248, .16); border-color: rgba(56, 189, 248, .62); color: #e0f2fe; }
-.icon-btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+.icon-btn.ghost { background: transparent; border-color: var(--border); color: var(--text-muted); }
 .icon-btn.ghost:hover:not(:disabled) { background: rgba(255, 255, 255, .04); border-color: var(--border-strong); color: var(--text); }
 .icon-btn.danger { color: #ffb4b9; }
 .icon-btn.danger:hover:not(:disabled) { background: rgba(255, 92, 102, .18); border-color: rgba(255, 92, 102, .65); color: #ffd0d4; }

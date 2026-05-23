@@ -105,7 +105,7 @@ export function renderNetworkQuickRows(state) {
       <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(formatNetworkDisplayUrl(entry.url, { compact: true }))}</strong><span>${escapeHtml(getAppliedRuleLabel(entry))}</span></div>
       <div>${statusBadge(entry.status)}</div>
       <div class="footer-actions">
-        ${renderButton({ label: t('rules.mockThis'), variant: 'secondary', data: { 'create-from-request': entry.id } })}
+        ${renderButton({ label: t('rules.mockThis'), variant: 'primary', data: { 'create-from-request': entry.id } })}
         ${renderButton({ label: t('rules.inspect'), variant: 'info', data: { 'open-inspect': entry.id } })}
       </div>
     </div>

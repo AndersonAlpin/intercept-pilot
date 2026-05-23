@@ -479,6 +479,8 @@ body.modal-open { overflow: hidden; }
 .icon-btn:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91, 130, 255, .25); }
 .icon-btn:active:not(:disabled) { transform: translateY(1px); }
 .icon-btn:disabled { opacity: .5; cursor: not-allowed; }
+.icon-btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+.icon-btn.ghost:hover:not(:disabled) { background: rgba(255,255,255,.06); border-color: var(--border); color: var(--text); }
 .icon-btn.danger { color: #ffb4b9; }
 .icon-btn.danger:hover:not(:disabled) { background: rgba(255, 92, 102, .18); border-color: rgba(255, 92, 102, .65); color: #ffd0d4; }
 .icon-btn svg { display: block; }
