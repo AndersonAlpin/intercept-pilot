@@ -1,6 +1,7 @@
 import { escapeHtml } from './utils.js'
 import { icon } from './icons.js'
 import { t } from './i18n.js'
+import { renderModalShell } from './ui/modal-shell.js'
 
 let activeDialog = null
 
@@ -20,19 +21,20 @@ function closeDialog(result) {
 
 function openDialog({ title, bodyHtml, footerHtml, danger = false, onMount }) {
   if (activeDialog) closeDialog(null)
-  const backdrop = document.createElement('div')
-  backdrop.className = 'modal-backdrop dialog-backdrop'
-  backdrop.setAttribute('data-modal-backdrop', '')
-  backdrop.innerHTML = `
-    <div class="modal dialog-modal ${danger ? 'dialog-modal-danger' : ''}" role="dialog" aria-modal="true">
-      <div class="modal-header">
-        <h3>${escapeHtml(title)}</h3>
-        <button class="modal-close" type="button" data-dialog-cancel aria-label="${escapeHtml(t('common.close'))}">${icon('close', 16)}</button>
-      </div>
-      <div class="dialog-body">${bodyHtml}</div>
-      <div class="footer-actions dialog-footer">${footerHtml}</div>
-    </div>
-  `
+  const wrapper = document.createElement('div')
+  wrapper.innerHTML = renderModalShell({
+    title,
+    bodyHtml,
+    footerHtml,
+    className: 'dialog-backdrop',
+    dialogClassName: `dialog-modal ${danger ? 'dialog-modal-danger' : ''}`,
+    bodyClassName: 'dialog-body',
+    footerClassName: 'footer-actions dialog-footer',
+    closeLabel: t('common.close'),
+    closeHtml: icon('close', 16),
+    closeAttrs: { 'data-dialog-cancel': true }
+  }).trim()
+  const backdrop = wrapper.firstElementChild
   document.body.appendChild(backdrop)
 
   return new Promise(resolve => {
