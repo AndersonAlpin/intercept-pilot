@@ -202,7 +202,7 @@ export function renderInspectorBody(entry, tab) {
 
 export function renderNetworkInspectorModal(state) {
   if (!state.inspector) return ''
-  const entry = state.networkEntries.find(e => e.id === state.inspector.entryId)
+  const entry = (state.visibleNetworkEntries || []).find(e => e.id === state.inspector.entryId)
   if (!entry) return ''
   const tab = state.inspector.tab || 'overview'
   const showError = hasError(entry)

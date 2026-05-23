@@ -419,7 +419,7 @@ function render() {
   const root = $('#app')
   const focusSnapshot = captureFocusSnapshot()
   const isSplitScrollPage = state.page === 'network' || state.page === 'logs' || state.page === 'rules' || state.page === 'collections' || state.page === 'diagnostics'
-  const selectedLog = state.selectedLogId ? state.logs.find(log => log.id === state.selectedLogId) : null
+  const selectedLog = state.selectedLogId ? findLogById(state.selectedLogId) : null
   root.innerHTML = renderAppShell({
     sidebar: renderSidebar(state.page),
     topbar: renderTopbar(state),
@@ -561,7 +561,7 @@ function queueConnectionPatch(patch) {
 }
 
 function openInspector(entryId) {
-  const entry = state.networkEntries.find(e => e.id === entryId)
+  const entry = (state.visibleNetworkEntries || []).find(e => e.id === entryId)
   if (!entry) return
   state.selectedNetworkEntryId = entryId
   state.inspector = { entryId, tab: 'overview' }
@@ -578,7 +578,7 @@ function setInspectorTab(tab) {
   state.inspector.tab = tab
   render()
   if (tab === 'response') {
-    const entry = state.networkEntries.find(e => e.id === state.inspector.entryId)
+    const entry = (state.visibleNetworkEntries || []).find(e => e.id === state.inspector.entryId)
     if (entry && entry.responseBodyLoaded === 'idle' && !expectsNoBody(entry)) {
       loadInspectorBody()
     }
@@ -588,7 +588,7 @@ function setInspectorTab(tab) {
 async function loadInspectorBody() {
   if (!state.inspector) return
   const entryId = state.inspector.entryId
-  const entry = state.networkEntries.find(e => e.id === entryId)
+  const entry = (state.visibleNetworkEntries || []).find(e => e.id === entryId)
   if (!entry) return
   entry.responseBodyLoaded = 'loading'
   refreshInspectorBodyOnly()
@@ -609,7 +609,7 @@ function refreshInspectorBodyOnly() {
   if (!state.inspector) return
   const bodyEl = document.querySelector('#inspector-body')
   if (!bodyEl) return
-  const entry = state.networkEntries.find(e => e.id === state.inspector.entryId)
+  const entry = (state.visibleNetworkEntries || []).find(e => e.id === state.inspector.entryId)
   if (!entry) {
     closeInspector()
     return
@@ -867,7 +867,7 @@ function bindNetworkPaginationEvents() {
 }
 
 function findLogById(logId) {
-  return state.logs.find(log => log.id === logId) || null
+  return (state.visibleLogs || []).find(log => log.id === logId) || null
 }
 
 function openLogDetail(logId) {

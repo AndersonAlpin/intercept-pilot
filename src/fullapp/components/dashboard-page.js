@@ -1,5 +1,5 @@
 import { t } from '../../shared/i18n.js'
-import { getVisibleNetworkEntriesForCapture } from '../../shared/capture-context.js'
+import { getVisibleNetworkEntriesForCapture, hasActiveCaptureContext } from '../../shared/capture-context.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
@@ -12,10 +12,11 @@ export function renderDashboardPage(state) {
   const errors = state.rules.filter(rule => rule.diagnostics?.lastError).length
   const activeCollection = state.collections.find(collection => collection.id === state.settings?.activeCollectionId)
   const visibleNetworkEntries = getVisibleNetworkEntriesForCapture(state)
+  const captureActive = hasActiveCaptureContext(state)
 
   return `
     <section class="grid cards4">
-      <article class="card"><h3>${t('dashboard.attached')}</h3><p>${state.attachedTabId ? t('common.yes') : t('common.no')}</p></article>
+      <article class="card"><h3>${t('dashboard.attached')}</h3><p>${captureActive ? t('common.yes') : t('common.no')}</p></article>
       <article class="card"><h3>${t('dashboard.enabledRules')}</h3><p>${enabledRules}</p></article>
       <article class="card"><h3>${t('dashboard.matchedRecently')}</h3><p>${matchedRecently}</p></article>
       <article class="card"><h3>${t('dashboard.errors')}</h3><p>${errors}</p></article>

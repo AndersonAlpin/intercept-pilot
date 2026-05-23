@@ -1,6 +1,6 @@
 const pt = {
   common: {
-    open: 'Abrir', attach: 'Anexar', reattach: 'Reanexar', detach: 'Desanexar', reload: 'Recarregar',
+    open: 'Abrir', attach: 'Ativar captura', reattach: 'Reiniciar captura', detach: 'Parar captura', reload: 'Recarregar',
     enabled: 'ativado', disabled: 'desativado', manage: 'Gerenciar', edit: 'Editar', delete: 'Excluir',
     cancel: 'Cancelar', save: 'Salvar', clear: 'Limpar', refresh: 'Atualizar', create: 'Criar',
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Status',
@@ -9,11 +9,11 @@ const pt = {
     showingCount: 'Mostrando {shown} de {total} {entity}',
     showingRange: 'Mostrando {start}–{end} de {total} {entity}',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Baixar JSON',
-    moreActions: 'Mais ações', disableAutoAttach: 'Desativar auto-anexar', detachNow: 'Desanexar agora', configureHosts: 'Configurar hosts', advanced: 'Avançado', confirm: 'Confirmar', activate: 'Ativar', deactivate: 'Desativar'
+    moreActions: 'Mais ações', disableAutoAttach: 'Desativar captura automática', detachNow: 'Parar captura agora', configureHosts: 'Configurar hosts', advanced: 'Avançado', confirm: 'Confirmar', activate: 'Ativar', deactivate: 'Desativar'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
-    connecting: 'Conectando...', attached: 'Anexado à aba atual', attachedCurrent: 'Anexado à aba atual', attachedOther: 'Anexado em outra aba', attachedTabNumber: 'Anexado à aba {position}', notAttached: 'Não anexado',
+    connecting: 'Conectando...', attached: 'Capturando aba atual', attachedCurrent: 'Capturando aba atual', attachedOther: 'Capturando outra aba', attachedTabNumber: 'Capturando aba {position}', notAttached: 'Captura inativa',
     captureActiveTabNumber: 'Captura ativa na aba {position}',
     captureInactive: 'Captura inativa',
     noCapturedTab: 'Nenhuma aba capturada',
@@ -30,7 +30,7 @@ const pt = {
     lightCaptureFetchOnly: 'Captura leve · apenas fetch',
     lightCaptureTooltip: 'Captura leve está ativa. Captura requests fetch sem usar debugger e pode não capturar todos os tipos de request.',
     openAutoAttachSettings: 'Abrir configurações de captura automática da aba ativa',
-    noActiveUrl: 'Sem URL ativa', noAttachableTab: 'Nenhuma aba anexável disponível', noEligibleTab: 'Aba atual não elegível',
+    noActiveUrl: 'Sem URL ativa', noAttachableTab: 'Nenhuma aba capturável disponível', noEligibleTab: 'Aba atual não elegível',
     tabPosition: 'Aba {position}', currentTabLabel: 'Atual', reloadHint: 'Recarregue a página atual para aplicar as regras'
   },
   navigation: {
@@ -167,7 +167,7 @@ const pt = {
     }
   },
   dashboard: {
-    attached: 'Anexado', enabledRules: 'Regras ativas', matchedRecently: 'Matches recentes', errors: 'Erros',
+    attached: 'Captura ativa', enabledRules: 'Regras ativas', matchedRecently: 'Matches recentes', errors: 'Erros',
     currentContext: 'Contexto atual', activeCollection: 'Coleção ativa', recentNetwork: 'Entradas de rede recentes', recentLogs: 'Logs recentes'
   },
   diagnostics: {
@@ -195,7 +195,7 @@ const pt = {
     networkIgnorePatterns: 'Ocultar requests contendo', networkIgnorePatternPlaceholder: 'Adicionar padrão...',
     networkIgnorePatternsHelp: 'Pressione Enter para adicionar. Requests com esses trechos ficam ocultas na Network.',
     removeNetworkIgnorePattern: 'Remover {pattern}',
-    attachedUrl: 'URL Anexada', attachedTabId: 'ID da Aba Anexada', isAttached: 'Status de Anexo', enabledRules: 'Regras Ativas',
+    attachedUrl: 'URL capturada', attachedTabId: 'ID da aba capturada', isAttached: 'Status da captura', enabledRules: 'Regras Ativas',
     invalidRules: 'Regras Inválidas', recentRuntimeLogs: 'Logs recentes do runtime', noLogs: 'Sem logs.',
     newRule: 'Nova regra', exportCollection: 'Exportar coleção', importRule: 'Importar', settingsSaved: 'Configurações salvas.',
     importCompleted: 'Importação concluída (merge por id).', exportCopiedCollection: 'JSON da coleção atual copiado.', exportCopiedAll: 'JSON de todos os dados copiado.'
@@ -240,7 +240,7 @@ const pt = {
     importError: 'Não foi possível importar o JSON.',
     ruleImportError: 'Não foi possível importar a regra.',
     collectionImportError: 'Não foi possível importar a coleção.',
-    autoAttachStillActive: 'O auto-anexar continua ativo.',
+    autoAttachStillActive: 'A captura automática continua ativa.',
     presetApplied: "Preset '{preset}' aplicado",
     bodyLoadError: 'Não foi possível carregar o corpo da resposta',
     curlCopied: 'cURL copiado',

@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { getCapturedTab } from '../../shared/capture-tabs.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
 
@@ -12,12 +13,13 @@ export function renderDiagnosticsPage(state) {
   const enabledRules = state.rules.filter(rule => rule.enabled).length
   const appLogs = state.logs.filter(log => normalizeLogScope(log.scope) === 'app')
   const recentAppLogs = appLogs.slice(0, 12)
-  const attachedTabIdLabel = state.attachedTabId == null ? '—' : String(state.attachedTabId)
-  const attachedUrlLabel = String(state.attachedTab?.url || '').trim() || '—'
+  const capturedTab = getCapturedTab(state)
+  const attachedTabIdLabel = capturedTab?.id == null ? '—' : String(capturedTab.id)
+  const attachedUrlLabel = String(capturedTab?.url || '').trim() || '—'
   const activeCollectionIdLabel = String(state.settings?.activeCollectionId || '').trim() || '—'
   const summaryHtml = `
     <div class="grid two diagnostics-summary-grid">
-        <div><strong>${t('fullapp.isAttached')}</strong><div>${state.attachedTabId ? t('common.yes') : t('common.no')}</div></div>
+        <div><strong>${t('fullapp.isAttached')}</strong><div>${capturedTab ? t('common.yes') : t('common.no')}</div></div>
         <div><strong>${t('fullapp.attachedTabId')}</strong><div>${escapeHtml(attachedTabIdLabel)}</div></div>
         <div><strong>${t('fullapp.attachedUrl')}</strong><div>${escapeHtml(attachedUrlLabel)}</div></div>
         <div><strong>${t('diagnostics.activeCollectionId')}</strong><div>${escapeHtml(activeCollectionIdLabel)}</div></div>

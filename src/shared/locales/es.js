@@ -1,6 +1,6 @@
 const es = {
   common: {
-    open: 'Abrir', attach: 'Adjuntar', reattach: 'Readjuntar', detach: 'Desadjuntar', reload: 'Recargar',
+    open: 'Abrir', attach: 'Activar captura', reattach: 'Reiniciar captura', detach: 'Detener captura', reload: 'Recargar',
     enabled: 'habilitado', disabled: 'deshabilitado', manage: 'Gestionar', edit: 'Editar', delete: 'Eliminar',
     cancel: 'Cancelar', save: 'Guardar', clear: 'Limpiar', refresh: 'Actualizar', create: 'Crear',
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Estado',
@@ -9,11 +9,11 @@ const es = {
     showingCount: 'Mostrando {shown} de {total} {entity}',
     showingRange: 'Mostrando {start}–{end} de {total} {entity}',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Descargar JSON',
-    moreActions: 'Más acciones', disableAutoAttach: 'Desactivar auto-adjuntar', detachNow: 'Desadjuntar ahora', configureHosts: 'Configurar hosts', advanced: 'Avanzado', confirm: 'Confirmar', activate: 'Activar', deactivate: 'Desactivar'
+    moreActions: 'Más acciones', disableAutoAttach: 'Desactivar captura automática', detachNow: 'Detener captura ahora', configureHosts: 'Configurar hosts', advanced: 'Avanzado', confirm: 'Confirmar', activate: 'Activar', deactivate: 'Desactivar'
   },
   language: { title: 'Idioma', english: 'English', portuguese: 'Português', spanish: 'Español' },
   status: {
-    connecting: 'Conectando...', attached: 'Adjuntado a la pestaña actual', attachedCurrent: 'Adjuntado a la pestaña actual', attachedOther: 'Adjuntado en otra pestaña', attachedTabNumber: 'Adjuntado a la pestaña {position}', notAttached: 'No adjuntado',
+    connecting: 'Conectando...', attached: 'Capturando la pestaña actual', attachedCurrent: 'Capturando la pestaña actual', attachedOther: 'Capturando otra pestaña', attachedTabNumber: 'Capturando pestaña {position}', notAttached: 'Captura inactiva',
     captureActiveTabNumber: 'Captura activa en la pestaña {position}',
     captureInactive: 'Captura inactiva',
     noCapturedTab: 'Ninguna pestaña capturada',
@@ -30,7 +30,7 @@ const es = {
     lightCaptureFetchOnly: 'Captura ligera · solo fetch',
     lightCaptureTooltip: 'Captura ligera está activa. Captura requests fetch sin usar debugger y puede no capturar todos los tipos de request.',
     openAutoAttachSettings: 'Abrir configuración de captura automática de la pestaña activa',
-    noActiveUrl: 'Sin URL activa', noAttachableTab: 'No hay pestaña adjuntable disponible', noEligibleTab: 'La pestaña actual no es elegible',
+    noActiveUrl: 'Sin URL activa', noAttachableTab: 'No hay pestaña capturable disponible', noEligibleTab: 'La pestaña actual no es elegible',
     tabPosition: 'Pestaña {position}', currentTabLabel: 'Actual', reloadHint: 'Recarga la página actual para aplicar reglas'
   },
   navigation: {
@@ -167,7 +167,7 @@ const es = {
     }
   },
   dashboard: {
-    attached: 'Adjuntado', enabledRules: 'Reglas habilitadas', matchedRecently: 'Matches recientes', errors: 'Errores',
+    attached: 'Captura activa', enabledRules: 'Reglas habilitadas', matchedRecently: 'Matches recientes', errors: 'Errores',
     currentContext: 'Contexto actual', activeCollection: 'Colección activa', recentNetwork: 'Entradas de red recientes', recentLogs: 'Logs recientes'
   },
   diagnostics: {
@@ -195,8 +195,8 @@ const es = {
     networkIgnorePatterns: 'Ocultar requests que contienen', networkIgnorePatternPlaceholder: 'Agregar patrón...',
     networkIgnorePatternsHelp: 'Presiona Enter para agregar. Las requests con esos fragmentos quedan ocultas en Network.',
     removeNetworkIgnorePattern: 'Eliminar {pattern}',
-    attachedUrl: 'URL Adjuntada',
-    attachedTabId: 'ID de la Pestaña Adjuntada', isAttached: 'Estado de Adjunción', enabledRules: 'Reglas Habilitadas',
+    attachedUrl: 'URL capturada',
+    attachedTabId: 'ID de la pestaña capturada', isAttached: 'Estado de captura', enabledRules: 'Reglas Habilitadas',
     invalidRules: 'Reglas Inválidas', recentRuntimeLogs: 'Logs recientes de runtime', noLogs: 'Sin logs.',
     newRule: 'Nueva regla', exportCollection: 'Exportar colección', importRule: 'Importar', settingsSaved: 'Configuración guardada.',
     importCompleted: 'Importación completada (merge por id).', exportCopiedCollection: 'JSON de colección copiado.', exportCopiedAll: 'JSON de todos los datos copiado.'
@@ -241,7 +241,7 @@ const es = {
     importError: 'No se pudo importar el JSON.',
     ruleImportError: 'No se pudo importar la regla.',
     collectionImportError: 'No se pudo importar la colección.',
-    autoAttachStillActive: 'El auto-adjuntar sigue activo.',
+    autoAttachStillActive: 'La captura automática sigue activa.',
     presetApplied: "Preset '{preset}' aplicado",
     bodyLoadError: 'No se pudo cargar el cuerpo de la respuesta',
     curlCopied: 'cURL copiado',

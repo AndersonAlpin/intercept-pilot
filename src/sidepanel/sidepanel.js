@@ -260,7 +260,7 @@ function refreshSideNetworkOnly() {
 }
 
 function findLogById(logId) {
-  return appState.logs.find(log => log.id === logId) || null
+  return (appState.visibleLogs || []).find(log => log.id === logId) || null
 }
 
 function openLogDetail(logId) {
@@ -311,7 +311,7 @@ function render() {
     body = renderLogsQuickPanel(appState)
   }
 
-  const selectedLog = appState.selectedLogId ? appState.logs.find(log => log.id === appState.selectedLogId) : null
+  const selectedLog = appState.selectedLogId ? findLogById(appState.selectedLogId) : null
   root.innerHTML = `${header}${tabs}<section class="content">${body}</section>${renderLogDetailModal({ log: selectedLog, prefix: 'side', dialogClassName: 'side-log-detail-modal' })}`
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   updateHeaderOffset()
