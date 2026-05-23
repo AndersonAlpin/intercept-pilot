@@ -5,6 +5,11 @@ import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
 import { renderPagination } from '../../shared/ui/pagination.js'
+import { renderSelect } from '../../shared/ui/select.js'
+import { renderSwitch } from '../../shared/ui/toggle.js'
+
+const NETWORK_METHOD_OPTIONS = ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+  .map(method => ({ value: method, label: method }))
 
 function statusBadge(status) {
   if (status == null || status === '') return renderBadge({ label: '—' })
@@ -99,9 +104,9 @@ export function renderNetworkQuickPanel(state) {
         </div>
         <div class="column">
           <input class="input" id="network-filter-text" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilters.text)}" />
-          <select class="select" id="network-filter-method">${['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS'].map(method => `<option value="${method}" ${state.networkFilters.method === method ? 'selected' : ''}>${method}</option>`).join('')}</select>
+          ${renderSelect({ id: 'network-filter-method', value: state.networkFilters.method, options: NETWORK_METHOD_OPTIONS })}
           <input class="input" id="network-filter-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilters.status)}" />
-          <label class="switch"><input type="checkbox" id="network-filter-intercepted" ${state.networkFilters.interceptedOnly ? 'checked' : ''}/> ${t('network.interceptedOnly')}</label>
+          ${renderSwitch({ id: 'network-filter-intercepted', checked: state.networkFilters.interceptedOnly, label: t('network.interceptedOnly') })}
           <div class="network-quick-meta">
             <span class="small network-results-count" id="network-results-count">${escapeHtml(renderNetworkQuickCount(state))}</span>
             <div id="network-pagination-controls">${renderNetworkQuickPagination(state)}</div>

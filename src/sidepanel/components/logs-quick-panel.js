@@ -3,6 +3,7 @@ import { t } from '../../shared/i18n.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
+import { renderSwitch } from '../../shared/ui/toggle.js'
 
 function levelBadge(level) {
   if (level === 'error') return renderBadge({ label: t('badges.error'), variant: 'danger' })
@@ -19,7 +20,7 @@ export function renderLogsQuickPanel(state) {
           <h2>${t('logs.title')}</h2>
         </div>
         <div class="logs-actions-row">
-          <label class="switch"><input type="checkbox" id="logs-error-only" ${state.logsErrorOnly ? 'checked' : ''}/> ${t('logs.errorOnly')}</label>
+          ${renderSwitch({ id: 'logs-error-only', checked: state.logsErrorOnly, label: t('logs.errorOnly') })}
           ${renderButton({ id: 'logs-clear-btn', label: t('logs.clearLogs') })}
         </div>
       </div>

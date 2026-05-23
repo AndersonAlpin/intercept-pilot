@@ -3,6 +3,11 @@ import { t } from '../../shared/i18n.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
 import { renderPagination } from '../../shared/ui/pagination.js'
+import { renderSelect } from '../../shared/ui/select.js'
+import { renderSwitch } from '../../shared/ui/toggle.js'
+
+const NETWORK_METHOD_OPTIONS = ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+  .map(method => ({ value: method, label: method }))
 
 function hasActiveFilter(state) {
   const f = state.networkFilter
@@ -125,9 +130,9 @@ export function renderNetworkPage(state) {
       <section class="card filters-card network-filters-card">
         <div class="filters-row">
           <input class="input" id="full-network-url" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilter.url || '')}" />
-          <select class="select" id="full-network-method">${['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS'].map(m => `<option value="${m}" ${state.networkFilter.method === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
+          ${renderSelect({ id: 'full-network-method', value: state.networkFilter.method, options: NETWORK_METHOD_OPTIONS })}
           <input class="input" id="full-network-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilter.status || '')}" />
-          <label class="switch"><input type="checkbox" id="full-network-intercepted" ${state.networkFilter.interceptedOnly ? 'checked' : ''}/> ${t('network.interceptedOnly')}</label>
+          ${renderSwitch({ id: 'full-network-intercepted', checked: state.networkFilter.interceptedOnly, label: t('network.interceptedOnly') })}
           ${renderButton({ id: 'full-network-clear', label: t('common.clear') })}
         </div>
       </section>
