@@ -29,6 +29,7 @@ export const DEFAULT_SETTINGS = {
   autoReloadAfterRuleChange: false,
   theme: 'dark',
   language: 'en',
+  networkIgnorePatterns: [],
   networkFilters: {
     fullApp: { ...DEFAULT_NETWORK_FILTER_FULL },
     sidepanel: { ...DEFAULT_NETWORK_FILTER_SIDE }

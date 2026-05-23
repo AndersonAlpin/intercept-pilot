@@ -3,7 +3,7 @@ import { ensureState, getState, setState, saveCollection, deleteCollection, save
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, tryPrettyJson, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
-import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureRehydrated, isAttachedSource, sendAttachedCommand } from './debugger.js'
+import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureAttachedDomainsReady, ensureRehydrated, isAttachedSource, sendAttachedCommand } from './debugger.js'
 import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule } from './rule-engine.js'
@@ -55,21 +55,7 @@ function getRuntimeEventUrl(params = {}) {
 function shouldIgnoreNetworkUrl(url) {
   const value = String(url || '').trim()
   if (!value) return false
-  let parsed
-  try {
-    parsed = new URL(value)
-  } catch {
-    return false
-  }
-
-  const host = String(parsed.hostname || '').toLowerCase()
-  const path = String(parsed.pathname || '')
-
-  if (path.startsWith('/_nuxt/') || path.startsWith('/@vite/') || path.startsWith('/@fs/')) return true
-  if (host.includes('kaspersky')) return true
-  if (host.endsWith('.kaspersky-labs.com')) return true
-  if (host.endsWith('.kaspersky.com')) return true
-  return false
+  return value.startsWith(`chrome-extension://${chrome.runtime.id}/`)
 }
 
 function getRequestHeader(params, headerName) {
@@ -120,6 +106,53 @@ function releaseNetworkEntryId(rawKey) {
 function rebuildNetworkIndex() {
   runtimeState.networkIndex.clear()
   runtimeState.networkEntries.forEach((entry, index) => runtimeState.networkIndex.set(entry.id, index))
+}
+
+function clearNetworkEntryCollections() {
+  runtimeState.networkEntries = []
+  runtimeState.networkIndex.clear()
+  runtimeState.requestEntryMap.clear()
+  runtimeState.ignoredRequestIds.clear()
+  runtimeState.requestRuleMap.clear()
+}
+
+function getNetworkCycleMeta() {
+  return {
+    currentNetworkCycleId: runtimeState.currentNetworkCycleId,
+    currentNavigationStartedAt: runtimeState.currentNavigationStartedAt,
+    networkTabId: runtimeState.networkTabId
+  }
+}
+
+function beginNetworkCycle(tabId, reason = 'navigation') {
+  if (!tabId || tabId !== runtimeState.attachedTabId) return null
+  if (runtimeState.networkCycleInProgressTabId === tabId) {
+    return {
+      id: runtimeState.currentNetworkCycleId,
+      tabId,
+      reason,
+      startedAt: runtimeState.currentNavigationStartedAt
+    }
+  }
+  runtimeState.networkCycleSeq += 1
+  runtimeState.currentNetworkCycleId = `${tabId}-${Date.now()}-${runtimeState.networkCycleSeq}`
+  runtimeState.currentNavigationStartedAt = new Date().toISOString()
+  runtimeState.networkTabId = tabId
+  runtimeState.networkCycleInProgressTabId = tabId
+  clearNetworkEntryCollections()
+  publishNetworkNow()
+  return {
+    id: runtimeState.currentNetworkCycleId,
+    tabId,
+    reason,
+    startedAt: runtimeState.currentNavigationStartedAt
+  }
+}
+
+function isMainDocumentRequest(params = {}) {
+  return String(params?.type || '').toLowerCase() === 'document'
+    && String(params?.requestId || '')
+    && String(params?.requestId || '') === String(params?.loaderId || '')
 }
 
 function isHighValueNetworkEntry(entry) {
@@ -188,6 +221,8 @@ function upsertNetworkEntry(key, patch) {
       responseBodyBase64Encoded: false,
       responseBodyTruncated: false,
       responseBodyLoaded: 'idle',
+      networkCycleId: runtimeState.currentNetworkCycleId,
+      networkTabId: runtimeState.networkTabId || runtimeState.attachedTabId,
       ...patch
     }
     runtimeState.networkEntries.unshift(entry)
@@ -205,7 +240,7 @@ function upsertNetworkEntry(key, patch) {
 function publishNetworkNow() {
   clearTimeout(runtimeState.networkPublishTimer)
   runtimeState.networkPublishTimer = null
-  broadcast({ type: 'state:network', networkEntries: runtimeState.networkEntries })
+  broadcast({ type: 'state:network', networkEntries: runtimeState.networkEntries, networkMeta: getNetworkCycleMeta() })
 }
 
 function scheduleNetworkPublish() {
@@ -326,12 +361,20 @@ async function getFullState() {
     logs: state.logs,
     settings: state.settings || DEFAULT_SETTINGS,
     networkEntries: runtimeState.networkEntries,
+    networkMeta: getNetworkCycleMeta(),
     attachedTabId: runtimeState.attachedTabId,
     attachedTab,
     activeTab: runtimeState.activeTab,
     candidateTab: getEffectiveCandidateTab(),
     lastAttachableTab: runtimeState.lastAttachableTab
   }
+}
+
+async function reloadTabWithReadyDebugger(tabId) {
+  if (!tabId) throw new Error('reloadNoTab')
+  await ensureAttachedDomainsReady(tabId)
+  await chrome.tabs.reload(tabId)
+  return { ok: true, reloadedTabId: tabId, networkMeta: getNetworkCycleMeta() }
 }
 
 async function maybeAutoAttach() {
@@ -368,7 +411,7 @@ async function maybeAutoReloadAfterRuleChange() {
 
   const targetId = runtimeState.attachedTabId || runtimeState.candidateTab?.id || runtimeState.lastAttachableTab?.id
   if (!targetId) return false
-  await chrome.tabs.reload(targetId).catch(() => {})
+  await reloadTabWithReadyDebugger(targetId).catch(() => {})
   return true
 }
 
@@ -640,6 +683,9 @@ async function handleRequestPaused(source, params) {
 
 function handleNetworkRequestWillBeSent(source, params) {
   if (!isAttachedSource(source)) return
+  if (isMainDocumentRequest(params) && !runtimeState.currentNetworkCycleId) {
+    beginNetworkCycle(source?.tabId || runtimeState.attachedTabId, 'document-request')
+  }
   if (shouldIgnoreNetworkUrl(params?.request?.url)) {
     runtimeState.ignoredRequestIds.add(String(params.requestId || ''))
     return
@@ -802,11 +848,7 @@ async function handleNetworkGetBody(message) {
 }
 
 async function clearNetworkEntries() {
-  runtimeState.networkEntries = []
-  runtimeState.networkIndex.clear()
-  runtimeState.requestEntryMap.clear()
-  runtimeState.ignoredRequestIds.clear()
-  runtimeState.requestRuleMap.clear()
+  clearNetworkEntryCollections()
   publishNetworkNow()
   return []
 }
@@ -863,7 +905,11 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'loading') {
+    beginNetworkCycle(tabId, 'tab-loading')
     await resetMatchedStateForNewPageCycle(tabId)
+  }
+  if (changeInfo.status === 'complete' && tabId === runtimeState.attachedTabId) {
+    runtimeState.networkCycleInProgressTabId = null
   }
   if (changeInfo.url || changeInfo.title) {
     runtimeState.tabMeta.set(tabId, { url: changeInfo.url || tab.url || '', title: changeInfo.title || tab.title || '' })
@@ -929,6 +975,12 @@ chrome.debugger.onDetach.addListener(async (source, reason) => {
   if ((source.tabId && source.tabId === runtimeState.attachedTabId) || (source.targetId && runtimeState.attachedDebuggee?.targetId === source.targetId)) {
     runtimeState.attachedTabId = null
     runtimeState.attachedDebuggee = null
+    runtimeState.fetchEnabled = false
+    runtimeState.currentNetworkCycleId = null
+    runtimeState.currentNavigationStartedAt = null
+    runtimeState.networkCycleInProgressTabId = null
+    runtimeState.debuggerDomainsReadyAt = null
+    runtimeState.debuggerDomainsReadyForTabId = null
     runtimeState.requestRuleMap.clear()
     await clearPersistedAttachedSession()
     await flushHits().catch(() => {})
@@ -1034,8 +1086,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'tab:reload': {
         const tabId = runtimeState.attachedTabId || runtimeState.candidateTab?.id || runtimeState.lastAttachableTab?.id || sender?.tab?.id
         if (!tabId) throw new Error('reloadNoTab')
-        await chrome.tabs.reload(tabId)
-        sendResponse({ ok: true, reloadedTabId: tabId })
+        sendResponse(await reloadTabWithReadyDebugger(tabId))
         return
       }
       case 'collections:create': {

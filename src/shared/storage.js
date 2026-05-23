@@ -1,5 +1,5 @@
 import { DEFAULT_COLLECTION_ID, DEFAULT_SETTINGS, STORAGE_KEYS } from './constants.js'
-import { clone } from './utils.js'
+import { clone, parseNetworkIgnorePatterns } from './utils.js'
 import { makeCollection, makeDefaultCollection, makeRule } from './models.js'
 
 async function rawGet(keys) {
@@ -64,6 +64,7 @@ function normalizeSettings(stored, collections) {
       ...(settings.networkFilters?.sidepanel || {})
     }
   }
+  settings.networkIgnorePatterns = parseNetworkIgnorePatterns(settings.networkIgnorePatterns)
   if (!collections.some(c => c.id === settings.activeCollectionId)) {
     settings.activeCollectionId = collections[0]?.id || DEFAULT_COLLECTION_ID
   }
@@ -92,10 +93,12 @@ export async function getState() {
   if (!Array.isArray(stored.collections) || !Array.isArray(stored.rules) || !stored.settings) {
     return ensureState()
   }
+  const collections = clone(stored.collections)
+  const settings = normalizeSettings(stored, collections)
   return {
-    collections: clone(stored.collections),
+    collections,
     rules: clone(stored.rules),
-    settings: clone(stored.settings),
+    settings,
     logs: Array.isArray(stored.logs) ? clone(stored.logs) : []
   }
 }

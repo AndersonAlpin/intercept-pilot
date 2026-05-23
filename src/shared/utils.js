@@ -50,6 +50,28 @@ export function escapeHtml(value) {
     .replaceAll("'", '&#039;')
 }
 
+export function parseNetworkIgnorePatterns(value) {
+  const source = Array.isArray(value) ? value : String(value || '').split(/[;\n]/)
+  const patterns = []
+  const seen = new Set()
+  for (const item of source) {
+    const pattern = String(item || '').trim()
+    if (!pattern) continue
+    const key = pattern.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    patterns.push(pattern)
+  }
+  return patterns
+}
+
+export function matchesNetworkIgnorePatterns(url, patterns = []) {
+  const value = String(url || '').toLowerCase()
+  if (!value) return false
+  return parseNetworkIgnorePatterns(patterns)
+    .some(pattern => value.includes(pattern.toLowerCase()))
+}
+
 export function debounce(fn, wait) {
   let timer = null
   let lastArgs = null

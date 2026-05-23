@@ -125,10 +125,17 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .grid.cards4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.settings-wide { grid-column: 1 / -1; }
 .input,.select,.textarea { width: 100%; min-height: 38px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); padding: 9px 10px; }
 .select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #9fb7ff 50%), linear-gradient(135deg, #9fb7ff 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%; background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; }
 .textarea { min-height: 120px; }
 .textarea.code { min-height: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.tag-input { width: 100%; min-height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); padding: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; cursor: text; }
+.tag-chip-list { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tag-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface-3); color: var(--text); border-radius: 999px; padding: 4px 7px 4px 9px; font-size: 12px; line-height: 1; }
+.tag-chip-remove { border: 0; background: transparent; color: var(--text-muted); padding: 0 2px; cursor: pointer; font-size: 14px; line-height: 1; }
+.tag-chip-remove:hover { color: var(--text); }
+.tag-input-field { flex: 1 1 170px; min-width: 140px; border: 0; background: transparent; color: var(--text); outline: none; padding: 5px 4px; }
 .btn { border: 1px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: 10px; padding: 10px 14px; cursor: pointer; transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease; }
 .btn:hover:not(:disabled) { background: var(--surface-3); border-color: #3b4a61; }
 .btn:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91, 130, 255, .25); }

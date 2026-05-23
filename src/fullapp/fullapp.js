@@ -1,5 +1,5 @@
 import { MSG, sendMessage } from '../shared/messaging.js'
-import { clone, debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff } from '../shared/utils.js'
+import { clone, debounce, escapeHtml, isHitOnlyDiff, isOnlyNetworkFiltersDiff, matchesNetworkIgnorePatterns, parseNetworkIgnorePatterns } from '../shared/utils.js'
 import { makeCollection, makeRule } from '../shared/models.js'
 import { validateRule } from '../shared/validators.js'
 import { setLocale, t } from '../shared/i18n.js'
@@ -128,6 +128,7 @@ function applyLocalFilters() {
     if (f.method !== 'ANY' && entry.method !== f.method) return false
     if (f.status && String(entry.status || '') !== f.status) return false
     if (f.interceptedOnly && !entry.intercepted) return false
+    if (matchesNetworkIgnorePatterns(entry.url, state.settings?.networkIgnorePatterns || [])) return false
     const text = f.url.trim().toLowerCase()
     if (text && !String(entry.url || '').toLowerCase().includes(text)) return false
     return true
@@ -159,6 +160,47 @@ function resetNetworkPage() {
   state.networkPagination = { ...(state.networkPagination || {}), page: 1 }
 }
 
+function renderNetworkIgnoreChips() {
+  const patterns = parseNetworkIgnorePatterns(state.settings.networkIgnorePatterns)
+  return patterns.map(pattern => `
+    <span class="tag-chip" data-network-ignore-chip="${escapeHtml(pattern)}">
+      <span>${escapeHtml(pattern)}</span>
+      <button type="button" class="tag-chip-remove" data-network-ignore-remove="${escapeHtml(pattern)}" aria-label="${escapeHtml(t('fullapp.removeNetworkIgnorePattern', { pattern }))}">×</button>
+    </span>
+  `).join('')
+}
+
+function setNetworkIgnorePatterns(patterns) {
+  state.settings.networkIgnorePatterns = parseNetworkIgnorePatterns(patterns)
+}
+
+function refreshNetworkIgnoreChips() {
+  const list = $('#settings-network-ignore-chip-list')
+  if (list) list.innerHTML = renderNetworkIgnoreChips()
+}
+
+function addNetworkIgnorePatterns(rawValue) {
+  const incoming = parseNetworkIgnorePatterns(rawValue)
+  if (!incoming.length) return
+  const current = parseNetworkIgnorePatterns(state.settings.networkIgnorePatterns)
+  const seen = new Set(current.map(item => item.toLowerCase()))
+  for (const pattern of incoming) {
+    const key = pattern.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    current.push(pattern)
+  }
+  setNetworkIgnorePatterns(current)
+  refreshNetworkIgnoreChips()
+}
+
+function removeNetworkIgnorePattern(pattern) {
+  const target = String(pattern || '').toLowerCase()
+  setNetworkIgnorePatterns(parseNetworkIgnorePatterns(state.settings.networkIgnorePatterns)
+    .filter(item => item.toLowerCase() !== target))
+  refreshNetworkIgnoreChips()
+}
+
 function renderSettingsPage() {
   const lang = state.settings.language || 'en'
   return `
@@ -182,6 +224,14 @@ function renderSettingsPage() {
         <div>
           <div class="muted">${t('fullapp.maxLogs')}</div>
           <input class="input" id="settings-max-logs" type="number" value="${state.settings.maxLogs || 300}" />
+        </div>
+        <div class="settings-wide">
+          <div class="muted">${t('fullapp.networkIgnorePatterns')}</div>
+          <div class="tag-input" id="settings-network-ignore-tags">
+            <div class="tag-chip-list" id="settings-network-ignore-chip-list">${renderNetworkIgnoreChips()}</div>
+            <input class="tag-input-field" id="settings-network-ignore-input" type="text" placeholder="${escapeHtml(t('fullapp.networkIgnorePatternPlaceholder'))}" spellcheck="false" autocomplete="off" />
+          </div>
+          <div class="muted">${t('fullapp.networkIgnorePatternsHelp')}</div>
         </div>
       </div>
       <div class="footer-actions"><button class="btn primary" id="settings-save-btn">${t('fullapp.saveSettings')}</button></div>
@@ -998,13 +1048,56 @@ function bindEvents() {
   })
   bindInspectorBodyEvents()
 
+  const ignoreInput = $('#settings-network-ignore-input')
+  ignoreInput?.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ';') {
+      event.preventDefault()
+      addNetworkIgnorePatterns(ignoreInput.value)
+      ignoreInput.value = ''
+      return
+    }
+    if (event.key === 'Backspace' && !ignoreInput.value) {
+      const current = parseNetworkIgnorePatterns(state.settings.networkIgnorePatterns)
+      if (!current.length) return
+      current.pop()
+      setNetworkIgnorePatterns(current)
+      refreshNetworkIgnoreChips()
+    }
+  })
+  ignoreInput?.addEventListener('input', () => {
+    if (!ignoreInput.value.includes(';')) return
+    addNetworkIgnorePatterns(ignoreInput.value)
+    ignoreInput.value = ''
+  })
+  ignoreInput?.addEventListener('paste', event => {
+    const text = event.clipboardData?.getData('text') || ''
+    if (!text.includes(';')) return
+    event.preventDefault()
+    addNetworkIgnorePatterns(text)
+    ignoreInput.value = ''
+  })
+
+  $('#settings-network-ignore-tags')?.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null
+    const removeButton = target?.closest('[data-network-ignore-remove]')
+    if (removeButton) {
+      removeNetworkIgnorePattern(removeButton.dataset.networkIgnoreRemove)
+      return
+    }
+    ignoreInput?.focus()
+  })
+
   $('#settings-save-btn')?.addEventListener('click', async () => {
     const payload = {
       autoAttach: $('#settings-auto-attach')?.checked ?? false,
       autoReloadAfterRuleChange: $('#settings-auto-reload')?.checked ?? false,
       language: $('#settings-language')?.value || 'en',
       maxNetworkEntries: Number($('#settings-max-network')?.value || 300),
-      maxLogs: Number($('#settings-max-logs')?.value || 300)
+      maxLogs: Number($('#settings-max-logs')?.value || 300),
+      networkIgnorePatterns: parseNetworkIgnorePatterns([
+        ...parseNetworkIgnorePatterns(state.settings.networkIgnorePatterns),
+        ...(ignoreInput?.value ? parseNetworkIgnorePatterns(ignoreInput.value) : [])
+      ])
     }
     const result = await sendMessage({ type: MSG.SETTINGS_UPDATE, payload })
     if (result?.error) {

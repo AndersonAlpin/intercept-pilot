@@ -4,6 +4,12 @@ import { runtimeState, getAttachedDebuggee, resetRuntimeCollections } from './ru
 import { pushLog } from './logger.js'
 
 const SESSION_KEYS = ['attachedTabId', 'attachedDebuggee']
+const FETCH_PATTERNS = [
+  { urlPattern: 'http://*', requestStage: 'Request' },
+  { urlPattern: 'https://*', requestStage: 'Request' },
+  { urlPattern: 'http://*', requestStage: 'Response' },
+  { urlPattern: 'https://*', requestStage: 'Response' }
+]
 
 async function persistAttachedSession() {
   if (!chrome.storage?.session) return
@@ -59,6 +65,31 @@ export async function sendAttachedCommand(method, params = {}) {
   const debuggee = getAttachedDebuggee()
   if (!debuggee) throw new Error('Debugger is not attached')
   return chrome.debugger.sendCommand(debuggee, method, params)
+}
+
+async function enableAttachedDomains() {
+  await sendAttachedCommand('Network.enable')
+  await sendAttachedCommand('Runtime.enable')
+  await sendAttachedCommand('Fetch.enable', { patterns: FETCH_PATTERNS })
+  runtimeState.fetchEnabled = true
+  runtimeState.debuggerDomainsReadyAt = Date.now()
+  runtimeState.debuggerDomainsReadyForTabId = runtimeState.attachedTabId
+}
+
+export async function ensureAttachedDomainsReady(tabId = runtimeState.attachedTabId) {
+  if (!tabId) throw new Error('attachNoTab')
+  await ensureRehydrated()
+  if (runtimeState.attachedTabId !== tabId) return attachToTab(tabId)
+
+  const tab = await chrome.tabs.get(tabId).catch(() => null)
+  if (!isHttpUrl(tab?.url || '')) throw new Error('attachHttpOnly')
+
+  await enableAttachedDomains()
+  return {
+    attachedTabId: tabId,
+    attachedVia: runtimeState.attachedDebuggee?.targetId ? 'targetId' : 'tabId',
+    domainsReady: true
+  }
 }
 
 export function isAttachedSource(source) {
@@ -151,7 +182,7 @@ function buildCrossExtensionErrorCode(labels) {
 
 export async function attachToTab(tabId) {
   if (!tabId) throw new Error('attachNoTab')
-  if (runtimeState.attachedTabId === tabId) return { attachedTabId: tabId }
+  if (runtimeState.attachedTabId === tabId) return ensureAttachedDomainsReady(tabId)
 
   const tab = await chrome.tabs.get(tabId)
   if (!isHttpUrl(tab?.url || '')) throw new Error('attachHttpOnly')
@@ -196,16 +227,7 @@ export async function attachToTab(tabId) {
     runtimeState.networkTabId = tabId
     await persistAttachedSession()
 
-    await sendAttachedCommand('Network.enable').catch(() => {})
-    await sendAttachedCommand('Runtime.enable').catch(() => {})
-    await sendAttachedCommand('Fetch.enable', {
-      patterns: [
-        { urlPattern: 'http://*', requestStage: 'Request' },
-        { urlPattern: 'https://*', requestStage: 'Request' },
-        { urlPattern: 'http://*', requestStage: 'Response' },
-        { urlPattern: 'https://*', requestStage: 'Response' }
-      ]
-    }).catch(() => {})
+    await enableAttachedDomains()
 
     return { attachedTabId: tabId, attachedVia }
   } finally {
@@ -220,6 +242,11 @@ export async function detachCurrentTab() {
   runtimeState.attachedTabId = null
   runtimeState.attachedDebuggee = null
   runtimeState.fetchEnabled = false
+  runtimeState.debuggerDomainsReadyAt = null
+  runtimeState.debuggerDomainsReadyForTabId = null
+  runtimeState.currentNetworkCycleId = null
+  runtimeState.currentNavigationStartedAt = null
+  runtimeState.networkCycleInProgressTabId = null
   await clearPersistedAttachedSession()
   return { attachedTabId: null }
 }

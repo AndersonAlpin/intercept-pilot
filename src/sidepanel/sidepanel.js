@@ -3,7 +3,7 @@ import { makeRule } from '../shared/models.js'
 import { validateRule } from '../shared/validators.js'
 import { setLocale, t } from '../shared/i18n.js'
 import { DEFAULT_NETWORK_FILTER_SIDE } from '../shared/constants.js'
-import { debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff } from '../shared/utils.js'
+import { debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff, matchesNetworkIgnorePatterns } from '../shared/utils.js'
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import {
   createRuleBundle,
@@ -102,6 +102,7 @@ function filteredNetworkEntries() {
     if (filter.method !== 'ANY' && entry.method !== filter.method) return false
     if (filter.status && String(entry.status || '') !== filter.status) return false
     if (filter.interceptedOnly && !entry.intercepted) return false
+    if (matchesNetworkIgnorePatterns(entry.url, appState.settings?.networkIgnorePatterns || [])) return false
     const text = filter.text.trim().toLowerCase()
     if (text) {
       const hay = `${entry.url} ${entry.method} ${entry.matchedRuleName || ''}`.toLowerCase()

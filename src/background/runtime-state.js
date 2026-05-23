@@ -8,10 +8,16 @@ export const runtimeState = {
   fetchEnabled: false,
   networkTabId: null,
   networkMaxEntries: 300,
+  networkCycleSeq: 0,
+  currentNetworkCycleId: null,
+  currentNavigationStartedAt: null,
+  networkCycleInProgressTabId: null,
   networkEntrySeq: 0,
   networkEntries: [],
   networkIndex: new Map(),
   networkPublishTimer: null,
+  debuggerDomainsReadyAt: null,
+  debuggerDomainsReadyForTabId: null,
   requestEntryMap: new Map(),
   ignoredRequestIds: new Set(),
   requestRuleMap: new Map(),
@@ -28,6 +34,9 @@ export function getAttachedDebuggee() {
 }
 
 export function resetRuntimeCollections() {
+  runtimeState.currentNetworkCycleId = null
+  runtimeState.currentNavigationStartedAt = null
+  runtimeState.networkCycleInProgressTabId = null
   runtimeState.networkEntries = []
   runtimeState.networkIndex.clear()
   runtimeState.requestEntryMap.clear()
