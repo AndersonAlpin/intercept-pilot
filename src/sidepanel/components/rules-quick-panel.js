@@ -2,6 +2,7 @@ import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { getRuleState } from '../../shared/rule-state.js'
+import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderRuleActionBadge, renderRuleStateDot } from '../../shared/ui/rule-status.js'
 import { renderModalShell } from '../../shared/ui/modal-shell.js'
 import { renderPresetPicker } from '../../fullapp/components/preset-picker.js'
@@ -14,6 +15,10 @@ function actionBadge(rule) {
   return renderRuleActionBadge({ actionType: type, label: t('badges.pass') })
 }
 
+function methodOptionLabel(method) {
+  return method === 'ANY' ? t('common.all') : method
+}
+
 export function renderRulesQuickPanel(state) {
   const activeCollectionId = state.settings?.activeCollectionId
   const rules = state.rules.filter(rule => rule.collectionId === activeCollectionId)
@@ -21,6 +26,12 @@ export function renderRulesQuickPanel(state) {
   const filtered = rules.filter(rule => {
     const hay = `${rule.name} ${rule.match?.urlPattern || ''} ${rule.match?.method || 'ANY'}`.toLowerCase()
     return !text || hay.includes(text)
+  })
+  const countText = formatShowingCount({
+    shown: filtered.length,
+    total: rules.length,
+    singular: t('rules.entityOne'),
+    plural: t('rules.entityMany')
   })
 
   return `
@@ -46,7 +57,7 @@ export function renderRulesQuickPanel(state) {
               ${actionBadge(rule)}
             </div>
             <strong>${escapeHtml(truncate(rule.name, 48))}</strong>
-            <div class="item-meta">${escapeHtml(rule.match?.method || 'ANY')} · ${escapeHtml(truncate(rule.match?.urlPattern || '', 64))}</div>
+            <div class="item-meta">${escapeHtml(methodOptionLabel(rule.match?.method || 'ANY'))} · ${escapeHtml(truncate(rule.match?.urlPattern || '', 64))}</div>
             <div class="row-actions">
               <button class="icon-btn ghost" type="button" data-rule-edit="${rule.id}" title="${escapeHtml(t('common.edit'))}" aria-label="${escapeHtml(t('common.edit'))}">${icon('edit')}</button>
               <button class="icon-btn ghost" type="button" data-rule-copy="${rule.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
@@ -58,7 +69,10 @@ export function renderRulesQuickPanel(state) {
           `
         }).join('') : `<div class="empty">${t('rules.noRules')}</div>`}
       </div>
-      <p class="small"><button class="link-btn" id="quick-open-advanced-hint">${t('rules.advancedEditor')}</button></p>
+      <div class="sidepanel-list-footer">
+        <span class="small">${escapeHtml(countText)}</span>
+        <button class="link-btn" id="quick-open-advanced-hint">${t('rules.advancedEditor')}</button>
+      </div>
     </div>
   `
 }
@@ -71,7 +85,7 @@ export function renderQuickRuleEditor(state) {
     <div class="column">
       <label class="switch"><input type="checkbox" id="quick-enabled" ${form.enabled ? 'checked' : ''}/> ${t('common.enabled')}</label>
       <input class="input" id="quick-name" placeholder="${t('rules.ruleName')}" value="${escapeHtml(form.name)}" />
-      <select class="select" id="quick-method">${['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map(method => `<option value="${method}" ${form.match.method === method ? 'selected' : ''}>${method}</option>`).join('')}</select>
+      <select class="select" id="quick-method">${['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map(method => `<option value="${method}" ${form.match.method === method ? 'selected' : ''}>${escapeHtml(methodOptionLabel(method))}</option>`).join('')}</select>
       <select class="select" id="quick-match-type">${['contains', 'equals'].map(type => `<option value="${type}" ${form.match.matchType === type ? 'selected' : ''}>${type}</option>`).join('')}</select>
       <input class="input" id="quick-url" placeholder="/api/user" value="${escapeHtml(form.match.urlPattern)}" />
       <select class="select" id="quick-action-type">${['mockResponse', 'failRequest', 'delayOnly', 'passThrough'].map(type => `<option value="${type}" ${form.action.type === type ? 'selected' : ''}>${type}</option>`).join('')}</select>

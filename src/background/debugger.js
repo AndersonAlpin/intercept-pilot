@@ -70,6 +70,9 @@ export async function sendAttachedCommand(method, params = {}) {
 async function enableAttachedDomains() {
   await sendAttachedCommand('Network.enable')
   await sendAttachedCommand('Runtime.enable')
+  await sendAttachedCommand('Log.enable').catch(async error => {
+    await pushLog({ level: 'warn', scope: 'debugger', message: `Log domain could not be enabled: ${error?.message || String(error)}` })
+  })
   await sendAttachedCommand('Fetch.enable', { patterns: FETCH_PATTERNS })
   runtimeState.fetchEnabled = true
   runtimeState.debuggerDomainsReadyAt = Date.now()

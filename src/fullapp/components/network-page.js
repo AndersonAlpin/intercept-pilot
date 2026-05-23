@@ -1,13 +1,17 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { renderButton } from '../../shared/ui/button.js'
+import { formatShowingCount, formatShowingRange } from '../../shared/ui/count.js'
+import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
 import { renderPagination } from '../../shared/ui/pagination.js'
 import { renderSelect } from '../../shared/ui/select.js'
 import { renderSwitch } from '../../shared/ui/toggle.js'
 
-const NETWORK_METHOD_OPTIONS = ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-  .map(method => ({ value: method, label: method }))
+function getNetworkMethodOptions() {
+  return ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+    .map(method => ({ value: method, label: method === 'ANY' ? t('common.all') : method }))
+}
 
 function hasActiveFilter(state) {
   const f = state.networkFilter
@@ -41,8 +45,19 @@ function getNetworkPaginationSummary(state) {
   const end = Math.min(filtered, page * pageSize)
   const totalPages = Math.max(1, Math.ceil(filtered / pageSize))
   const countText = filtered
-    ? t('network.pageCount', { start, end, filtered, total })
-    : t('network.resultsCount', { filtered, total })
+    ? formatShowingRange({
+      start,
+      end,
+      total: filtered,
+      singular: t('network.entityOne'),
+      plural: t('network.entityMany')
+    })
+    : formatShowingCount({
+      shown: 0,
+      total,
+      singular: t('network.entityOne'),
+      plural: t('network.entityMany')
+    })
   return { total, filtered, pageSize, page, totalPages, countText }
 }
 
@@ -64,7 +79,7 @@ export function renderNetworkRows(state) {
       <div role="columnheader">TYPE</div>
       <div role="columnheader">${escapeHtml(t('network.appliedRule'))}</div>
       <div role="columnheader">${escapeHtml(t('network.result'))}</div>
-      <div role="columnheader" class="col-actions">${escapeHtml(t('rules.columns.actions'))}</div>
+      <div role="columnheader" class="col-actions data-panel__actions-cell">${escapeHtml(t('rules.columns.actions'))}</div>
     </div>
   `
   const rows = entries.map(entry => `
@@ -77,7 +92,7 @@ export function renderNetworkRows(state) {
       <div>${escapeHtml(entry.resourceType || '')}</div>
       <div>${escapeHtml(getAppliedRuleLabel(entry))}</div>
       <div>${escapeHtml(getResultLabel(entry))}</div>
-      <div class="footer-actions">${renderButton({ label: t('network.createRule'), variant: 'secondary', data: { 'full-create-from-request': entry.id } })}</div>
+      <div class="footer-actions data-panel__actions-cell">${renderButton({ label: t('network.createRule'), variant: 'secondary', data: { 'full-create-from-request': entry.id } })}</div>
     </div>
   `).join('')
   return `${header}${rows}`
@@ -125,25 +140,32 @@ export function renderNetworkFooter(state) {
 }
 
 export function renderNetworkPage(state) {
+  const filtersHtml = `
+    <div class="filters-row">
+      <input class="input filter-grow" id="full-network-url" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilter.url || '')}" />
+      ${renderSelect({ id: 'full-network-method', value: state.networkFilter.method, options: getNetworkMethodOptions(), className: 'filter-small' })}
+      <input class="input filter-small" id="full-network-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilter.status || '')}" />
+      ${renderSwitch({ id: 'full-network-intercepted', checked: state.networkFilter.interceptedOnly, label: t('network.interceptedOnly'), className: 'filter-toggle' })}
+    </div>
+  `
+  const bodyHtml = `
+    <div class="table table-wide" id="full-network-table">
+      ${renderNetworkRows(state)}
+    </div>
+  `
+
   return `
     <section class="split-page network-page">
-      <section class="card filters-card network-filters-card">
-        <div class="filters-row">
-          <input class="input" id="full-network-url" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilter.url || '')}" />
-          ${renderSelect({ id: 'full-network-method', value: state.networkFilter.method, options: NETWORK_METHOD_OPTIONS })}
-          <input class="input" id="full-network-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilter.status || '')}" />
-          ${renderSwitch({ id: 'full-network-intercepted', checked: state.networkFilter.interceptedOnly, label: t('network.interceptedOnly') })}
-          ${renderButton({ id: 'full-network-clear', label: t('common.clear'), variant: 'warning' })}
-        </div>
-      </section>
-      <section class="card data-card network-data-card">
-        <div class="table table-wide" id="full-network-table">
-          ${renderNetworkRows(state)}
-        </div>
-        <div class="network-table-footer" id="full-network-pagination">
-          ${renderNetworkFooter(state)}
-        </div>
-      </section>
+      ${renderDataPanel({
+        title: t('network.title'),
+        actionsHtml: renderButton({ id: 'full-network-clear', label: t('network.clearNetwork'), variant: 'warning' }),
+        filtersHtml,
+        bodyHtml,
+        footerHtml: renderNetworkFooter(state),
+        className: 'network-data-panel',
+        footerClassName: 'network-table-footer',
+        footerAttrs: { id: 'full-network-pagination' }
+      })}
     </section>
   `
 }

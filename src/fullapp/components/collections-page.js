@@ -1,6 +1,8 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
+import { formatShowingCount } from '../../shared/ui/count.js'
+import { renderDataPanel } from '../../shared/ui/data-panel.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
@@ -23,20 +25,17 @@ export function renderCollectionsPage(state) {
       <div role="columnheader">${escapeHtml(t('rules.columns.status'))}</div>
       <div role="columnheader">${escapeHtml(t('collections.active'))}</div>
       <div role="columnheader">RULES</div>
-      <div role="columnheader" class="col-actions">${escapeHtml(t('rules.columns.actions'))}</div>
+      <div role="columnheader" class="col-actions data-panel__actions-cell">${escapeHtml(t('rules.columns.actions'))}</div>
     </div>
   `
 
-  return `
-    <section class="split-page collections-page">
-      <section class="card filters-card collections-filters-card">
-        <div class="toolbar">
-          <input class="input" id="full-collections-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('collections.title').toLowerCase())}" value="${escapeHtml(state.collectionsSearch || '')}" />
-          <button class="btn primary" id="full-new-collection-btn">${t('collections.newCollection')}</button>
-        </div>
-      </section>
-      <section class="card data-card collections-data-card">
-        <div class="table table-wide">
+  const filtersHtml = `
+    <div class="toolbar">
+      <input class="input filter-grow" id="full-collections-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('collections.title').toLowerCase())}" value="${escapeHtml(state.collectionsSearch || '')}" />
+    </div>
+  `
+  const bodyHtml = `
+    <div class="table table-wide">
           ${collections.length ? header : ''}
           ${collections.length ? collections.map(collection => `
             <div class="table-row row-collection">
@@ -57,7 +56,7 @@ export function renderCollectionsPage(state) {
                 </label>
               </div>
               <div>${counts.get(collection.id) || 0}</div>
-              <div class="row-actions col-actions">
+              <div class="row-actions col-actions data-panel__actions-cell">
                 <button class="icon-btn" type="button" data-full-collection-rename="${collection.id}" title="${escapeHtml(t('collections.rename'))}" aria-label="${escapeHtml(t('collections.rename'))}">${icon('edit')}</button>
                 <button class="icon-btn" type="button" data-full-collection-copy="${collection.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
                 <button class="icon-btn" type="button" data-full-collection-export="${collection.id}" title="${escapeHtml(t('common.exportJson'))}" aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
@@ -65,8 +64,25 @@ export function renderCollectionsPage(state) {
               </div>
             </div>
           `).join('') : `<div class="empty">${escapeHtml(t('collections.noCollections'))}</div>`}
-        </div>
-      </section>
+    </div>
+  `
+  const footerCount = formatShowingCount({
+    shown: collections.length,
+    total: state.collections.length,
+    singular: t('collections.entityOne'),
+    plural: t('collections.entityMany')
+  })
+
+  return `
+    <section class="split-page collections-page">
+      ${renderDataPanel({
+        title: t('collections.title'),
+        actionsHtml: `<button class="btn primary" id="full-new-collection-btn">${t('collections.newCollection')}</button>`,
+        filtersHtml,
+        bodyHtml,
+        footerHtml: `<span class="data-panel__count">${escapeHtml(footerCount)}</span>`,
+        className: 'collections-data-panel'
+      })}
     </section>
   `
 }

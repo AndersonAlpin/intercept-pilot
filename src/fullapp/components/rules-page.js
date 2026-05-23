@@ -2,11 +2,17 @@ import { escapeHtml, truncate, relativeTime } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { getRuleState } from '../../shared/rule-state.js'
+import { formatShowingCount } from '../../shared/ui/count.js'
+import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderRuleActionBadge, renderRuleStateBadge } from '../../shared/ui/rule-status.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
   return collection?.name || ''
+}
+
+function displayMethod(method) {
+  return method === 'ANY' ? t('common.all') : method
 }
 
 function actionBadge(rule) {
@@ -52,7 +58,8 @@ function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {
 export function renderRulesPage(state) {
   const activeCollectionId = state.settings?.activeCollectionId
   const search = String(state.rulesSearch || '').trim().toLowerCase()
-  const rules = state.rules.filter(rule => {
+  const collectionRules = state.rules.filter(rule => !activeCollectionId || rule.collectionId === activeCollectionId)
+  const rules = collectionRules.filter(rule => {
     if (activeCollectionId && rule.collectionId !== activeCollectionId) return false
     if (!search) return true
     const hay = `${rule.name || ''} ${rule.match?.urlPattern || ''} ${rule.match?.method || ''}`.toLowerCase()
@@ -68,22 +75,18 @@ export function renderRulesPage(state) {
       <div role="columnheader">${escapeHtml(t('rules.columns.action'))}</div>
       <div role="columnheader">${escapeHtml(t('rules.columns.state'))}</div>
       <div role="columnheader" class="col-hits">${escapeHtml(t('rules.columns.hits'))}</div>
-      <div role="columnheader" class="col-actions">${escapeHtml(t('rules.columns.actions'))}</div>
+      <div role="columnheader" class="col-actions data-panel__actions-cell">${escapeHtml(t('rules.columns.actions'))}</div>
     </div>
   `
 
-  return `
-    <section class="split-page rules-page">
-      <section class="card filters-card rules-filters-card">
-        <div class="toolbar">
-          <select class="select" id="full-rules-collection">${options}</select>
-          <input class="input" id="full-rules-search" placeholder="${escapeHtml(t('rules.searchPlaceholder'))}" value="${escapeHtml(state.rulesSearch || '')}" />
-          <button class="btn primary" id="full-new-rule-btn">${escapeHtml(t('fullapp.newRule'))}</button>
-          <button class="btn secondary" id="full-import-rule-btn">${escapeHtml(t('common.import'))}</button>
-        </div>
-      </section>
-      <section class="card data-card rules-data-card">
-        <div class="table table-wide" role="table">
+  const filtersHtml = `
+    <div class="toolbar">
+      <select class="select filter-medium" id="full-rules-collection">${options}</select>
+      <input class="input filter-grow" id="full-rules-search" placeholder="${escapeHtml(t('rules.searchPlaceholder'))}" value="${escapeHtml(state.rulesSearch || '')}" />
+    </div>
+  `
+  const bodyHtml = `
+    <div class="table table-wide" role="table">
           ${rules.length ? header : ''}
           ${rules.length ? rules.map(rule => {
           const urlPattern = rule.match?.urlPattern || ''
@@ -99,11 +102,11 @@ export function renderRulesPage(state) {
                   <span class="status-toggle-track" aria-hidden="true"></span>
                 </label>
               </div>
-              <div class="cell-method">${escapeHtml(rule.match?.method || 'ANY')}</div>
+              <div class="cell-method">${escapeHtml(displayMethod(rule.match?.method || 'ANY'))}</div>
               <div>${actionBadge(rule)}</div>
               <div>${stateBadge(rule)}</div>
               <div class="col-hits">${hitsCell(rule)}</div>
-              <div class="row-actions col-actions">
+              <div class="row-actions col-actions data-panel__actions-cell">
                 ${iconBtn({ icon: 'edit', label: t('common.edit'), action: 'edit', ruleId: rule.id })}
                 ${iconBtn({ icon: 'copy', label: t('common.copyJson'), action: 'copy', ruleId: rule.id })}
                 ${iconBtn({ icon: 'download', label: t('common.exportJson'), action: 'export', ruleId: rule.id })}
@@ -112,8 +115,29 @@ export function renderRulesPage(state) {
             </div>
           `
           }).join('') : `<div class="empty">${escapeHtml(t('rules.noRules'))}</div>`}
-        </div>
-      </section>
+    </div>
+  `
+
+  const footerCount = formatShowingCount({
+    shown: rules.length,
+    total: collectionRules.length,
+    singular: t('rules.entityOne'),
+    plural: t('rules.entityMany')
+  })
+
+  return `
+    <section class="split-page rules-page">
+      ${renderDataPanel({
+        title: t('rules.title'),
+        actionsHtml: `
+          <button class="btn primary" id="full-new-rule-btn">${escapeHtml(t('fullapp.newRule'))}</button>
+          <button class="btn secondary" id="full-import-rule-btn">${escapeHtml(t('common.import'))}</button>
+        `,
+        filtersHtml,
+        bodyHtml,
+        footerHtml: `<span class="data-panel__count">${escapeHtml(footerCount)}</span>`,
+        className: 'rules-data-panel'
+      })}
     </section>
   `
 }

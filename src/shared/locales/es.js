@@ -5,6 +5,9 @@ const es = {
     cancel: 'Cancelar', save: 'Guardar', clear: 'Limpiar', refresh: 'Actualizar', create: 'Crear',
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Estado',
     method: 'Método', level: 'Nivel', settings: 'Configuración', close: 'Cerrar', yes: 'Sí', no: 'No',
+    all: 'Todos',
+    showingCount: 'Mostrando {shown} de {total} {entity}',
+    showingRange: 'Mostrando {start}–{end} de {total} {entity}',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Descargar JSON',
     moreActions: 'Más acciones', disableAutoAttach: 'Desactivar auto-adjuntar', detachNow: 'Desadjuntar ahora', configureHosts: 'Configurar hosts', advanced: 'Avanzado', confirm: 'Confirmar', activate: 'Activar', deactivate: 'Desactivar'
   },
@@ -41,10 +44,10 @@ const es = {
     newCollection: 'Nueva colección', newCollectionTitle: 'Nueva colección', newCollectionPlaceholder: 'Nombre de la colección',
     setActive: 'Definir activa', rename: 'Renombrar', renameTitle: 'Renombrar colección', renamePlaceholder: 'Nuevo nombre',
     deleteConfirm: '¿Eliminar esta colección? Las reglas irán a la colección de respaldo.',
-    deleteTitle: 'Eliminar colección', rulesCount: 'regla(s)'
+    deleteTitle: 'Eliminar colección', rulesCount: 'regla(s)', entityOne: 'colección', entityMany: 'colecciones'
   },
   rules: {
-    title: 'Reglas', newRule: '+ Regla', searchPlaceholder: 'Buscar reglas', noRules: 'No hay reglas en esta colección.',
+    title: 'Reglas', entityOne: 'regla', entityMany: 'reglas', newRule: '+ Regla', searchPlaceholder: 'Buscar reglas', noRules: 'No hay reglas en esta colección.',
     advanced: 'Avanzado ↗', advancedEditor: '¿Necesitas headers, regex, prioridad o diagnósticos? Abrir editor avanzado ↗',
     createRule: 'Crear regla', editRule: 'Editar regla', ruleName: 'Nombre de regla', urlPattern: 'Patrón de URL',
     actionType: 'Tipo de acción', statusCode: 'Código de estado', delayMs: 'Delay ms',
@@ -84,25 +87,25 @@ const es = {
   },
   logs: {
     title: 'Logs',
+    entityOne: 'log',
+    entityMany: 'logs',
     errorOnly: 'Solo errores',
     scopeAny: 'Todos los ámbitos',
     scopeApp: 'App',
     scopeWeb: 'Web',
     clearLogs: 'Limpiar logs',
+    levels: { error: 'Error', warn: 'Aviso', info: 'Info' },
     noLogs: 'Sin logs.',
     webOnlyEmpty: 'Sin logs Web.',
     noResults: 'Ningún log coincide con estos filtros.',
     columns: { message: 'Mensaje', time: 'Hora', url: 'URL' }
   },
   network: {
-    title: 'Red', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Estado',
+    title: 'Red', entityOne: 'solicitud', entityMany: 'solicitudes', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Estado',
+    clearNetwork: 'Limpiar red',
     matchedOnly: 'Solo matched', interceptedOnly: 'Solo interceptadas', noRequests: 'Sin requests capturadas.',
     lightCaptureHelper: 'Captura ligera captura solo requests fetch.',
     noResults: 'Ninguna request coincide con estos filtros.',
-    resultsCount: '{filtered} de {total}',
-    compactPageCount: '{start}–{end} / {filtered}',
-    compactPageCountEmpty: '0 / {total}',
-    pageCount: 'Mostrando {start}–{end} de {filtered} solicitudes',
     pageShort: 'Página {page}/{totalPages}',
     pageOf: 'Página {page} de {totalPages}',
     previous: 'Anterior',
@@ -163,6 +166,8 @@ const es = {
   },
   diagnostics: {
     activeCollectionId: 'ID de colección activa',
+    eventOne: 'evento',
+    eventMany: 'eventos',
     extensionEvents: 'Eventos de la extensión (recientes)',
     noExtensionLogs: 'Sin eventos de la extensión.',
     openWebLogs: 'Abrir logs Web'

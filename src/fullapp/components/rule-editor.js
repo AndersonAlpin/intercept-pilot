@@ -17,11 +17,11 @@ export function renderRuleEditor(state) {
   if (!rule) return ''
 
   const methodOptions = ['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS']
-    .map(method => `<option value="${method}" ${rule.match.method === method ? 'selected' : ''}>${method}</option>`).join('')
+    .map(method => `<option value="${method}" ${rule.match.method === method ? 'selected' : ''}>${method === 'ANY' ? escapeHtml(t('common.all')) : method}</option>`).join('')
   const matchTypeOptions = ['contains','equals','regex','glob']
     .map(type => `<option value="${type}" ${rule.match.matchType === type ? 'selected' : ''}>${type}</option>`).join('')
   const resourceOptions = ['ANY','XHR','Fetch','Document','Script','Image','Stylesheet','Other']
-    .map(type => `<option value="${type}" ${rule.match.resourceType === type ? 'selected' : ''}>${type}</option>`).join('')
+    .map(type => `<option value="${type}" ${rule.match.resourceType === type ? 'selected' : ''}>${type === 'ANY' ? escapeHtml(t('common.all')) : type}</option>`).join('')
   const actionTypeOptions = ['mockResponse','failRequest','delayOnly','passThrough']
     .map(type => `<option value="${type}" ${rule.action.type === type ? 'selected' : ''}>${type}</option>`).join('')
 

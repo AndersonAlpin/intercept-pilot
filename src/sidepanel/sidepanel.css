@@ -94,6 +94,30 @@ button,input,select,textarea { font: inherit; color: inherit; }
 }
 .compact-card h2 { margin: 0; font-size: 16px; }
 .logs-panel .list { padding-top: 2px; }
+.logs-panel .item-title {
+  align-items: flex-start;
+}
+.logs-panel .item-title .badge {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.logs-panel .log-message,
+.logs-panel .log-url {
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+.logs-panel .log-message {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+.logs-panel .log-url {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
 .logs-sticky-bar {
   gap: 8px !important;
   box-shadow: none !important;
@@ -101,8 +125,14 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .logs-head {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   padding-bottom: 2px;
+}
+.logs-head .btn {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 7px 12px;
 }
 .logs-scope-row .select {
   width: 100%;
@@ -116,11 +146,6 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .logs-actions-row .switch {
   flex: 1;
   min-width: 0;
-}
-.logs-actions-row .btn {
-  flex-shrink: 0;
-  min-height: 34px;
-  padding: 7px 12px;
 }
 .row { display: flex; gap: 8px; align-items: center; }
 .space-between { justify-content: space-between; }
@@ -175,6 +200,18 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .item-meta { color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; word-break: break-word; }
 .footer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .footer-actions .btn { padding: 8px 12px; }
+.sidepanel-list-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sidepanel-list-footer .btn { padding: 8px 12px; }
+.sidepanel-list-footer .link-btn {
+  min-width: 0;
+  text-align: left;
+}
 .badge { border: 1px solid var(--border-strong); color: var(--text-soft); border-radius: 999px; padding: 2px 8px; font-size: 11px; }
 .badge.success { border-color: rgba(34,197,94,.45); color: #bbf7d0; }
 .badge.warning { border-color: rgba(245,158,11,.45); color: #fde68a; }
@@ -197,7 +234,8 @@ button,input,select,textarea { font: inherit; color: inherit; }
 }
 .network-results-count {
   min-width: 0;
-  white-space: nowrap;
+  flex: 1;
+  line-height: 1.3;
 }
 .network-pagination {
   display: inline-flex;

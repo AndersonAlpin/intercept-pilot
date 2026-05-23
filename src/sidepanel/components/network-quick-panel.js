@@ -3,13 +3,16 @@ import { t } from '../../shared/i18n.js'
 import { formatNetworkDisplayUrl } from '../../shared/network-display.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
+import { formatShowingCount, formatShowingRange } from '../../shared/ui/count.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
 import { renderPagination } from '../../shared/ui/pagination.js'
 import { renderSelect } from '../../shared/ui/select.js'
 import { renderSwitch } from '../../shared/ui/toggle.js'
 
-const NETWORK_METHOD_OPTIONS = ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-  .map(method => ({ value: method, label: method }))
+function getNetworkMethodOptions() {
+  return ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+    .map(method => ({ value: method, label: method === 'ANY' ? t('common.all') : method }))
+}
 
 function statusBadge(status) {
   if (status == null || status === '') return renderBadge({ label: '—' })
@@ -37,12 +40,25 @@ function hasActiveFilter(state) {
 export function renderNetworkQuickCount(state) {
   const total = (state.networkEntries || []).filter(isRenderableNetworkEntry).length
   const filtered = (state.filteredNetworkEntries || []).length
-  if (!filtered) return t('network.compactPageCountEmpty', { total })
+  if (!filtered) {
+    return formatShowingCount({
+      shown: 0,
+      total,
+      singular: t('network.entityOne'),
+      plural: t('network.entityMany')
+    })
+  }
   const pageSize = Number(state.networkPagination?.pageSize || 50)
   const page = Number(state.networkPagination?.page || 1)
   const start = ((page - 1) * pageSize) + 1
   const end = Math.min(filtered, page * pageSize)
-  return t('network.compactPageCount', { start, end, filtered })
+  return formatShowingRange({
+    start,
+    end,
+    total: filtered,
+    singular: t('network.entityOne'),
+    plural: t('network.entityMany')
+  })
 }
 
 export function renderNetworkQuickPagination(state) {
@@ -99,12 +115,12 @@ export function renderNetworkQuickPanel(state) {
           <h2>${t('network.title')}</h2>
           <div class="footer-actions">
             ${renderButton({ id: 'network-refresh-btn', label: t('common.refresh'), variant: 'secondary' })}
-            ${renderButton({ id: 'network-clear-btn', label: t('common.clear'), variant: 'warning' })}
+            ${renderButton({ id: 'network-clear-btn', label: t('network.clearNetwork'), variant: 'warning' })}
           </div>
         </div>
         <div class="column">
           <input class="input" id="network-filter-text" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilters.text)}" />
-          ${renderSelect({ id: 'network-filter-method', value: state.networkFilters.method, options: NETWORK_METHOD_OPTIONS })}
+          ${renderSelect({ id: 'network-filter-method', value: state.networkFilters.method, options: getNetworkMethodOptions() })}
           <input class="input" id="network-filter-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilters.status)}" />
           ${renderSwitch({ id: 'network-filter-intercepted', checked: state.networkFilters.interceptedOnly, label: t('network.interceptedOnly') })}
           <div class="network-quick-meta">

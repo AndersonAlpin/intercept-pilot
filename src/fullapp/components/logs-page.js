@@ -2,11 +2,23 @@ import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
+import { formatShowingCount } from '../../shared/ui/count.js'
+import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
 import { renderSelect } from '../../shared/ui/select.js'
 
-const LOG_LEVEL_OPTIONS = ['ANY', 'error', 'warn', 'info']
-  .map(level => ({ value: level, label: level }))
+function getLogLevelOptions() {
+  return [
+    { value: 'ANY', label: t('common.all') },
+    { value: 'error', label: t('logs.levels.error') },
+    { value: 'warn', label: t('logs.levels.warn') },
+    { value: 'info', label: t('logs.levels.info') }
+  ]
+}
+
+function isWebLog(log) {
+  return String(log?.scope || '').toLowerCase() === 'web'
+}
 
 function hasActiveLogsFilter(state) {
   const f = state.logsFilter
@@ -14,15 +26,20 @@ function hasActiveLogsFilter(state) {
 }
 
 function levelBadge(level) {
-  const kind = level === 'error' ? 'danger' : level === 'warn' ? 'warning' : 'success'
-  return renderBadge({ label: level || 'info', variant: kind })
+  const normalizedLevel = level === 'error' || level === 'warn' ? level : 'info'
+  const kind = normalizedLevel === 'error' ? 'danger' : normalizedLevel === 'warn' ? 'warning' : 'success'
+  return renderBadge({ label: t(`logs.levels.${normalizedLevel}`), variant: kind })
 }
 
 export function renderLogsPage(state) {
-  const logs = state.filteredLogs || state.logs
-  const total = state.logs.length
-  const filtered = state.filteredLogs?.length ?? total
-  const countText = t('network.resultsCount', { filtered, total })
+  const logs = state.filteredLogs || state.logs.filter(isWebLog)
+  const total = state.logs.filter(isWebLog).length
+  const countText = formatShowingCount({
+    shown: Math.min(logs.length, 200),
+    total,
+    singular: t('logs.entityOne'),
+    plural: t('logs.entityMany')
+  })
   const emptyKey = hasActiveLogsFilter(state) ? 'logs.noResults' : 'logs.noLogs'
 
   const header = `
@@ -34,29 +51,36 @@ export function renderLogsPage(state) {
     </div>
   `
 
+  const filtersHtml = `
+    <div class="filters-row">
+      ${renderSelect({ id: 'full-logs-level', value: state.logsFilter.level, options: getLogLevelOptions(), className: 'filter-small' })}
+      <input class="input filter-grow" id="full-logs-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter.search || '')}" />
+    </div>
+  `
+  const bodyHtml = `
+    <div class="table table-wide">
+      ${logs.length ? header : ''}
+      ${logs.length ? logs.slice(0, 200).map(log => `
+        <div class="table-row row-logs">
+          <div class="cell-network-url" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</div>
+          <div>${levelBadge(log.level || 'info')}</div>
+          <div>${escapeHtml(log.timestamp || '')}</div>
+          <div class="cell-network-url" title="${escapeHtml(log.url || '')}">${escapeHtml(log.url || '—')}</div>
+        </div>
+      `).join('') : renderEmptyState({ message: t(emptyKey === 'logs.noLogs' ? 'logs.webOnlyEmpty' : emptyKey) })}
+    </div>
+  `
+
   return `
     <section class="split-page logs-page">
-      <section class="card filters-card logs-filters-card">
-        <div class="filters-row">
-          ${renderSelect({ id: 'full-logs-level', value: state.logsFilter.level, options: LOG_LEVEL_OPTIONS })}
-          <input class="input" id="full-logs-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter.search || '')}" />
-          ${renderButton({ id: 'full-clear-logs', label: t('common.clear'), variant: 'warning' })}
-          <span class="results-count">${escapeHtml(countText)}</span>
-        </div>
-      </section>
-      <section class="card data-card logs-data-card">
-        <div class="table table-wide">
-          ${logs.length ? header : ''}
-          ${logs.length ? logs.slice(0, 200).map(log => `
-            <div class="table-row row-logs">
-              <div class="cell-network-url" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</div>
-              <div>${levelBadge(log.level || 'info')}</div>
-              <div>${escapeHtml(log.timestamp || '')}</div>
-              <div class="cell-network-url" title="${escapeHtml(log.url || '')}">${escapeHtml(log.url || '—')}</div>
-            </div>
-          `).join('') : renderEmptyState({ message: t(emptyKey === 'logs.noLogs' ? 'logs.webOnlyEmpty' : emptyKey) })}
-        </div>
-      </section>
+      ${renderDataPanel({
+        title: t('logs.title'),
+        actionsHtml: renderButton({ id: 'full-clear-logs', label: t('logs.clearLogs'), variant: 'warning' }),
+        filtersHtml,
+        bodyHtml,
+        footerHtml: `<span class="data-panel__count">${escapeHtml(countText)}</span>`,
+        className: 'logs-data-panel'
+      })}
     </section>
   `
 }

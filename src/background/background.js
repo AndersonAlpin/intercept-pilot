@@ -1156,6 +1156,33 @@ async function handleRuntimeExceptionThrown(source, params) {
   })
 }
 
+function getLogEntryUrl(entry) {
+  const stackFrame = entry?.stackTrace?.callFrames?.find(frame => frame?.url)
+  return String(entry?.url || stackFrame?.url || '')
+}
+
+function normalizeBrowserLogLevel(level) {
+  const normalized = String(level || '').toLowerCase()
+  if (normalized === 'error') return 'error'
+  if (normalized === 'warning') return 'warn'
+  return 'info'
+}
+
+async function handleLogEntryAdded(source, params) {
+  if (!isAttachedSource(source)) return
+  const entry = params?.entry || {}
+  const entrySource = String(entry.source || '').toLowerCase()
+  if (entrySource === 'javascript') return
+  const message = String(entry.text || '').trim()
+  if (!message) return
+  await pushLog({
+    level: normalizeBrowserLogLevel(entry.level),
+    scope: 'web',
+    message,
+    url: getLogEntryUrl(entry)
+  })
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   await ensureState()
   await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
@@ -1241,6 +1268,7 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
     if (method === 'Network.loadingFailed') return handleLoadingFailed(source, params)
     if (method === 'Runtime.consoleAPICalled') return handleRuntimeConsoleApiCalled(source, params)
     if (method === 'Runtime.exceptionThrown') return handleRuntimeExceptionThrown(source, params)
+    if (method === 'Log.entryAdded') return handleLogEntryAdded(source, params)
   } catch (error) {
     await pushLog({ level: 'error', scope: 'debugger', message: error?.message || String(error), url: params?.request?.url || '' })
   }

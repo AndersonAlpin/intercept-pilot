@@ -307,7 +307,7 @@ function renderPage() {
 function render() {
   const root = $('#app')
   const focusSnapshot = captureFocusSnapshot()
-  const isSplitScrollPage = state.page === 'network' || state.page === 'logs' || state.page === 'rules' || state.page === 'collections'
+  const isSplitScrollPage = state.page === 'network' || state.page === 'logs' || state.page === 'rules' || state.page === 'collections' || state.page === 'diagnostics'
   root.innerHTML = renderAppShell({
     sidebar: renderSidebar(state.page),
     topbar: renderTopbar(state),
