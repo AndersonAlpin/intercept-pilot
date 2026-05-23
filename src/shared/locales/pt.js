@@ -48,7 +48,7 @@ const pt = {
     advanced: 'Avançado ↗', advancedEditor: 'Precisa de headers, regex, prioridade ou diagnóstico? Abrir editor avançado ↗',
     createRule: 'Criar Regra', editRule: 'Editar Regra', ruleName: 'Nome da regra', urlPattern: 'Padrão de URL',
     actionType: 'Tipo de ação', statusCode: 'Código de status', delayMs: 'Atraso (ms)',
-    createEnabledRule: 'Criar regra ativada', saveQuickEdit: 'Salvar edição rápida', mockThis: 'Mockar', inspect: 'Inspecionar ↗',
+    createEnabledRule: 'Criar regra ativada', saveQuickEdit: 'Salvar edição rápida', mockThis: 'Criar regra', inspect: 'Inspecionar ↗',
     noRequests: 'Sem requisições ainda.', passThrough: 'passThrough', noMatch: 'Sem match',
     saveSuccess: 'Regra salva com sucesso.', saveError: 'Falha ao salvar regra.', deleteConfirm: 'Excluir esta regra?',
     deleteTitle: 'Excluir regra', deleteSuccess: 'Regra excluída.',

@@ -2,14 +2,15 @@ import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { getRuleState } from '../../shared/rule-state.js'
+import { renderRuleActionBadge, renderRuleStateDot } from '../../shared/ui/rule-status.js'
 import { renderPresetPicker } from '../../fullapp/components/preset-picker.js'
 
 function actionBadge(rule) {
   const type = rule.action?.type || 'mockResponse'
-  if (type === 'mockResponse') return `<span class="badge success">${t('badges.mock')} 200</span>`
-  if (type === 'failRequest') return `<span class="badge danger">${t('badges.fail')}</span>`
-  if (type === 'delayOnly') return `<span class="badge warning">${t('badges.delay')}</span>`
-  return `<span class="badge">${t('badges.pass')}</span>`
+  if (type === 'mockResponse') return renderRuleActionBadge({ actionType: type, label: `${t('badges.mock')} 200` })
+  if (type === 'failRequest') return renderRuleActionBadge({ actionType: type, label: t('badges.fail') })
+  if (type === 'delayOnly') return renderRuleActionBadge({ actionType: type, label: t('badges.delay') })
+  return renderRuleActionBadge({ actionType: type, label: t('badges.pass') })
 }
 
 export function renderRulesQuickPanel(state) {
@@ -31,7 +32,7 @@ export function renderRulesQuickPanel(state) {
       <div class="list">
         ${filtered.length ? filtered.map(rule => {
           const state = getRuleState(rule)
-          const stateLabel = escapeHtml(t(`rules.states.${state}`))
+          const stateLabel = t(`rules.states.${state}`)
           return `
           <div class="item ${rule.diagnostics?.lastError ? 'rule-error' : ''}">
             <div class="item-title">
@@ -39,7 +40,7 @@ export function renderRulesQuickPanel(state) {
                 <input type="checkbox" data-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
                 <span class="status-toggle-track" aria-hidden="true"></span>
               </label>
-              <span class="rule-state-dot" data-rule-state="${rule.id}" data-state="${state}" title="${stateLabel}" aria-label="${stateLabel}" role="img"></span>
+              ${renderRuleStateDot({ state, label: stateLabel, data: { 'rule-state': rule.id } })}
               <span class="rule-hits-badge" data-rule-hit="${rule.id}">${Number(rule.diagnostics?.matchCount || 0)}</span>
               ${actionBadge(rule)}
             </div>

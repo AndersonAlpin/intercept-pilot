@@ -1,8 +1,10 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { formatNetworkDisplayUrl } from '../../shared/network-display.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
+import { renderPagination } from '../../shared/ui/pagination.js'
 
 function statusBadge(status) {
   if (status == null || status === '') return renderBadge({ label: '—' })
@@ -43,14 +45,23 @@ export function renderNetworkQuickPagination(state) {
   const pageSize = Number(state.networkPagination?.pageSize || 50)
   const page = Number(state.networkPagination?.page || 1)
   const totalPages = Math.max(1, Math.ceil(filtered / pageSize))
-  if (totalPages <= 1) return ''
-  return `
-    <div class="network-pagination">
-      <button class="network-page-btn" type="button" data-side-network-page="prev" title="${escapeHtml(t('network.previousPage'))}" aria-label="${escapeHtml(t('network.previousPage'))}" ${page <= 1 ? 'disabled' : ''}>‹</button>
-      <span class="network-page-label" aria-label="${escapeHtml(t('network.pageOf', { page, totalPages }))}">${page}/${totalPages}</span>
-      <button class="network-page-btn" type="button" data-side-network-page="next" title="${escapeHtml(t('network.nextPage'))}" aria-label="${escapeHtml(t('network.nextPage'))}" ${page >= totalPages ? 'disabled' : ''}>›</button>
-    </div>
-  `
+  return renderPagination({
+    page,
+    totalItems: filtered,
+    pageSize,
+    compact: true,
+    dataAction: 'side-network-page',
+    className: 'network-pagination',
+    buttonClassName: 'network-page-btn',
+    labels: {
+      previous: '‹',
+      next: '›',
+      previousTitle: t('network.previousPage'),
+      nextTitle: t('network.nextPage'),
+      pageLabel: `${page}/${totalPages}`,
+      pageAriaLabel: t('network.pageOf', { page, totalPages })
+    }
+  })
 }
 
 export function renderNetworkQuickRows(state) {
@@ -65,7 +76,7 @@ export function renderNetworkQuickRows(state) {
   return entries.map(entry => `
     <div class="table-row">
       <div><strong>${escapeHtml(entry.method || '—')}</strong></div>
-      <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</strong><span>${escapeHtml(getAppliedRuleLabel(entry))}</span></div>
+      <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(formatNetworkDisplayUrl(entry.url, { compact: true }))}</strong><span>${escapeHtml(getAppliedRuleLabel(entry))}</span></div>
       <div>${statusBadge(entry.status)}</div>
       <div class="footer-actions">
         ${renderButton({ label: t('rules.mockThis'), data: { 'create-from-request': entry.id } })}

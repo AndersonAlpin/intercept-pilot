@@ -2,6 +2,7 @@ import { escapeHtml, truncate, relativeTime } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { getRuleState } from '../../shared/rule-state.js'
+import { renderRuleActionBadge, renderRuleStateBadge } from '../../shared/ui/rule-status.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
@@ -10,29 +11,20 @@ function displayCollectionName(collection) {
 
 function actionBadge(rule) {
   const type = rule.action?.type || 'mockResponse'
-  if (type === 'mockResponse') return `<span class="badge success">${escapeHtml(t('rules.actionLabels.mock'))} ${rule.action?.statusCode || 200}</span>`
-  if (type === 'failRequest') return `<span class="badge danger">${escapeHtml(t('rules.actionLabels.fail'))}</span>`
-  if (type === 'delayOnly') return `<span class="badge warning">${escapeHtml(t('rules.actionLabels.delay'))} ${rule.action?.delayMs || 0}ms</span>`
-  return `<span class="badge">${escapeHtml(t('rules.actionLabels.pass'))}</span>`
-}
-
-const STATE_ICONS = {
-  ready: 'check',
-  matched: 'zap',
-  disabled: 'eye-off',
-  error: 'alert',
-  conflict: 'git-merge'
+  if (type === 'mockResponse') return renderRuleActionBadge({ actionType: type, label: `${t('rules.actionLabels.mock')} ${rule.action?.statusCode || 200}` })
+  if (type === 'failRequest') return renderRuleActionBadge({ actionType: type, label: t('rules.actionLabels.fail') })
+  if (type === 'delayOnly') return renderRuleActionBadge({ actionType: type, label: `${t('rules.actionLabels.delay')} ${rule.action?.delayMs || 0}ms` })
+  return renderRuleActionBadge({ actionType: type, label: t('rules.actionLabels.pass') })
 }
 
 function stateBadge(rule) {
   const state = getRuleState(rule)
-  const iconName = STATE_ICONS[state] || 'check'
-  return `
-    <span class="rule-state-badge badge" data-rule-state="${rule.id}" data-state="${state}">
-      ${icon(iconName, 12)}
-      <span class="badge-label">${escapeHtml(t(`rules.states.${state}`))}</span>
-    </span>
-  `
+  const label = t(`rules.states.${state}`)
+  return renderRuleStateBadge({
+    state,
+    label,
+    data: { 'rule-state': rule.id }
+  })
 }
 
 function hitsCell(rule) {

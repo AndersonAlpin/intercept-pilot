@@ -116,7 +116,7 @@ const en = {
     delayMs: 'Delay ms',
     createEnabledRule: 'Create enabled rule',
     saveQuickEdit: 'Save quick edit',
-    mockThis: 'Mock this',
+    mockThis: 'Create rule',
     inspect: 'Inspect ↗',
     noRequests: 'No requests yet.',
     passThrough: 'passThrough',

@@ -28,7 +28,7 @@ import { renderDashboardPage } from './components/dashboard-page.js'
 import { renderRulesPage } from './components/rules-page.js'
 import { renderRuleEditor } from './components/rule-editor.js'
 import { renderCollectionsPage } from './components/collections-page.js'
-import { renderNetworkPage, renderNetworkPagination, renderNetworkRows, isRenderableNetworkEntry } from './components/network-page.js'
+import { renderNetworkPage, renderNetworkFooter, renderNetworkRows, isRenderableNetworkEntry } from './components/network-page.js'
 import { renderLogsPage } from './components/logs-page.js'
 import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
@@ -719,14 +719,7 @@ function refreshNetworkTableOnly() {
   table.innerHTML = renderNetworkRows(state)
   const paginationEl = $('#full-network-pagination')
   if (paginationEl) {
-    const total = state.networkEntries.filter(isRenderableNetworkEntry).length
-    const filtered = state.filteredNetworkEntries?.length ?? total
-    const pageSize = Number(state.networkPagination?.pageSize || 100)
-    const page = Number(state.networkPagination?.page || 1)
-    const start = filtered ? ((page - 1) * pageSize) + 1 : 0
-    const end = Math.min(filtered, page * pageSize)
-    const countText = filtered ? t('network.pageCount', { start, end, filtered, total }) : t('network.resultsCount', { filtered, total })
-    paginationEl.innerHTML = `<span class="network-footer-count" id="full-network-footer-count">${countText}</span>${renderNetworkPagination(state)}`
+    paginationEl.innerHTML = renderNetworkFooter(state)
   }
   bindCreateRuleFromRequestEvents()
   bindNetworkPaginationEvents()

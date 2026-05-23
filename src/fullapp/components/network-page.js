@@ -2,6 +2,7 @@ import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
+import { renderPagination } from '../../shared/ui/pagination.js'
 
 function hasActiveFilter(state) {
   const f = state.networkFilter
@@ -24,6 +25,20 @@ function getResultLabel(entry) {
   if (action === 'delayOnly') return t('network.resultDelay')
   if (action === 'failRequest') return t('network.resultFail')
   return t('network.resultPassThrough')
+}
+
+function getNetworkPaginationSummary(state) {
+  const total = state.networkEntries.filter(isRenderableNetworkEntry).length
+  const filtered = state.filteredNetworkEntries?.length ?? total
+  const pageSize = Number(state.networkPagination?.pageSize || 100)
+  const page = Number(state.networkPagination?.page || 1)
+  const start = filtered ? ((page - 1) * pageSize) + 1 : 0
+  const end = Math.min(filtered, page * pageSize)
+  const totalPages = Math.max(1, Math.ceil(filtered / pageSize))
+  const countText = filtered
+    ? t('network.pageCount', { start, end, filtered, total })
+    : t('network.resultsCount', { filtered, total })
+  return { total, filtered, pageSize, page, totalPages, countText }
 }
 
 export function renderNetworkRows(state) {
@@ -64,29 +79,47 @@ export function renderNetworkRows(state) {
 }
 
 export function renderNetworkPagination(state) {
-  const filtered = state.filteredNetworkEntries?.length ?? state.networkEntries.filter(isRenderableNetworkEntry).length
-  const pageSize = Number(state.networkPagination?.pageSize || 100)
-  const page = Number(state.networkPagination?.page || 1)
-  const totalPages = Math.max(1, Math.ceil(filtered / pageSize))
-  if (totalPages <= 1) return ''
-  return `
-    <div class="network-pagination-controls">
-      <button class="btn network-page-btn" type="button" data-full-network-page="prev" ${page <= 1 ? 'disabled' : ''}>${escapeHtml(t('network.previous'))}</button>
-      <span class="network-page-label">${escapeHtml(t('network.pageShort', { page, totalPages }))}</span>
-      <button class="btn network-page-btn" type="button" data-full-network-page="next" ${page >= totalPages ? 'disabled' : ''}>${escapeHtml(t('network.next'))}</button>
-    </div>
-  `
+  const { filtered, pageSize, page, totalPages } = getNetworkPaginationSummary(state)
+  return renderPagination({
+    page,
+    totalItems: filtered,
+    pageSize,
+    dataAction: 'full-network-page',
+    className: 'network-pagination-controls',
+    buttonClassName: 'btn network-page-btn',
+    labels: {
+      previous: t('network.previous'),
+      next: t('network.next'),
+      previousTitle: t('network.previousPage'),
+      nextTitle: t('network.nextPage'),
+      pageLabel: t('network.pageShort', { page, totalPages })
+    }
+  })
+}
+
+export function renderNetworkFooter(state) {
+  const { filtered, pageSize, page, totalPages, countText } = getNetworkPaginationSummary(state)
+  return renderPagination({
+    page,
+    totalItems: filtered,
+    pageSize,
+    countLabel: countText,
+    countClassName: 'network-footer-count',
+    countAttrs: { id: 'full-network-footer-count' },
+    dataAction: 'full-network-page',
+    className: 'network-pagination-controls',
+    buttonClassName: 'btn network-page-btn',
+    labels: {
+      previous: t('network.previous'),
+      next: t('network.next'),
+      previousTitle: t('network.previousPage'),
+      nextTitle: t('network.nextPage'),
+      pageLabel: t('network.pageShort', { page, totalPages })
+    }
+  })
 }
 
 export function renderNetworkPage(state) {
-  const total = state.networkEntries.filter(isRenderableNetworkEntry).length
-  const filtered = state.filteredNetworkEntries?.length ?? total
-  const pageSize = Number(state.networkPagination?.pageSize || 100)
-  const page = Number(state.networkPagination?.page || 1)
-  const start = filtered ? ((page - 1) * pageSize) + 1 : 0
-  const end = Math.min(filtered, page * pageSize)
-  const countText = filtered ? t('network.pageCount', { start, end, filtered, total }) : t('network.resultsCount', { filtered, total })
-
   return `
     <section class="split-page network-page">
       <section class="card filters-card network-filters-card">
@@ -103,8 +136,7 @@ export function renderNetworkPage(state) {
           ${renderNetworkRows(state)}
         </div>
         <div class="network-table-footer" id="full-network-pagination">
-          <span class="network-footer-count" id="full-network-footer-count">${escapeHtml(countText)}</span>
-          ${renderNetworkPagination(state)}
+          ${renderNetworkFooter(state)}
         </div>
       </section>
     </section>

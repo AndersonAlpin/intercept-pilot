@@ -48,7 +48,7 @@ const es = {
     advanced: 'Avanzado ↗', advancedEditor: '¿Necesitas headers, regex, prioridad o diagnósticos? Abrir editor avanzado ↗',
     createRule: 'Crear regla', editRule: 'Editar regla', ruleName: 'Nombre de regla', urlPattern: 'Patrón de URL',
     actionType: 'Tipo de acción', statusCode: 'Código de estado', delayMs: 'Delay ms',
-    createEnabledRule: 'Crear regla habilitada', saveQuickEdit: 'Guardar edición rápida', mockThis: 'Mockear', inspect: 'Inspeccionar ↗',
+    createEnabledRule: 'Crear regla habilitada', saveQuickEdit: 'Guardar edición rápida', mockThis: 'Crear regla', inspect: 'Inspeccionar ↗',
     noRequests: 'Sin requests todavía.', passThrough: 'passThrough', noMatch: 'Sin match',
     saveSuccess: 'Regla guardada.', saveError: 'Error al guardar regla.', deleteConfirm: '¿Eliminar esta regla?',
     deleteTitle: 'Eliminar regla', deleteSuccess: 'Regla eliminada.',
