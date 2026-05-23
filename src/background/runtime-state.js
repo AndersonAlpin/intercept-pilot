@@ -11,6 +11,7 @@ export const runtimeState = {
   networkEntrySeq: 0,
   networkEntries: [],
   networkIndex: new Map(),
+  networkPublishTimer: null,
   requestEntryMap: new Map(),
   ignoredRequestIds: new Set(),
   requestRuleMap: new Map(),

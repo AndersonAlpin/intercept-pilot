@@ -25,7 +25,7 @@ function getResultLabel(entry) {
 }
 
 export function renderNetworkRows(state) {
-  const entries = (state.filteredNetworkEntries || state.networkEntries).filter(isRenderableNetworkEntry)
+  const entries = (state.pagedNetworkEntries || state.filteredNetworkEntries || state.networkEntries).filter(isRenderableNetworkEntry)
   if (!entries.length) {
     const key = hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'
     return `<div class="empty">${escapeHtml(t(key))}</div>`
@@ -57,10 +57,29 @@ export function renderNetworkRows(state) {
   return `${header}${rows}`
 }
 
+export function renderNetworkPagination(state) {
+  const filtered = state.filteredNetworkEntries?.length ?? state.networkEntries.filter(isRenderableNetworkEntry).length
+  const pageSize = Number(state.networkPagination?.pageSize || 100)
+  const page = Number(state.networkPagination?.page || 1)
+  const totalPages = Math.max(1, Math.ceil(filtered / pageSize))
+  if (totalPages <= 1) return ''
+  return `
+    <div class="network-pagination-controls">
+      <button class="btn network-page-btn" type="button" data-full-network-page="prev" ${page <= 1 ? 'disabled' : ''}>${escapeHtml(t('network.previous'))}</button>
+      <span class="network-page-label">${escapeHtml(t('network.pageShort', { page, totalPages }))}</span>
+      <button class="btn network-page-btn" type="button" data-full-network-page="next" ${page >= totalPages ? 'disabled' : ''}>${escapeHtml(t('network.next'))}</button>
+    </div>
+  `
+}
+
 export function renderNetworkPage(state) {
   const total = state.networkEntries.filter(isRenderableNetworkEntry).length
   const filtered = state.filteredNetworkEntries?.length ?? total
-  const countText = t('network.resultsCount', { filtered, total })
+  const pageSize = Number(state.networkPagination?.pageSize || 100)
+  const page = Number(state.networkPagination?.page || 1)
+  const start = filtered ? ((page - 1) * pageSize) + 1 : 0
+  const end = Math.min(filtered, page * pageSize)
+  const countText = filtered ? t('network.pageCount', { start, end, filtered, total }) : t('network.resultsCount', { filtered, total })
 
   return `
     <section class="split-page network-page">
@@ -71,12 +90,15 @@ export function renderNetworkPage(state) {
           <input class="input" id="full-network-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilter.status || '')}" />
           <label class="switch"><input type="checkbox" id="full-network-intercepted" ${state.networkFilter.interceptedOnly ? 'checked' : ''}/> ${t('network.interceptedOnly')}</label>
           <button class="btn" id="full-network-clear">${t('common.clear')}</button>
-          <span class="results-count" id="full-network-count">${escapeHtml(countText)}</span>
         </div>
       </section>
       <section class="card data-card network-data-card">
         <div class="table table-wide" id="full-network-table">
           ${renderNetworkRows(state)}
+        </div>
+        <div class="network-table-footer" id="full-network-pagination">
+          <span class="network-footer-count" id="full-network-footer-count">${escapeHtml(countText)}</span>
+          ${renderNetworkPagination(state)}
         </div>
       </section>
     </section>

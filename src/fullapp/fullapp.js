@@ -28,7 +28,7 @@ import { renderDashboardPage } from './components/dashboard-page.js'
 import { renderRulesPage } from './components/rules-page.js'
 import { renderRuleEditor } from './components/rule-editor.js'
 import { renderCollectionsPage } from './components/collections-page.js'
-import { renderNetworkPage, renderNetworkRows, isRenderableNetworkEntry } from './components/network-page.js'
+import { renderNetworkPage, renderNetworkPagination, renderNetworkRows, isRenderableNetworkEntry } from './components/network-page.js'
 import { renderLogsPage } from './components/logs-page.js'
 import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
@@ -57,6 +57,10 @@ const state = {
     method: 'ANY',
     status: '',
     interceptedOnly: false
+  },
+  networkPagination: {
+    page: 1,
+    pageSize: 100
   },
   logsFilter: {
     level: 'ANY',
@@ -128,6 +132,7 @@ function applyLocalFilters() {
     if (text && !String(entry.url || '').toLowerCase().includes(text)) return false
     return true
   })
+  applyNetworkPagination()
 
   const logsScope = state.page === 'diagnostics' ? 'app' : 'web'
   state.filteredLogs = state.logs.filter(log => {
@@ -137,6 +142,21 @@ function applyLocalFilters() {
     if (text && !(`${log.message || ''} ${log.url || ''}`).toLowerCase().includes(text)) return false
     return true
   })
+}
+
+function applyNetworkPagination() {
+  const pagination = state.networkPagination || { page: 1, pageSize: 100 }
+  const pageSize = Math.max(1, Number(pagination.pageSize || 100))
+  const total = state.filteredNetworkEntries.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const page = Math.min(Math.max(1, Number(pagination.page || 1)), totalPages)
+  state.networkPagination = { page, pageSize }
+  const start = (page - 1) * pageSize
+  state.pagedNetworkEntries = state.filteredNetworkEntries.slice(start, start + pageSize)
+}
+
+function resetNetworkPage() {
+  state.networkPagination = { ...(state.networkPagination || {}), page: 1 }
 }
 
 function renderSettingsPage() {
@@ -574,13 +594,38 @@ function refreshNetworkTableOnly() {
   const table = $('#full-network-table')
   if (!table) return
   table.innerHTML = renderNetworkRows(state)
-  const countEl = $('#full-network-count')
-  if (countEl) {
+  const paginationEl = $('#full-network-pagination')
+  if (paginationEl) {
     const total = state.networkEntries.filter(isRenderableNetworkEntry).length
     const filtered = state.filteredNetworkEntries?.length ?? total
-    countEl.textContent = t('network.resultsCount', { filtered, total })
+    const pageSize = Number(state.networkPagination?.pageSize || 100)
+    const page = Number(state.networkPagination?.page || 1)
+    const start = filtered ? ((page - 1) * pageSize) + 1 : 0
+    const end = Math.min(filtered, page * pageSize)
+    const countText = filtered ? t('network.pageCount', { start, end, filtered, total }) : t('network.resultsCount', { filtered, total })
+    paginationEl.innerHTML = `<span class="network-footer-count" id="full-network-footer-count">${countText}</span>${renderNetworkPagination(state)}`
   }
   bindCreateRuleFromRequestEvents()
+  bindNetworkPaginationEvents()
+}
+
+function bindNetworkPaginationEvents() {
+  const container = $('#full-network-pagination')
+  if (!container || container.dataset.bound === 'true') return
+  container.dataset.bound = 'true'
+  container.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null
+    const button = target?.closest('[data-full-network-page]')
+    if (!button || !container.contains(button)) return
+    const direction = button.dataset.fullNetworkPage
+    const current = Number(state.networkPagination?.page || 1)
+    state.networkPagination = {
+      ...(state.networkPagination || {}),
+      page: direction === 'next' ? current + 1 : current - 1
+    }
+    applyNetworkPagination()
+    refreshNetworkTableOnly()
+  })
 }
 
 function readEditorRule() {
@@ -828,24 +873,28 @@ function bindEvents() {
 
   $('#full-network-url')?.addEventListener('input', event => {
     state.networkFilter.url = event.target.value
+    resetNetworkPage()
     applyLocalFilters()
     refreshNetworkTableOnly()
     persistFullAppNetworkFilter()
   })
   $('#full-network-method')?.addEventListener('change', event => {
     state.networkFilter.method = event.target.value
+    resetNetworkPage()
     applyLocalFilters()
     refreshNetworkTableOnly()
     persistFullAppNetworkFilter()
   })
   $('#full-network-status')?.addEventListener('input', event => {
     state.networkFilter.status = event.target.value
+    resetNetworkPage()
     applyLocalFilters()
     refreshNetworkTableOnly()
     persistFullAppNetworkFilter()
   })
   $('#full-network-intercepted')?.addEventListener('change', event => {
     state.networkFilter.interceptedOnly = event.target.checked
+    resetNetworkPage()
     applyLocalFilters()
     refreshNetworkTableOnly()
     persistFullAppNetworkFilter()
@@ -854,10 +903,12 @@ function bindEvents() {
     await sendMessage({ type: MSG.NETWORK_CLEAR })
     state.selectedNetworkEntryId = null
     state.inspector = null
+    resetNetworkPage()
     await refreshState()
   })
 
   bindCreateRuleFromRequestEvents()
+  bindNetworkPaginationEvents()
 
   $('#full-logs-level')?.addEventListener('change', event => {
     state.logsFilter.level = event.target.value

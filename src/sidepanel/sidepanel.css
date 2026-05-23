@@ -206,6 +206,58 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .table-row .footer-actions .btn { padding: 6px 10px; min-height: 28px; font-size: 12px; flex: 1; }
 .url strong, .url span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .url span { color: var(--text-muted); font-size: 12px; }
+.network-quick-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  margin-top: -2px;
+}
+.network-results-count {
+  min-width: 0;
+  white-space: nowrap;
+}
+.network-pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.network-page-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+.network-page-btn:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.network-page-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91, 130, 255, .22);
+}
+.network-page-btn:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+.network-page-label {
+  min-width: 34px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
 .network-url strong {
   white-space: normal;
   overflow: visible;

@@ -156,7 +156,7 @@ function trimNetworkEntries(max) {
   }
 }
 
-function upsertNetworkEntry(key, patch, max = Number(runtimeState.networkMaxEntries || 300)) {
+function upsertNetworkEntry(key, patch) {
   const index = runtimeState.networkIndex.get(key)
   if (index == null) {
     const entry = {
@@ -191,7 +191,6 @@ function upsertNetworkEntry(key, patch, max = Number(runtimeState.networkMaxEntr
       ...patch
     }
     runtimeState.networkEntries.unshift(entry)
-    if (runtimeState.networkEntries.length > max) trimNetworkEntries(max)
     rebuildNetworkIndex()
     return entry
   }
@@ -203,8 +202,15 @@ function upsertNetworkEntry(key, patch, max = Number(runtimeState.networkMaxEntr
   return next
 }
 
-function publishNetwork() {
+function publishNetworkNow() {
+  clearTimeout(runtimeState.networkPublishTimer)
+  runtimeState.networkPublishTimer = null
   broadcast({ type: 'state:network', networkEntries: runtimeState.networkEntries })
+}
+
+function scheduleNetworkPublish() {
+  if (runtimeState.networkPublishTimer) return
+  runtimeState.networkPublishTimer = setTimeout(publishNetworkNow, 100)
 }
 
 async function getActiveTab() {
@@ -370,10 +376,6 @@ async function syncNetworkSettingsFromState() {
   const state = await getState()
   const limit = Number(state?.settings?.maxNetworkEntries || 300)
   runtimeState.networkMaxEntries = Number.isFinite(limit) && limit > 0 ? limit : 300
-  if (runtimeState.networkEntries.length > runtimeState.networkMaxEntries) {
-    trimNetworkEntries(runtimeState.networkMaxEntries)
-    rebuildNetworkIndex()
-  }
 }
 
 function ensureHitCounter(rule) {
@@ -501,7 +503,7 @@ async function applyRule(params, rule) {
     appliedAction: actionType,
     intercepted: actionType !== 'passThrough'
   })
-  publishNetwork()
+  scheduleNetworkPublish()
 
   if (actionType === 'delayOnly') {
     if (Number(action.delayMs || 0) > 0) {
@@ -626,7 +628,7 @@ async function handleRequestPaused(source, params) {
       appliedAction: 'passThrough',
       intercepted: false
     })
-    publishNetwork()
+    scheduleNetworkPublish()
     await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId })
     return
   }
@@ -676,7 +678,7 @@ function handleNetworkRequestWillBeSent(source, params) {
     requestPostData: trimmedPost,
     requestPostDataTruncated: postTruncated
   })
-  publishNetwork()
+  scheduleNetworkPublish()
 }
 
 function handleNetworkRequestWillBeSentExtraInfo(source, params) {
@@ -712,7 +714,7 @@ function handleNetworkResponseReceived(source, params) {
     appliedAction: existingRule?.action?.type || 'passThrough',
     timing: response.timing || null
   })
-  publishNetwork()
+  scheduleNetworkPublish()
 }
 
 function handleNetworkResponseReceivedExtraInfo(source, params) {
@@ -742,7 +744,7 @@ function handleLoadingFinished(source, params) {
   upsertNetworkEntry(key, { endedAt: Date.now() })
   releaseNetworkEntryId(params.requestId)
   runtimeState.requestRuleMap.delete(String(params.requestId || ''))
-  publishNetwork()
+  scheduleNetworkPublish()
 }
 
 function handleLoadingFailed(source, params) {
@@ -761,7 +763,7 @@ function handleLoadingFailed(source, params) {
   })
   releaseNetworkEntryId(params.requestId)
   runtimeState.requestRuleMap.delete(String(params.requestId || ''))
-  publishNetwork()
+  scheduleNetworkPublish()
 }
 
 async function handleNetworkGetBody(message) {
@@ -804,7 +806,8 @@ async function clearNetworkEntries() {
   runtimeState.networkIndex.clear()
   runtimeState.requestEntryMap.clear()
   runtimeState.ignoredRequestIds.clear()
-  publishNetwork()
+  runtimeState.requestRuleMap.clear()
+  publishNetworkNow()
   return []
 }
 

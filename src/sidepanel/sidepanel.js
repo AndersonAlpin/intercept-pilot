@@ -17,7 +17,7 @@ import { renderConnectionHeader } from './components/connection-header.js'
 import { renderCollectionSwitcher } from './components/collection-switcher.js'
 import { renderTabs } from './components/tabs.js'
 import { renderRulesQuickPanel, renderQuickRuleEditor } from './components/rules-quick-panel.js'
-import { renderNetworkQuickCount, renderNetworkQuickPanel, renderNetworkQuickRows } from './components/network-quick-panel.js'
+import { renderNetworkQuickCount, renderNetworkQuickPagination, renderNetworkQuickPanel, renderNetworkQuickRows } from './components/network-quick-panel.js'
 import { renderLogsQuickPanel } from './components/logs-quick-panel.js'
 
 const appState = {
@@ -40,6 +40,10 @@ const appState = {
     method: 'ANY',
     status: '',
     interceptedOnly: false
+  },
+  networkPagination: {
+    page: 1,
+    pageSize: 50
   },
   networkFiltersHydrated: false,
   logsErrorOnly: false,
@@ -142,6 +146,22 @@ function filteredLogs() {
 
 function applyNetworkFilters() {
   appState.filteredNetworkEntries = filteredNetworkEntries()
+  applyNetworkPagination()
+}
+
+function applyNetworkPagination() {
+  const pagination = appState.networkPagination || { page: 1, pageSize: 50 }
+  const pageSize = Math.max(1, Number(pagination.pageSize || 50))
+  const total = appState.filteredNetworkEntries.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const page = Math.min(Math.max(1, Number(pagination.page || 1)), totalPages)
+  appState.networkPagination = { page, pageSize }
+  const start = (page - 1) * pageSize
+  appState.pagedNetworkEntries = appState.filteredNetworkEntries.slice(start, start + pageSize)
+}
+
+function resetNetworkPage() {
+  appState.networkPagination = { ...(appState.networkPagination || {}), page: 1 }
 }
 
 function bindNetworkRowEvents() {
@@ -174,6 +194,24 @@ function bindNetworkRowEvents() {
   })
 }
 
+function bindNetworkPaginationEvents() {
+  const container = $('#network-pagination-controls')
+  if (!container || container.dataset.bound === 'true') return
+  container.dataset.bound = 'true'
+  container.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null
+    const button = target?.closest('[data-side-network-page]')
+    if (!button || !container.contains(button)) return
+    const direction = button.dataset.sideNetworkPage
+    const current = Number(appState.networkPagination?.page || 1)
+    appState.networkPagination = {
+      ...(appState.networkPagination || {}),
+      page: direction === 'next' ? current + 1 : current - 1
+    }
+    refreshSideNetworkOnly()
+  })
+}
+
 function refreshSideNetworkOnly() {
   if (appState.currentTab !== 'network') return
   const table = $('#network-entries-table')
@@ -185,7 +223,10 @@ function refreshSideNetworkOnly() {
   table.innerHTML = renderNetworkQuickRows(appState)
   const countEl = $('#network-results-count')
   if (countEl) countEl.textContent = renderNetworkQuickCount(appState)
+  const paginationEl = $('#network-pagination-controls')
+  if (paginationEl) paginationEl.innerHTML = renderNetworkQuickPagination(appState)
   bindNetworkRowEvents()
+  bindNetworkPaginationEvents()
 }
 
 function render() {
@@ -583,26 +624,31 @@ function bindEvents() {
       return
     }
     appState.networkEntries = result?.networkEntries || []
+    resetNetworkPage()
     refreshSideNetworkOnly()
   })
 
   $('#network-filter-text')?.addEventListener('input', event => {
     appState.networkFilters.text = event.target.value
+    resetNetworkPage()
     persistSidepanelNetworkFilter()
     refreshSideNetworkOnly()
   })
   $('#network-filter-method')?.addEventListener('change', event => {
     appState.networkFilters.method = event.target.value
+    resetNetworkPage()
     persistSidepanelNetworkFilter()
     refreshSideNetworkOnly()
   })
   $('#network-filter-status')?.addEventListener('input', event => {
     appState.networkFilters.status = event.target.value
+    resetNetworkPage()
     persistSidepanelNetworkFilter()
     refreshSideNetworkOnly()
   })
   $('#network-filter-intercepted')?.addEventListener('change', event => {
     appState.networkFilters.interceptedOnly = event.target.checked
+    resetNetworkPage()
     persistSidepanelNetworkFilter()
     refreshSideNetworkOnly()
   })
@@ -619,6 +665,7 @@ function bindEvents() {
   }
 
   bindNetworkRowEvents()
+  bindNetworkPaginationEvents()
 
   $('#logs-error-only')?.addEventListener('change', event => {
     appState.logsErrorOnly = event.target.checked

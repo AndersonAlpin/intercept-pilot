@@ -27,15 +27,35 @@ function hasActiveFilter(state) {
 export function renderNetworkQuickCount(state) {
   const total = (state.networkEntries || []).filter(isRenderableNetworkEntry).length
   const filtered = (state.filteredNetworkEntries || []).length
-  return t('network.resultsCount', { filtered, total })
+  if (!filtered) return t('network.compactPageCountEmpty', { total })
+  const pageSize = Number(state.networkPagination?.pageSize || 50)
+  const page = Number(state.networkPagination?.page || 1)
+  const start = ((page - 1) * pageSize) + 1
+  const end = Math.min(filtered, page * pageSize)
+  return t('network.compactPageCount', { start, end, filtered })
+}
+
+export function renderNetworkQuickPagination(state) {
+  const filtered = (state.filteredNetworkEntries || []).length
+  const pageSize = Number(state.networkPagination?.pageSize || 50)
+  const page = Number(state.networkPagination?.page || 1)
+  const totalPages = Math.max(1, Math.ceil(filtered / pageSize))
+  if (totalPages <= 1) return ''
+  return `
+    <div class="network-pagination">
+      <button class="network-page-btn" type="button" data-side-network-page="prev" title="${escapeHtml(t('network.previousPage'))}" aria-label="${escapeHtml(t('network.previousPage'))}" ${page <= 1 ? 'disabled' : ''}>‹</button>
+      <span class="network-page-label" aria-label="${escapeHtml(t('network.pageOf', { page, totalPages }))}">${page}/${totalPages}</span>
+      <button class="network-page-btn" type="button" data-side-network-page="next" title="${escapeHtml(t('network.nextPage'))}" aria-label="${escapeHtml(t('network.nextPage'))}" ${page >= totalPages ? 'disabled' : ''}>›</button>
+    </div>
+  `
 }
 
 export function renderNetworkQuickRows(state) {
-  const entries = state.filteredNetworkEntries || []
+  const entries = state.pagedNetworkEntries || state.filteredNetworkEntries || []
   if (!entries.length) {
     return `<div class="empty">${t(hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests')}</div>`
   }
-  return entries.slice(0, 20).map(entry => `
+  return entries.map(entry => `
     <div class="table-row">
       <div><strong>${escapeHtml(entry.method || '—')}</strong></div>
       <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</strong><span>${escapeHtml(getAppliedRuleLabel(entry))}</span></div>
@@ -64,7 +84,10 @@ export function renderNetworkQuickPanel(state) {
           <select class="select" id="network-filter-method">${['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS'].map(method => `<option value="${method}" ${state.networkFilters.method === method ? 'selected' : ''}>${method}</option>`).join('')}</select>
           <input class="input" id="network-filter-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilters.status)}" />
           <label class="switch"><input type="checkbox" id="network-filter-intercepted" ${state.networkFilters.interceptedOnly ? 'checked' : ''}/> ${t('network.interceptedOnly')}</label>
-          <span class="small" id="network-results-count">${escapeHtml(renderNetworkQuickCount(state))}</span>
+          <div class="network-quick-meta">
+            <span class="small network-results-count" id="network-results-count">${escapeHtml(renderNetworkQuickCount(state))}</span>
+            <div id="network-pagination-controls">${renderNetworkQuickPagination(state)}</div>
+          </div>
         </div>
       </div>
       <div class="table" id="network-entries-table">

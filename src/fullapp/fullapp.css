@@ -82,6 +82,44 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .logs-data-card .table,
 .rules-data-card .table,
 .collections-data-card .table { flex: 1; min-height: 0; overflow-y: auto; overflow-x: auto; }
+.network-table-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.network-footer-count {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.network-pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+.network-page-btn {
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.network-page-btn:disabled {
+  opacity: .42;
+}
+.network-page-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .grid { display: grid; gap: 12px; }
 .grid.cards4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
