@@ -158,7 +158,7 @@ const pt = {
     autoAttach: 'Auto-anexar', autoReloadAfterRuleChange: 'Auto recarregar após alterar regra',
     maxNetworkEntries: 'Máximo de entradas de rede', maxLogs: 'Máximo de logs',
     networkIgnorePatterns: 'Ocultar requests contendo', networkIgnorePatternPlaceholder: 'Adicionar padrão...',
-    networkIgnorePatternsHelp: 'Pressione Enter ou ; para adicionar. Requests com esses trechos ficam ocultas na Network.',
+    networkIgnorePatternsHelp: 'Pressione Enter para adicionar. Requests com esses trechos ficam ocultas na Network.',
     removeNetworkIgnorePattern: 'Remover {pattern}',
     attachedUrl: 'URL Anexada', attachedTabId: 'ID da Aba Anexada', isAttached: 'Status de Anexo', enabledRules: 'Regras Ativas',
     invalidRules: 'Regras Inválidas', recentRuntimeLogs: 'Logs recentes do runtime', noLogs: 'Sem logs.',

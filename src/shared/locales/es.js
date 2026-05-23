@@ -158,7 +158,7 @@ const es = {
     autoAttach: 'Auto-adjuntar', autoReloadAfterRuleChange: 'Auto-recargar tras cambio de regla',
     maxNetworkEntries: 'Máx. entradas de red', maxLogs: 'Máx. logs',
     networkIgnorePatterns: 'Ocultar requests que contienen', networkIgnorePatternPlaceholder: 'Agregar patrón...',
-    networkIgnorePatternsHelp: 'Presiona Enter o ; para agregar. Las requests con esos fragmentos quedan ocultas en Network.',
+    networkIgnorePatternsHelp: 'Presiona Enter para agregar. Las requests con esos fragmentos quedan ocultas en Network.',
     removeNetworkIgnorePattern: 'Eliminar {pattern}',
     attachedUrl: 'URL Adjuntada',
     attachedTabId: 'ID de la Pestaña Adjuntada', isAttached: 'Estado de Adjunción', enabledRules: 'Reglas Habilitadas',

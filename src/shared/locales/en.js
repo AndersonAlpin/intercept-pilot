@@ -266,7 +266,7 @@ const en = {
     maxLogs: 'Max logs',
     networkIgnorePatterns: 'Hide requests containing',
     networkIgnorePatternPlaceholder: 'Add pattern...',
-    networkIgnorePatternsHelp: 'Press Enter or ; to add. Requests containing these snippets are hidden in Network.',
+    networkIgnorePatternsHelp: 'Press Enter to add. Requests containing these snippets are hidden in Network.',
     removeNetworkIgnorePattern: 'Remove {pattern}',
     attachedUrl: 'Attached URL',
     attachedTabId: 'Attached Tab ID',
