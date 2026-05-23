@@ -27,8 +27,14 @@ function getResultLabel(entry) {
 export function renderNetworkRows(state) {
   const entries = (state.pagedNetworkEntries || state.filteredNetworkEntries || state.networkEntries).filter(isRenderableNetworkEntry)
   if (!entries.length) {
+    const lightCapture = state.settings?.captureMode === 'compat' || Boolean(state.compatActiveTabId)
     const key = hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'
-    return `<div class="empty">${escapeHtml(t(key))}</div>`
+    return `
+      <div class="empty">
+        <div>${escapeHtml(t(key))}</div>
+        ${lightCapture ? `<div class="empty-helper">${escapeHtml(t('network.lightCaptureHelper'))}</div>` : ''}
+      </div>
+    `
   }
   const header = `
     <div class="table-row row-network rules-header" role="row">

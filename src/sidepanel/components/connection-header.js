@@ -1,54 +1,64 @@
 import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { getCapturedTab, getCaptureNewTabCandidate, getContextTab, getStartCandidateTab } from '../../shared/capture-tabs.js'
 
 export function renderConnectionHeader(state) {
   const attachedTab = state.attachedTab || null
-  const candidateTab = state.candidateTab || state.lastAttachableTab || null
-  const attached = Boolean(state.attachedTabId && attachedTab)
-  const autoAttachEnabled = Boolean(state.settings?.autoAttach)
-  const statusClass = state.attachBusy ? 'is-busy' : attached ? 'is-attached' : 'is-detached'
+  const compatActiveTab = state.compatActiveTab || null
+  const candidateTab = getStartCandidateTab(state)
+  const captureTab = getCapturedTab(state)
+  const captureActive = Boolean(captureTab)
+  const contextTab = getContextTab(state)
+  const lightCaptureActive = Boolean(compatActiveTab && !attachedTab)
+  const newCandidate = getCaptureNewTabCandidate(state)
+  const canStart = !captureActive && Boolean(candidateTab)
+  const statusClass = state.attachBusy ? 'is-busy' : captureActive ? 'is-attached' : 'is-detached'
   const statusText = state.attachBusy
     ? t('status.connecting')
-    : attached
-      ? t('status.attachedTabNumber', { position: attachedTab.position || '?' })
-      : t('status.notAttached')
-  const eligibilityText = attached || candidateTab ? '' : t('status.noEligibleTab')
-  const primaryTab = attached ? attachedTab : candidateTab
-  const primaryTitle = primaryTab?.title || t('status.noAttachableTab')
-  const primaryUrl = primaryTab?.url || ''
-  const canFocusTab = Boolean(primaryTab?.id)
-  const canReload = Boolean(state.attachedTab?.id || state.candidateTab?.id || state.lastAttachableTab?.id)
+    : captureActive
+      ? t('status.captureActiveTabNumber', { position: captureTab.position || '?' })
+      : t('status.captureInactive')
+  const title = contextTab ? (contextTab.title || t('status.noCapturableTab')) : t('status.noCapturableTab')
+  const titleUrl = contextTab?.url || ''
+  const canReload = captureActive || Boolean(candidateTab)
 
   return `
     <header class="header">
       <div class="header-top">
-        <div class="brand">
-          <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
-          <p class="attach-status ${statusClass}">${statusText}</p>
-          ${eligibilityText ? `<p class="url-muted">${escapeHtml(eligibilityText)}</p>` : ''}
-          ${canFocusTab
-            ? `<button class="tab-focus-link" id="side-focus-tab-btn" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</button>`
-            : (eligibilityText ? '' : `<p class="url-muted" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 52))}</p>`)
-          }
-          ${autoAttachEnabled ? `<button class="auto-attach-link" id="side-open-auto-attach-settings" title="${escapeHtml(t('status.openAutoAttachSettings'))}" aria-label="${escapeHtml(t('status.openAutoAttachSettings'))}">${t('status.autoAttachActive')}</button>` : ''}
-        </div>
-        <div class="header-actions compact ${autoAttachEnabled ? 'is-auto' : ''}">
-          <button class="btn btn-open" id="open-fullapp-btn">${t('common.open')}</button>
-          ${autoAttachEnabled
-            ? `
-              <button class="btn btn-reload-main" id="reload-tab-btn" ${(!canReload || state.attachBusy) ? 'disabled' : ''}>${t('common.reload')}</button>
-            `
-            : `
-              <button class="btn btn-attach ${attached ? 'warning' : 'primary'}" id="attach-btn" ${state.attachBusy ? 'disabled' : ''}>${state.attachBusy ? t('status.connecting') : attached ? t('common.reattach') : t('common.attach')}</button>
-              <button class="btn ghost btn-detach" id="detach-btn" ${(!attached || state.attachBusy) ? 'disabled' : ''}>${t('common.detach')}</button>
-            `}
-        </div>
+        <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
+        <button class="btn btn-open" id="open-fullapp-btn">${t('common.open')}</button>
       </div>
-      ${autoAttachEnabled ? '' : `
-        <div class="header-secondary">
-          <button class="link-btn" id="reload-tab-btn" ${(!canReload || state.attachBusy) ? 'disabled' : ''}>${t('status.reloadHint')}</button>
-        </div>
-      `}
+
+      <div class="capture-context">
+        <p class="attach-status ${statusClass}">${escapeHtml(statusText)}</p>
+        ${contextTab
+          ? `<button class="tab-focus-link" id="side-focus-tab-btn" title="${escapeHtml(titleUrl)}">${escapeHtml(truncate(title, 58))}</button>`
+          : `<p class="tab-context-empty">${escapeHtml(title)}</p>`
+        }
+        ${lightCaptureActive ? `
+          <button
+            type="button"
+            class="capture-mode-line"
+            id="side-capture-mode-settings"
+            title="${escapeHtml(t('status.lightCaptureTooltip'))}"
+          >${escapeHtml(t('status.lightCaptureFetchOnly'))}</button>
+        ` : ''}
+      </div>
+
+      <div class="capture-actions">
+        ${captureActive ? `
+          <div class="capture-actions-main">
+            <button class="btn" id="reload-tab-btn" title="${escapeHtml(t('status.reloadPage'))}" aria-label="${escapeHtml(t('status.reloadPage'))}" ${(!canReload || state.attachBusy) ? 'disabled' : ''}>${t('common.reload')}</button>
+            <button class="btn warning" id="attach-btn" data-tab-id="${escapeHtml(String(captureTab.id || ''))}" title="${escapeHtml(t('status.restartCapture'))}" aria-label="${escapeHtml(t('status.restartCapture'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.restartCaptureShort')}</button>
+            <button class="btn ghost" id="detach-btn" data-tab-id="${escapeHtml(String(captureTab.id || ''))}" title="${escapeHtml(t('status.stopCapture'))}" aria-label="${escapeHtml(t('status.stopCapture'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.stopCaptureShort')}</button>
+          </div>
+          ${newCandidate ? `
+            <button class="btn capture-new-tab-btn" id="attach-new-tab-btn" data-tab-id="${escapeHtml(String(newCandidate.id || ''))}" title="${escapeHtml(t('status.captureNewTab'))}" aria-label="${escapeHtml(t('status.captureNewTab'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.captureNewTab')}</button>
+          ` : ''}
+        ` : `
+          <button class="btn primary capture-start-btn" id="attach-btn" data-tab-id="${escapeHtml(String(candidateTab?.id || ''))}" ${(!canStart || state.attachBusy) ? 'disabled' : ''}>${state.attachBusy ? t('status.connecting') : t('status.startCapture')}</button>
+        `}
+      </div>
     </header>
   `
 }

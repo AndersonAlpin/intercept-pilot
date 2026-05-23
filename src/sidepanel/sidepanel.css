@@ -20,21 +20,11 @@
 body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 Inter, Segoe UI, Arial, sans-serif; }
 button,input,select,textarea { font: inherit; color: inherit; }
 #app { min-height: 100vh; }
-.header { position: sticky; top: 0; z-index: 10; background: rgba(11,15,23,.96); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 14px; }
-.header-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-.brand { flex: 1; min-width: 0; }
-.brand h1 { margin: 0; font-size: 22px; }
-.brand-logo { height: 26px; width: auto; display: block; margin-bottom: 4px; }
+.header { position: sticky; top: 0; z-index: 10; background: rgba(11,15,23,.96); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.header-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.brand-logo { height: 26px; width: auto; display: block; }
+.capture-context { min-width: 0; }
 .attach-status { margin: 2px 0 0; display: inline-flex; align-items: center; gap: 6px; color: var(--text-soft); }
-.attach-status-link {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
-}
-.attach-status-link:hover { text-decoration: underline; color: #c9d9ff; }
-.attach-status-link:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .22); }
 .attach-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
 .attach-status.is-attached::before { background: var(--success); }
 .attach-status.is-detached::before { background: var(--danger); }
@@ -45,28 +35,15 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .auto-attach-link { margin: 2px 0 0; border: 0; background: transparent; color: var(--accent-strong); font: inherit; font-size: 12px; line-height: 1.35; text-align: left; padding: 0; cursor: pointer; }
 .auto-attach-link:hover { color: #c9d9ff; text-decoration: underline; }
 .auto-attach-link:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .22); }
-.url-muted { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
-.header-actions { display: flex; gap: 8px; justify-content: flex-end; padding-left: 6px; }
-.header-actions.compact {
-  width: 176px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  align-items: stretch;
-}
-.header-actions.compact .btn {
-  width: 100%;
-  min-width: 0;
-  min-height: 38px;
-  padding: 9px 10px;
-}
-.header-actions.compact .btn-open { grid-column: 1 / -1; }
-.header-actions.compact.is-auto {
-  grid-template-columns: 1fr;
-}
-.header-actions.compact.is-auto .btn-reload-main {
-  min-height: 38px;
-}
+.tab-context-empty { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+.capture-mode-line { margin: 4px 0 0; border: 0; background: transparent; color: var(--text-muted); font: inherit; font-size: 12px; line-height: 1.35; text-align: left; padding: 0; cursor: pointer; }
+.capture-mode-line:hover { color: #c9d9ff; text-decoration: underline; }
+.capture-mode-line:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .22); }
+.capture-actions { display: flex; flex-direction: column; gap: 8px; }
+.capture-actions-main { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.capture-actions .btn { width: 100%; min-width: 0; min-height: 36px; padding: 8px 9px; }
+.capture-start-btn,
+.capture-new-tab-btn { width: 100%; }
 .actions-menu { position: relative; }
 .actions-menu summary { list-style: none; }
 .actions-menu summary::-webkit-details-marker { display: none; }
@@ -267,6 +244,7 @@ button,input,select,textarea { font: inherit; color: inherit; }
   line-height: 1.35;
 }
 .empty { border: 1px dashed var(--border); border-radius: 10px; padding: 14px; text-align: center; color: var(--text-muted); }
+.empty-helper { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
 .small { color: var(--text-muted); font-size: 12px; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(6, 9, 14, .72); display: flex; align-items: center; justify-content: center; padding: 14px; z-index: 50; }
 .modal { width: 100%; max-height: 88vh; overflow: auto; background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 16px 40px rgba(0, 0, 0, .5); }

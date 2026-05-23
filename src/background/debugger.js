@@ -180,6 +180,13 @@ function buildCrossExtensionErrorCode(labels) {
   return `attachCrossExtension:${JSON.stringify(list)}`
 }
 
+function isDebuggerBusyError(error) {
+  const message = String(error?.message || error || '').toLowerCase()
+  return message.includes('another debugger is already attached')
+    || message.includes('already attached')
+    || message.includes('target is already attached')
+}
+
 export async function attachToTab(tabId) {
   if (!tabId) throw new Error('attachNoTab')
   if (runtimeState.attachedTabId === tabId) return ensureAttachedDomainsReady(tabId)
@@ -199,6 +206,9 @@ export async function attachToTab(tabId) {
     try {
       await chrome.debugger.attach({ tabId }, '1.3')
     } catch (initialError) {
+      if (isDebuggerBusyError(initialError)) {
+        throw new Error('attachDebuggerBusy')
+      }
       if (isCrossExtensionAccessError(initialError)) {
         const ids = await getCrossExtensionFrameIds(tabId)
         const labels = await resolveExtensionLabels(ids)
@@ -213,7 +223,14 @@ export async function attachToTab(tabId) {
       }
       const fallbackTargetId = await findPageTargetIdForTab(tabId)
       if (!fallbackTargetId) throw new Error('attachCannotAttach')
-      await chrome.debugger.attach({ targetId: fallbackTargetId }, '1.3')
+      try {
+        await chrome.debugger.attach({ targetId: fallbackTargetId }, '1.3')
+      } catch (fallbackError) {
+        if (isDebuggerBusyError(fallbackError)) {
+          throw new Error('attachDebuggerBusy')
+        }
+        throw fallbackError
+      }
       attachedVia = 'targetId'
       attachedTargetId = fallbackTargetId
     }

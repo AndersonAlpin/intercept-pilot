@@ -53,7 +53,13 @@ export function renderNetworkQuickPagination(state) {
 export function renderNetworkQuickRows(state) {
   const entries = state.pagedNetworkEntries || state.filteredNetworkEntries || []
   if (!entries.length) {
-    return `<div class="empty">${t(hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests')}</div>`
+    const lightCapture = state.settings?.captureMode === 'compat' || Boolean(state.compatActiveTabId)
+    return `
+      <div class="empty">
+        <div>${escapeHtml(t(hasActiveFilter(state) ? 'network.noResults' : 'network.noRequests'))}</div>
+        ${lightCapture ? `<div class="empty-helper">${escapeHtml(t('network.lightCaptureHelper'))}</div>` : ''}
+      </div>
+    `
   }
   return entries.map(entry => `
     <div class="table-row">

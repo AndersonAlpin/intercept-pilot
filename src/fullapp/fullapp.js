@@ -42,9 +42,11 @@ const state = {
   networkEntries: [],
   activeTab: null,
   attachedTab: null,
+  compatActiveTab: null,
   candidateTab: null,
   lastAttachableTab: null,
   attachedTabId: null,
+  compatActiveTabId: null,
   settings: {},
 
   editingRule: null,
@@ -201,20 +203,68 @@ function removeNetworkIgnorePattern(pattern) {
   refreshNetworkIgnoreChips()
 }
 
+function captureModeLabels() {
+  return {
+    auto: {
+      label: t('fullapp.captureModeAuto'),
+      description: t('fullapp.captureModeAutoDescription')
+    },
+    cdp: {
+      label: t('fullapp.captureModeFull'),
+      description: t('fullapp.captureModeFullDescription')
+    },
+    compat: {
+      label: t('fullapp.captureModeLight'),
+      description: t('fullapp.captureModeLightDescription')
+    }
+  }
+}
+
+function setCaptureModeOptionText(select, expanded) {
+  if (!select) return
+  const labels = captureModeLabels()
+  Array.from(select.options).forEach(option => {
+    const item = labels[option.value]
+    if (!item) return
+    option.textContent = expanded ? `${item.label} — ${item.description}` : item.label
+  })
+}
+
+function bindCaptureModeSelect() {
+  const select = $('#settings-capture-mode')
+  if (!select) return
+  setCaptureModeOptionText(select, false)
+  const expand = () => setCaptureModeOptionText(select, true)
+  const compact = () => setTimeout(() => setCaptureModeOptionText(select, false), 0)
+  select.addEventListener('pointerdown', expand)
+  select.addEventListener('keydown', event => {
+    if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) expand()
+  })
+  select.addEventListener('change', compact)
+  select.addEventListener('blur', compact)
+}
+
 function renderSettingsPage() {
   const lang = state.settings.language || 'en'
+  const captureMode = state.settings.captureMode || 'auto'
   return `
     <section class="card">
       <h3>${t('common.settings')}</h3>
       <div class="grid two">
-        <label class="switch"><input type="checkbox" id="settings-auto-attach" ${state.settings.autoAttach ? 'checked' : ''}/> ${t('fullapp.autoAttach')}</label>
-        <label class="switch"><input type="checkbox" id="settings-auto-reload" ${state.settings.autoReloadAfterRuleChange ? 'checked' : ''}/> ${t('fullapp.autoReloadAfterRuleChange')}</label>
         <div>
           <div class="muted">${t('language.title')}</div>
           <select class="select" id="settings-language">
             <option value="en" ${lang === 'en' ? 'selected' : ''}>${t('language.english')}</option>
             <option value="pt" ${lang === 'pt' ? 'selected' : ''}>${t('language.portuguese')}</option>
             <option value="es" ${lang === 'es' ? 'selected' : ''}>${t('language.spanish')}</option>
+          </select>
+        </div>
+        <div>
+          <div class="muted">${t('fullapp.captureMode')}</div>
+          <select class="select" id="settings-capture-mode">
+            <option value="auto" ${captureMode === 'auto' ? 'selected' : ''}>${t('fullapp.captureModeAuto')}</option>
+            <option value="cdp" ${captureMode === 'cdp' ? 'selected' : ''}>${t('fullapp.captureModeFull')}</option>
+            <option value="compat" ${captureMode === 'compat' ? 'selected' : ''}>${t('fullapp.captureModeLight')}</option>
           </select>
         </div>
         <div>
@@ -233,6 +283,8 @@ function renderSettingsPage() {
           </div>
           <div class="muted">${t('fullapp.networkIgnorePatternsHelp')}</div>
         </div>
+        <label class="switch"><input type="checkbox" id="settings-auto-attach" ${state.settings.autoAttach ? 'checked' : ''}/> ${t('fullapp.autoAttach')}</label>
+        <label class="switch"><input type="checkbox" id="settings-auto-reload" ${state.settings.autoReloadAfterRuleChange ? 'checked' : ''}/> ${t('fullapp.autoReloadAfterRuleChange')}</label>
       </div>
       <div class="footer-actions"><button class="btn primary" id="settings-save-btn">${t('fullapp.saveSettings')}</button></div>
     </section>
@@ -267,20 +319,32 @@ function render() {
 }
 
 function bindTopbarEvents() {
-  $('#full-attach-btn')?.addEventListener('click', async () => {
-    const preferredTabId = state.candidateTab?.id || state.lastAttachableTab?.id || null
-    const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
+  const startOrRestartCapture = async button => {
+    const buttonTabId = Number(button?.dataset.tabId || 0) || null
+    const preferredTabId = buttonTabId || state.compatActiveTab?.id || state.attachedTab?.id || state.candidateTab?.id || state.lastAttachableTab?.id || null
+    const result = await sendMessage({
+      type: MSG.DEBUG_ATTACH,
+      tabId: preferredTabId
+    })
     if (result?.error) {
       toastError(translateBackendError(result.error), backendErrorDuration(result.error))
       return
     }
     await refreshState()
-  })
+  }
+  $('#full-attach-btn')?.addEventListener('click', event => startOrRestartCapture(event.currentTarget))
+  $('#full-attach-new-tab-btn')?.addEventListener('click', event => startOrRestartCapture(event.currentTarget))
   $('#full-detach-btn')?.addEventListener('click', async () => {
-    await sendMessage({ type: MSG.DEBUG_DETACH })
+    const button = $('#full-detach-btn')
+    const targetTabId = Number(button?.dataset.tabId || 0) || state.compatActiveTab?.id || state.attachedTab?.id || null
+    await sendMessage({ type: MSG.DEBUG_DETACH, tabId: targetTabId })
     await refreshState()
   })
   $('#full-open-auto-attach-settings')?.addEventListener('click', () => {
+    state.page = 'settings'
+    render()
+  })
+  $('#full-capture-mode-settings')?.addEventListener('click', () => {
     state.page = 'settings'
     render()
   })
@@ -289,7 +353,7 @@ function bindTopbarEvents() {
     if (result?.error) toastError(translateBackendError(result.error))
   })
   $('#full-focus-tab-btn')?.addEventListener('click', async () => {
-    const targetTabId = state.attachedTab?.id || state.candidateTab?.id || state.lastAttachableTab?.id || null
+    const targetTabId = state.attachedTab?.id || state.compatActiveTab?.id || state.candidateTab?.id || state.lastAttachableTab?.id || null
     if (!targetTabId) return
     await chrome.tabs.update(targetTabId, { active: true }).catch(() => {})
     const tab = await chrome.tabs.get(targetTabId).catch(() => null)
@@ -323,9 +387,11 @@ function sameTabRef(a, b) {
 function connectionChanged(current, next) {
   return (current.attachedTabId ?? null) !== (next.attachedTabId ?? null)
     || !sameTabRef(current.attachedTab, next.attachedTab)
+    || !sameTabRef(current.compatActiveTab, next.compatActiveTab)
     || !sameTabRef(current.activeTab, next.activeTab)
     || !sameTabRef(current.candidateTab, next.candidateTab)
     || !sameTabRef(current.lastAttachableTab, next.lastAttachableTab)
+    || (current.compatActiveTabId ?? null) !== (next.compatActiveTabId ?? null)
 }
 
 let pendingConnectionPatch = null
@@ -337,24 +403,30 @@ const flushConnectionUpdate = debounce(() => {
   const current = {
     attachedTabId: state.attachedTabId ?? null,
     attachedTab: state.attachedTab ?? null,
+    compatActiveTab: state.compatActiveTab ?? null,
     activeTab: state.activeTab ?? null,
     candidateTab: state.candidateTab ?? null,
-    lastAttachableTab: state.lastAttachableTab ?? null
+    lastAttachableTab: state.lastAttachableTab ?? null,
+    compatActiveTabId: state.compatActiveTabId ?? null
   }
   const next = {
     attachedTabId: patch.attachedTabId ?? current.attachedTabId,
     attachedTab: patch.attachedTab ?? current.attachedTab,
+    compatActiveTab: patch.compatActiveTab ?? current.compatActiveTab,
     activeTab: patch.activeTab ?? current.activeTab,
     candidateTab: patch.candidateTab ?? current.candidateTab,
-    lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab
+    lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab,
+    compatActiveTabId: patch.compatActiveTabId ?? current.compatActiveTabId
   }
 
   const changed = connectionChanged(current, next)
   state.attachedTabId = next.attachedTabId
   state.attachedTab = next.attachedTab
+  state.compatActiveTab = next.compatActiveTab
   state.activeTab = next.activeTab
   state.candidateTab = next.candidateTab
   state.lastAttachableTab = next.lastAttachableTab
+  state.compatActiveTabId = next.compatActiveTabId
 
   if (!changed) return
   refreshTopbarOnly()
@@ -507,6 +579,7 @@ function translateBackendError(code) {
 function backendErrorDuration(code) {
   if (typeof code !== 'string') return undefined
   if (code === 'attachCrossExtension' || code.startsWith('attachCrossExtension:')) return 5000
+  if (code === 'attachDebuggerBusy') return 6000
   return undefined
 }
 
@@ -713,6 +786,7 @@ async function openFullPage(page) {
 function bindEvents() {
   document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => openFullPage(button.dataset.page)))
   bindTopbarEvents()
+  bindCaptureModeSelect()
 
   $('#full-rules-collection')?.addEventListener('change', async event => {
     await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { activeCollectionId: event.target.value } })
@@ -1092,6 +1166,7 @@ function bindEvents() {
       autoAttach: $('#settings-auto-attach')?.checked ?? false,
       autoReloadAfterRuleChange: $('#settings-auto-reload')?.checked ?? false,
       language: $('#settings-language')?.value || 'en',
+      captureMode: $('#settings-capture-mode')?.value || 'auto',
       maxNetworkEntries: Number($('#settings-max-network')?.value || 300),
       maxLogs: Number($('#settings-max-logs')?.value || 300),
       networkIgnorePatterns: parseNetworkIgnorePatterns([
@@ -1137,9 +1212,11 @@ chrome.runtime.onMessage.addListener(message => {
     queueConnectionPatch({
       attachedTabId: message.attachedTabId ?? null,
       attachedTab: message.attachedTab ?? null,
+      compatActiveTab: message.compatActiveTab ?? null,
       activeTab: message.activeTab ?? null,
       candidateTab: message.candidateTab ?? null,
-      lastAttachableTab: message.lastAttachableTab ?? null
+      lastAttachableTab: message.lastAttachableTab ?? null,
+      compatActiveTabId: message.compatActiveTabId ?? null
     })
   }
   if (message?.type === 'state:activeTab') {

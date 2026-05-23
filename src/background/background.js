@@ -12,6 +12,51 @@ function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
 }
 
+async function notifyCompatModeChanged(captureMode) {
+  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] }).catch(() => [])
+  await Promise.all(tabs.map(tab => (
+    tab.id
+      ? chrome.tabs.sendMessage(tab.id, { type: 'compat:modeChanged', captureMode }).catch(() => {})
+      : Promise.resolve()
+  )))
+}
+
+function getCompatActiveTabId(settings, preferredTabId = null) {
+  if (!['auto', 'compat'].includes(settings?.captureMode)) return null
+  const preferred = Number(preferredTabId || 0)
+  if (preferred && runtimeState.compatFallbackTabIds.has(preferred)) return preferred
+  const first = Array.from(runtimeState.compatFallbackTabIds)[0]
+  return first || null
+}
+
+function isCompatActiveForTab(tabId, settings) {
+  const id = Number(tabId || 0)
+  return Boolean(id && getCompatActiveTabId(settings, id) === id)
+}
+
+async function enableCompatForTab(tabId) {
+  if (!tabId) return
+  runtimeState.compatFallbackTabIds.add(Number(tabId))
+  await chrome.tabs.sendMessage(tabId, { type: 'compat:modeChanged', captureMode: 'compat' }).catch(() => {})
+}
+
+async function disableCompatForTab(tabId) {
+  if (!tabId) return
+  runtimeState.compatFallbackTabIds.delete(Number(tabId))
+  await chrome.tabs.sendMessage(tabId, { type: 'compat:modeChanged', captureMode: 'cdp' }).catch(() => {})
+}
+
+function clearCompatFallback(tabId) {
+  if (tabId) runtimeState.compatFallbackTabIds.delete(Number(tabId))
+}
+
+function getAutoCompatFallbackNotice(error) {
+  const code = String(error?.message || '')
+  if (code === 'attachDebuggerBusy') return 'compatFallbackCdpBusy'
+  if (code === 'attachCrossExtension' || code.startsWith('attachCrossExtension:')) return 'compatFallbackExtensionBlocked'
+  return ''
+}
+
 function encodeBody(body) {
   return btoa(unescape(encodeURIComponent(String(body || ''))))
 }
@@ -27,6 +72,30 @@ function parseHeaderLines(raw = '') {
       return { name: line.slice(0, idx).trim(), value: line.slice(idx + 1).trim() }
     })
     .filter(Boolean)
+}
+
+function normalizeHeaderList(headers) {
+  if (!Array.isArray(headers)) return []
+  return headers
+    .map(header => {
+      const name = String(header?.name || '').trim()
+      if (!name) return null
+      return { name, value: String(header?.value ?? '') }
+    })
+    .filter(Boolean)
+}
+
+function truncateCompatBody(body, max = 64 * 1024) {
+  if (body == null) return { body: null, truncated: false }
+  const text = String(body)
+  if (text.length <= max) return { body: text, truncated: false }
+  return { body: text.slice(0, max), truncated: true }
+}
+
+function getHeaderValue(headers, name) {
+  const target = String(name || '').toLowerCase()
+  const found = normalizeHeaderList(headers).find(header => String(header.name || '').toLowerCase() === target)
+  return found?.value || ''
 }
 
 function stringifyConsoleArg(arg) {
@@ -268,8 +337,20 @@ function isAttachableTab(tab) {
   return Boolean(tab?.id && isHttpUrl(tab?.url || ''))
 }
 
+function hasActiveCapture() {
+  return Boolean(runtimeState.attachedTabId || runtimeState.compatFallbackTabIds.size)
+}
+
+function getValidCandidateTab() {
+  if (isAttachableTab(runtimeState.candidateTab)) return runtimeState.candidateTab
+  return null
+}
+
 function getEffectiveCandidateTab() {
-  return runtimeState.candidateTab || runtimeState.lastAttachableTab || null
+  const candidate = getValidCandidateTab()
+  if (candidate) return candidate
+  if (isAttachableTab(runtimeState.lastAttachableTab)) return runtimeState.lastAttachableTab
+  return null
 }
 
 async function getAttachedTabRef() {
@@ -281,27 +362,57 @@ async function getAttachedTabRef() {
   return toTabRef(tab)
 }
 
-async function updateConnectionFromActiveTab() {
+async function getCompatTabRef(tabId) {
+  if (!tabId) return null
+  const fromActive = runtimeState.activeTab?.id === tabId ? runtimeState.activeTab : null
+  if (fromActive) return fromActive
+  const fromCandidate = runtimeState.candidateTab?.id === tabId ? runtimeState.candidateTab : null
+  if (fromCandidate) return fromCandidate
+  const fromLast = runtimeState.lastAttachableTab?.id === tabId ? runtimeState.lastAttachableTab : null
+  if (fromLast) return fromLast
+  const tab = await chrome.tabs.get(tabId).catch(() => null)
+  return toTabRef(tab)
+}
+
+async function updateConnectionFromActiveTab(options = {}) {
+  const allowCandidateUpdate = options.allowCandidateUpdate !== false
   const activeTab = await getActiveTab().catch(() => null)
   const activeRef = toTabRef(activeTab)
   runtimeState.activeTab = activeRef
+  if (!allowCandidateUpdate) {
+    if (!isAttachableTab(runtimeState.candidateTab)) runtimeState.candidateTab = null
+    if (!isAttachableTab(runtimeState.lastAttachableTab)) runtimeState.lastAttachableTab = null
+    return
+  }
   if (isAttachableTab(activeRef)) {
     runtimeState.candidateTab = activeRef
     runtimeState.lastAttachableTab = activeRef
-  } else if (!runtimeState.candidateTab || runtimeState.candidateTab.id === activeRef?.id) {
-    runtimeState.candidateTab = runtimeState.lastAttachableTab
+  } else {
+    if (!isAttachableTab(runtimeState.candidateTab) || runtimeState.candidateTab.id === activeRef?.id) {
+      runtimeState.candidateTab = null
+    }
+    if (!isAttachableTab(runtimeState.lastAttachableTab)) {
+      runtimeState.lastAttachableTab = null
+    }
   }
 }
 
 async function broadcastConnectionState() {
   const attachedTab = await getAttachedTabRef()
+  const state = await getState()
+  const candidate = getValidCandidateTab()
+  const effectiveCandidate = getEffectiveCandidateTab()
+  const compatActiveTabId = getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null)
+  const compatActiveTab = await getCompatTabRef(compatActiveTabId)
   broadcast({
     type: 'state:connection',
     attachedTabId: runtimeState.attachedTabId,
     attachedTab,
+    compatActiveTab,
     activeTab: runtimeState.activeTab,
-    candidateTab: getEffectiveCandidateTab(),
-    lastAttachableTab: runtimeState.lastAttachableTab
+    candidateTab: candidate,
+    lastAttachableTab: runtimeState.lastAttachableTab,
+    compatActiveTabId
   })
 }
 
@@ -333,8 +444,12 @@ async function resolveAttachTargetTab(message, sender) {
 
 async function getFullState() {
   const state = await getState()
-  await updateConnectionFromActiveTab()
+  await updateConnectionFromActiveTab({ allowCandidateUpdate: !hasActiveCapture() })
   const attachedTab = await getAttachedTabRef()
+  const candidate = getValidCandidateTab()
+  const effectiveCandidate = getEffectiveCandidateTab()
+  const compatActiveTabId = getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null)
+  const compatActiveTab = await getCompatTabRef(compatActiveTabId)
 
   const conflicts = detectSimpleConflicts(state.rules)
   const rules = state.rules.map(rule => {
@@ -364,14 +479,21 @@ async function getFullState() {
     networkMeta: getNetworkCycleMeta(),
     attachedTabId: runtimeState.attachedTabId,
     attachedTab,
+    compatActiveTab,
     activeTab: runtimeState.activeTab,
-    candidateTab: getEffectiveCandidateTab(),
-    lastAttachableTab: runtimeState.lastAttachableTab
+    candidateTab: candidate,
+    lastAttachableTab: runtimeState.lastAttachableTab,
+    compatActiveTabId
   }
 }
 
 async function reloadTabWithReadyDebugger(tabId) {
   if (!tabId) throw new Error('reloadNoTab')
+  const state = await getState()
+  if (isCompatActiveForTab(tabId, state.settings)) {
+    await chrome.tabs.reload(tabId)
+    return { ok: true, reloadedTabId: tabId, captureMode: 'compat', networkMeta: getNetworkCycleMeta() }
+  }
   await ensureAttachedDomainsReady(tabId)
   await chrome.tabs.reload(tabId)
   return { ok: true, reloadedTabId: tabId, networkMeta: getNetworkCycleMeta() }
@@ -379,6 +501,8 @@ async function reloadTabWithReadyDebugger(tabId) {
 
 async function maybeAutoAttach() {
   const state = await getState()
+  if (state.settings?.captureMode === 'compat') return false
+  if (state.settings?.captureMode === 'auto') return false
   if (!state.settings?.autoAttach) return false
   const targetId = runtimeState.candidateTab?.id || runtimeState.lastAttachableTab?.id
   if (!targetId) return false
@@ -847,6 +971,157 @@ async function handleNetworkGetBody(message) {
   }
 }
 
+function getCompatEntryKey(tabId, compatRequestId) {
+  return `compat:${tabId || 'tab'}:${String(compatRequestId || '')}`
+}
+
+function buildCompatDecision(rule) {
+  if (!rule) return { action: 'passThrough' }
+  const action = rule.action || {}
+  const actionType = action.type || 'mockResponse'
+
+  if (actionType === 'delayOnly') {
+    return { action: 'delayOnly', delayMs: Number(action.delayMs || 0) }
+  }
+
+  if (actionType === 'failRequest') {
+    return {
+      action: 'failRequest',
+      delayMs: Number(action.delayMs || 0),
+      reason: String(action.failReason || 'Failed to fetch')
+    }
+  }
+
+  if (actionType === 'passThrough') {
+    return { action: 'passThrough' }
+  }
+
+  const applyResponseHeaders = action.applyResponseHeaders === true
+  const headers = applyResponseHeaders ? parseHeaderLines(action.responseHeaders || '') : []
+  const contentType = action.contentType || 'application/json'
+  ensureResponseHeader(headers, 'content-type', contentType)
+
+  return {
+    action: 'mockResponse',
+    statusCode: Number(action.statusCode || 200),
+    statusText: String(action.statusText || 'OK'),
+    headers,
+    body: action.applyResponseBody === false ? '' : String(action.responseBody || ''),
+    delayMs: Number(action.delayMs || 0)
+  }
+}
+
+async function handleCompatFetchRequest(message, sender) {
+  const tabId = sender?.tab?.id || null
+  const state = await getState()
+  if (!isCompatActiveForTab(tabId, state.settings)) {
+    return { action: 'passThrough', disabled: true }
+  }
+
+  const payload = message.payload || {}
+  const url = String(payload.url || '')
+  if (!isHttpUrl(url)) return { action: 'passThrough', disabled: true }
+
+  const compatRequestId = String(payload.compatRequestId || uid('compat-request'))
+  const entryKey = getCompatEntryKey(tabId, compatRequestId)
+  const entryId = resolveNetworkEntryId(entryKey, { create: true })
+  const method = String(payload.method || 'GET').toUpperCase()
+  const requestBody = truncateCompatBody(payload.body)
+  const rule = findMatchingRule(state.rules, state.collections, url, method, 'Fetch')
+  const actionType = rule?.action?.type || 'passThrough'
+  const decision = buildCompatDecision(rule)
+  const isMockResponse = rule && decision.action === 'mockResponse'
+
+  upsertNetworkEntry(entryId, {
+    id: entryId,
+    requestId: compatRequestId,
+    networkId: entryKey,
+    url,
+    method,
+    source: 'compat',
+    resourceType: 'Fetch',
+    startedAt: Number(payload.startedAt || Date.now()),
+    documentUrl: String(payload.documentUrl || sender?.tab?.url || ''),
+    requestHeaders: normalizeHeaderList(payload.headers),
+    requestPostData: requestBody.body,
+    requestPostDataTruncated: Boolean(requestBody.truncated || payload.bodyTruncated),
+    matchedRuleId: rule?.id || null,
+    matchedRuleName: rule?.name || null,
+    appliedAction: actionType,
+    intercepted: Boolean(rule),
+    status: isMockResponse ? Number(decision.statusCode || 200) : null,
+    statusText: isMockResponse ? String(decision.statusText || 'OK') : '',
+    responseHeaders: isMockResponse ? normalizeHeaderList(decision.headers) : [],
+    responseMimeType: isMockResponse ? getHeaderValue(decision.headers, 'content-type') : '',
+    responseBodyLoaded: 'idle',
+    networkTabId: tabId
+  })
+  scheduleNetworkPublish()
+
+  if (rule) {
+    recordHit(rule)
+    clearRuleError(rule)
+  }
+
+  return {
+    ...decision,
+    compatRequestId,
+    matchedRuleId: rule?.id || null,
+    matchedRuleName: rule?.name || null
+  }
+}
+
+async function handleCompatFetchComplete(message, sender) {
+  const tabId = sender?.tab?.id || null
+  const payload = message.payload || {}
+  const compatRequestId = String(payload.compatRequestId || '')
+  if (!compatRequestId) return { ok: false }
+  const entryKey = getCompatEntryKey(tabId, compatRequestId)
+  const entryId = resolveNetworkEntryId(entryKey)
+  if (!entryId) return { ok: false }
+
+  const responseBody = truncateCompatBody(payload.responseBody, 256 * 1024)
+  const responseHeaders = normalizeHeaderList(payload.responseHeaders)
+  const contentType = String(payload.responseMimeType || getHeaderValue(responseHeaders, 'content-type') || '')
+  upsertNetworkEntry(entryId, {
+    status: Number(payload.status ?? 0),
+    statusText: String(payload.statusText || ''),
+    responseHeaders,
+    responseMimeType: contentType,
+    responseBody: responseBody.body,
+    responseBodyTruncated: Boolean(responseBody.truncated || payload.responseBodyTruncated),
+    responseBodyLoaded: payload.responseBodyLoaded || (responseBody.body == null ? 'idle' : 'loaded'),
+    responseBodyBase64Encoded: false,
+    endedAt: Number(payload.endedAt || Date.now()),
+    errorText: '',
+    errorType: ''
+  })
+  releaseNetworkEntryId(entryKey)
+  scheduleNetworkPublish()
+  return { ok: true }
+}
+
+async function handleCompatFetchError(message, sender) {
+  const tabId = sender?.tab?.id || null
+  const payload = message.payload || {}
+  const compatRequestId = String(payload.compatRequestId || '')
+  if (!compatRequestId) return { ok: false }
+  const entryKey = getCompatEntryKey(tabId, compatRequestId)
+  const entryId = resolveNetworkEntryId(entryKey)
+  if (!entryId) return { ok: false }
+
+  upsertNetworkEntry(entryId, {
+    status: Number(payload.status ?? 0),
+    endedAt: Number(payload.endedAt || Date.now()),
+    errorText: String(payload.errorText || 'Failed to fetch'),
+    errorType: String(payload.errorType || 'Fetch'),
+    responseBodyLoaded: 'error'
+  })
+  releaseNetworkEntryId(entryKey)
+  scheduleNetworkPublish()
+  return { ok: true }
+}
+
 async function clearNetworkEntries() {
   clearNetworkEntryCollections()
   publishNetworkNow()
@@ -929,12 +1204,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
 chrome.windows.onFocusChanged.addListener(async windowId => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) return
-  await updateConnectionFromActiveTab()
+  await updateConnectionFromActiveTab({ allowCandidateUpdate: !hasActiveCapture() })
   await maybeAutoAttach()
   await broadcastConnectionState()
 })
 
 chrome.tabs.onRemoved.addListener(async tabId => {
+  clearCompatFallback(tabId)
   if (runtimeState.candidateTab?.id === tabId) runtimeState.candidateTab = null
   if (runtimeState.lastAttachableTab?.id === tabId) runtimeState.lastAttachableTab = null
   if (runtimeState.activeTab?.id === tabId) runtimeState.activeTab = null
@@ -945,7 +1221,7 @@ chrome.tabs.onRemoved.addListener(async tabId => {
 
 async function refreshTabPositions() {
   await ensureRehydrated()
-  await updateConnectionFromActiveTab()
+  await updateConnectionFromActiveTab({ allowCandidateUpdate: !hasActiveCapture() })
   await broadcastConnectionState()
 }
 
@@ -998,8 +1274,10 @@ if (chrome.runtime.onSuspend) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   ;(async () => {
-    await ensureRehydrated()
     const type = message?.type
+    if (!String(type || '').startsWith('compat:')) {
+      await ensureRehydrated()
+    }
     switch (type) {
       case 'state:get':
         sendResponse(await getFullState())
@@ -1033,7 +1311,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       }
       case 'settings:update':
-        sendResponse({ settings: await updateSettings(message.payload || {}) })
+        {
+          const previous = (await getState()).settings
+          const settings = await updateSettings(message.payload || {})
+          sendResponse({ settings })
+          if (previous.captureMode !== settings.captureMode) {
+            runtimeState.compatFallbackTabIds.clear()
+            await notifyCompatModeChanged('cdp')
+            await pushLog({ level: 'info', scope: 'runtime', message: `Capture mode changed to ${settings.captureMode}` })
+          }
+        }
         await syncNetworkSettingsFromState()
         await maybeAutoAttach()
         await updateConnectionFromActiveTab()
@@ -1043,8 +1330,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const targetTab = await resolveAttachTargetTab(message, sender)
         const tabId = targetTab?.id
         if (!tabId) throw new Error('attachNoActiveTab')
+        const state = await getState()
+        if (state.settings?.captureMode === 'compat') {
+          const tabRef = toTabRef(targetTab)
+          if (tabRef) {
+            runtimeState.lastAttachableTab = tabRef
+            runtimeState.candidateTab = tabRef
+          }
+          await enableCompatForTab(tabId)
+          await updateConnectionFromActiveTab()
+          await pushLog({ level: 'info', scope: 'runtime', message: `Light capture enabled for tab ${tabId}` })
+          await broadcastConnectionState()
+          sendResponse({ attachedTabId: null, captureMode: 'compat' })
+          return
+        }
         const previousAttachedTabId = runtimeState.attachedTabId
-        const result = await attachToTab(tabId)
+        let result
+        try {
+          result = await attachToTab(tabId)
+          clearCompatFallback(tabId)
+        } catch (error) {
+          const fallbackNotice = state.settings?.captureMode === 'auto' ? getAutoCompatFallbackNotice(error) : ''
+          if (fallbackNotice) {
+            const tabRef = toTabRef(targetTab)
+            if (tabRef) {
+              runtimeState.lastAttachableTab = tabRef
+              runtimeState.candidateTab = tabRef
+            }
+            await enableCompatForTab(tabId)
+            await updateConnectionFromActiveTab()
+            await pushLog({
+              level: 'warn',
+              scope: 'runtime',
+              message: `Full capture could not attach on tab ${tabId}; using Light capture for fetch requests only.`
+            })
+            await broadcastConnectionState()
+            sendResponse({
+              attachedTabId: null,
+              captureMode: 'compat',
+              fallbackFrom: 'cdp'
+            })
+            return
+          }
+          throw error
+        }
         // Reattach manual sempre inicia novo ciclo de validacao visual de "Acionada".
         if (previousAttachedTabId !== tabId) {
           await resetMatchedStateForNewPageCycle(tabId)
@@ -1078,13 +1407,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       }
       case 'debugger:detach':
+        {
+          const state = await getState()
+          const explicitTabId = Number(message?.tabId || 0)
+          const compatTabId = explicitTabId || getCompatActiveTabId(state.settings, runtimeState.candidateTab?.id || runtimeState.activeTab?.id || null)
+          if (!runtimeState.attachedTabId && compatTabId) {
+            await disableCompatForTab(compatTabId)
+            await updateConnectionFromActiveTab()
+            await broadcastConnectionState()
+            await pushLog({ level: 'info', scope: 'runtime', message: `Light capture stopped for tab ${compatTabId}` })
+            sendResponse({ attachedTabId: null, captureMode: state.settings?.captureMode || 'auto' })
+            return
+          }
+        }
         await detachCurrentTab()
         await updateConnectionFromActiveTab()
         await broadcastConnectionState()
         sendResponse({ attachedTabId: null })
         return
       case 'tab:reload': {
-        const tabId = runtimeState.attachedTabId || runtimeState.candidateTab?.id || runtimeState.lastAttachableTab?.id || sender?.tab?.id
+        const state = await getState()
+        const tabId = runtimeState.attachedTabId
+          || getCompatActiveTabId(state.settings, runtimeState.candidateTab?.id || runtimeState.activeTab?.id || null)
+          || runtimeState.candidateTab?.id
+          || runtimeState.lastAttachableTab?.id
+          || sender?.tab?.id
         if (!tabId) throw new Error('reloadNoTab')
         sendResponse(await reloadTabWithReadyDebugger(tabId))
         return
@@ -1143,11 +1490,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!entry) throw new Error('Network entry not found')
 
         let responseBody = ''
-        try {
-          const bodyResult = await sendAttachedCommand('Network.getResponseBody', { requestId: entry.networkId || entry.requestId })
-          responseBody = bodyResult?.base64Encoded ? atob(bodyResult.body || '') : (bodyResult?.body || '')
-        } catch {
-          responseBody = '{\n  "ok": true\n}'
+        if (entry.source === 'compat') {
+          responseBody = typeof entry.responseBody === 'string' ? entry.responseBody : ''
+        } else {
+          try {
+            const bodyResult = await sendAttachedCommand('Network.getResponseBody', { requestId: entry.networkId || entry.requestId })
+            responseBody = bodyResult?.base64Encoded ? atob(bodyResult.body || '') : (bodyResult?.body || '')
+          } catch {
+            responseBody = '{\n  "ok": true\n}'
+          }
         }
         const prettyResponseBody = tryPrettyJson(responseBody).pretty || '{\n  "ok": true\n}'
 
@@ -1181,6 +1532,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       case 'network:getBody':
         sendResponse(await handleNetworkGetBody(message))
+        return
+      case 'compat:getMode': {
+        const state = await getState()
+        const tabId = sender?.tab?.id || null
+        sendResponse({
+          captureMode: isCompatActiveForTab(tabId, state.settings) ? 'compat' : 'cdp'
+        })
+        return
+      }
+      case 'compat:fetchRequest':
+        sendResponse(await handleCompatFetchRequest(message, sender))
+        return
+      case 'compat:fetchComplete':
+        sendResponse(await handleCompatFetchComplete(message, sender))
+        return
+      case 'compat:fetchError':
+        sendResponse(await handleCompatFetchError(message, sender))
         return
       case 'logs:clear':
         await setLogs([])

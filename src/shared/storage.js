@@ -54,6 +54,7 @@ function normalizeRules(stored, collections, settings) {
 
 function normalizeSettings(stored, collections) {
   const settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) }
+  if (!['cdp', 'compat', 'auto'].includes(settings.captureMode)) settings.captureMode = DEFAULT_SETTINGS.captureMode
   settings.networkFilters = {
     fullApp: {
       ...DEFAULT_SETTINGS.networkFilters.fullApp,

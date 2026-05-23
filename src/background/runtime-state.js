@@ -5,6 +5,7 @@ export const runtimeState = {
   activeTab: null,
   candidateTab: null,
   lastAttachableTab: null,
+  compatFallbackTabIds: new Set(),
   fetchEnabled: false,
   networkTabId: null,
   networkMaxEntries: 300,

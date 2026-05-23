@@ -28,9 +28,11 @@ const appState = {
   networkEntries: [],
   activeTab: null,
   attachedTab: null,
+  compatActiveTab: null,
   candidateTab: null,
   lastAttachableTab: null,
   attachedTabId: null,
+  compatActiveTabId: null,
   attachBusy: false,
   settings: { activeCollectionId: '' },
 
@@ -257,13 +259,15 @@ function render() {
 }
 
 function bindHeaderEvents() {
-  $('#open-fullapp-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
-  $('#side-open-auto-attach-settings')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, page: 'settings' }))
-  $('#attach-btn')?.addEventListener('click', async () => {
+  const startOrRestartCapture = async button => {
     appState.attachBusy = true
     refreshHeaderOnly()
-    const preferredTabId = appState.candidateTab?.id || appState.lastAttachableTab?.id || null
-    const result = await sendMessage({ type: MSG.DEBUG_ATTACH, tabId: preferredTabId })
+    const buttonTabId = Number(button?.dataset.tabId || 0) || null
+    const preferredTabId = buttonTabId || appState.compatActiveTab?.id || appState.attachedTab?.id || appState.candidateTab?.id || appState.lastAttachableTab?.id || null
+    const result = await sendMessage({
+      type: MSG.DEBUG_ATTACH,
+      tabId: preferredTabId
+    })
     appState.attachBusy = false
     if (result?.error) {
       toastError(translateBackendError(result.error), backendErrorDuration(result.error))
@@ -271,11 +275,19 @@ function bindHeaderEvents() {
       return
     }
     await refreshState()
-  })
+  }
+
+  $('#open-fullapp-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
+  $('#side-open-auto-attach-settings')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, page: 'settings' }))
+  $('#side-capture-mode-settings')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, page: 'settings' }))
+  $('#attach-btn')?.addEventListener('click', event => startOrRestartCapture(event.currentTarget))
+  $('#attach-new-tab-btn')?.addEventListener('click', event => startOrRestartCapture(event.currentTarget))
   $('#detach-btn')?.addEventListener('click', async () => {
+    const button = $('#detach-btn')
     appState.attachBusy = true
     refreshHeaderOnly()
-    await sendMessage({ type: MSG.DEBUG_DETACH })
+    const targetTabId = Number(button?.dataset.tabId || 0) || appState.compatActiveTab?.id || appState.attachedTab?.id || null
+    await sendMessage({ type: MSG.DEBUG_DETACH, tabId: targetTabId })
     appState.attachBusy = false
     await refreshState()
   })
@@ -284,7 +296,7 @@ function bindHeaderEvents() {
     if (result?.error) toastError(translateBackendError(result.error))
   })
   $('#side-focus-tab-btn')?.addEventListener('click', async () => {
-    const targetTabId = appState.attachedTab?.id || appState.candidateTab?.id || appState.lastAttachableTab?.id || null
+    const targetTabId = appState.attachedTab?.id || appState.compatActiveTab?.id || appState.candidateTab?.id || appState.lastAttachableTab?.id || null
     if (!targetTabId) return
     await chrome.tabs.update(targetTabId, { active: true }).catch(() => {})
     const tab = await chrome.tabs.get(targetTabId).catch(() => null)
@@ -319,9 +331,11 @@ function sameTabRef(a, b) {
 function connectionChanged(current, next) {
   return (current.attachedTabId ?? null) !== (next.attachedTabId ?? null)
     || !sameTabRef(current.attachedTab, next.attachedTab)
+    || !sameTabRef(current.compatActiveTab, next.compatActiveTab)
     || !sameTabRef(current.activeTab, next.activeTab)
     || !sameTabRef(current.candidateTab, next.candidateTab)
     || !sameTabRef(current.lastAttachableTab, next.lastAttachableTab)
+    || (current.compatActiveTabId ?? null) !== (next.compatActiveTabId ?? null)
 }
 
 let pendingConnectionPatch = null
@@ -333,24 +347,30 @@ const flushConnectionUpdate = debounce(() => {
   const current = {
     attachedTabId: appState.attachedTabId ?? null,
     attachedTab: appState.attachedTab ?? null,
+    compatActiveTab: appState.compatActiveTab ?? null,
     activeTab: appState.activeTab ?? null,
     candidateTab: appState.candidateTab ?? null,
-    lastAttachableTab: appState.lastAttachableTab ?? null
+    lastAttachableTab: appState.lastAttachableTab ?? null,
+    compatActiveTabId: appState.compatActiveTabId ?? null
   }
   const next = {
     attachedTabId: patch.attachedTabId ?? current.attachedTabId,
     attachedTab: patch.attachedTab ?? current.attachedTab,
+    compatActiveTab: patch.compatActiveTab ?? current.compatActiveTab,
     activeTab: patch.activeTab ?? current.activeTab,
     candidateTab: patch.candidateTab ?? current.candidateTab,
-    lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab
+    lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab,
+    compatActiveTabId: patch.compatActiveTabId ?? current.compatActiveTabId
   }
 
   const changed = connectionChanged(current, next)
   appState.attachedTabId = next.attachedTabId
   appState.attachedTab = next.attachedTab
+  appState.compatActiveTab = next.compatActiveTab
   appState.activeTab = next.activeTab
   appState.candidateTab = next.candidateTab
   appState.lastAttachableTab = next.lastAttachableTab
+  appState.compatActiveTabId = next.compatActiveTabId
 
   if (!changed) return
   refreshHeaderOnly()
@@ -462,6 +482,7 @@ function translateBackendError(code) {
 function backendErrorDuration(code) {
   if (typeof code !== 'string') return undefined
   if (code === 'attachCrossExtension' || code.startsWith('attachCrossExtension:')) return 5000
+  if (code === 'attachDebuggerBusy') return 6000
   return undefined
 }
 
@@ -694,9 +715,11 @@ chrome.runtime.onMessage.addListener(message => {
     queueConnectionPatch({
       attachedTabId: message.attachedTabId ?? null,
       attachedTab: message.attachedTab ?? null,
+      compatActiveTab: message.compatActiveTab ?? null,
       activeTab: message.activeTab ?? null,
       candidateTab: message.candidateTab ?? null,
-      lastAttachableTab: message.lastAttachableTab ?? null
+      lastAttachableTab: message.lastAttachableTab ?? null,
+      compatActiveTabId: message.compatActiveTabId ?? null
     })
   }
   if (message?.type === 'state:activeTab') {

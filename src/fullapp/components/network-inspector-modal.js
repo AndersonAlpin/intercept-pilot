@@ -70,6 +70,9 @@ function renderBody(text, options = {}) {
 
 function renderOverviewTab(entry) {
   const handlingLabel = getHandlingLabel(entry)
+  const captureSourceLabel = entry.source === 'compat'
+    ? t('fullapp.captureModeLight')
+    : t('fullapp.captureModeFull')
   return `
     <dl class="inspector-grid">
       <dt>${escapeHtml(t('network.inspector.method'))}</dt><dd>${escapeHtml(entry.method || '—')}</dd>
@@ -77,6 +80,7 @@ function renderOverviewTab(entry) {
       <dt>${escapeHtml(t('network.inspector.status'))}</dt><dd>${escapeHtml(String(entry.status ?? '—'))} ${escapeHtml(entry.statusText || '')}</dd>
       <dt>${escapeHtml(t('network.inspector.duration'))}</dt><dd>${entry.durationMs != null ? `${entry.durationMs}ms` : '—'}</dd>
       <dt>${escapeHtml(t('network.inspector.resourceType'))}</dt><dd>${escapeHtml(entry.resourceType || '—')}</dd>
+      <dt>${escapeHtml(t('network.inspector.source'))}</dt><dd>${escapeHtml(captureSourceLabel)}</dd>
       <dt>${escapeHtml(t('network.inspector.appliedRule'))}</dt><dd>${escapeHtml(entry.matchedRuleName || t('network.noRule'))}</dd>
       <dt>${escapeHtml(t('network.inspector.handling'))}</dt><dd>${escapeHtml(handlingLabel)}</dd>
       <dt>${escapeHtml(t('network.inspector.requestId'))}</dt><dd><code>${escapeHtml(entry.requestId || '')}</code></dd>
@@ -127,6 +131,9 @@ function renderResponseBodySection(entry) {
     return `<p class="muted">${escapeHtml(t('network.inspector.noBody'))}</p>`
   }
   const status = entry.responseBodyLoaded || 'idle'
+  if (entry.source === 'compat' && status === 'idle') {
+    return `<p class="muted">${escapeHtml(t('network.inspector.bodyUnavailable'))}</p>`
+  }
   if (status === 'idle') {
     return `<button type="button" class="btn" data-inspector-load-body>${escapeHtml(t('network.inspector.loadBody'))}</button>`
   }
@@ -183,11 +190,14 @@ function hasError(entry) {
 
 export function renderInspectorBody(entry, tab) {
   if (!entry) return ''
-  if (tab === 'request') return renderRequestTab(entry)
-  if (tab === 'response') return renderResponseTab(entry)
-  if (tab === 'timing') return renderTimingTab(entry)
-  if (tab === 'error') return renderErrorTab(entry)
-  return renderOverviewTab(entry)
+  const notice = entry.source === 'compat'
+    ? `<div class="inspector-notice">${escapeHtml(t('network.inspector.lightCaptureNotice'))}</div>`
+    : ''
+  if (tab === 'request') return `${notice}${renderRequestTab(entry)}`
+  if (tab === 'response') return `${notice}${renderResponseTab(entry)}`
+  if (tab === 'timing') return `${notice}${renderTimingTab(entry)}`
+  if (tab === 'error') return `${notice}${renderErrorTab(entry)}`
+  return `${notice}${renderOverviewTab(entry)}`
 }
 
 export function renderNetworkInspectorModal(state) {

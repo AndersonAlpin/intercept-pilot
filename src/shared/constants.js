@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS = {
   maxNetworkEntries: 300,
   maxLogs: 300,
   autoReloadAfterRuleChange: false,
+  captureMode: 'auto',
   theme: 'dark',
   language: 'en',
   networkIgnorePatterns: [],

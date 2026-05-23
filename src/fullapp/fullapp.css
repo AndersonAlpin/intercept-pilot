@@ -31,6 +31,18 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); }
 .dot.ok { background: var(--success); }
 .dot.off { background: var(--danger); }
+.capture-mode-badge {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 7px;
+}
+.capture-mode-badge:hover { color: #c9d9ff; border-color: var(--border-strong); }
 .tab-focus-link { margin: 2px 0 0; border: 0; background: transparent; color: var(--text); padding: 0; font: inherit; text-align: left; cursor: pointer; }
 .tab-focus-link:hover { color: #c9d9ff; text-decoration: underline; }
 .tab-focus-link:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .25); }
@@ -205,6 +217,7 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .footer-actions .btn { padding: 8px 12px; }
 .preview { margin: 0; border: 1px solid var(--border); border-radius: 10px; background: #0f1420; padding: 10px; overflow: auto; max-height: 240px; }
 .empty { border: 1px dashed var(--border); border-radius: 10px; padding: 16px; text-align: center; color: var(--text-muted); }
+.empty-helper { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(6, 9, 14, .72); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50; }
 .modal { width: min(720px, 100%); max-height: 85vh; overflow: auto; background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -452,6 +465,14 @@ body.modal-open { overflow: hidden; }
   flex: 1;
   overflow: auto;
   padding: 16px;
+}
+.inspector-notice {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 14px;
+  padding: 9px 10px;
 }
 .inspector-grid {
   display: grid;
