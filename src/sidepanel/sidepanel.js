@@ -665,7 +665,10 @@ chrome.runtime.onMessage.addListener(message => {
     if (hitEl) hitEl.textContent = String(message.matchCount)
     const stateEl = document.querySelector(`[data-rule-state="${message.ruleId}"]`)
     if (stateEl) {
+      const stateLabel = t('rules.states.matched')
       stateEl.setAttribute('data-state', 'matched')
+      stateEl.setAttribute('title', stateLabel)
+      stateEl.setAttribute('aria-label', stateLabel)
     }
   }
   if (message?.type === 'state:hit-reset') {

@@ -29,14 +29,17 @@ export function renderRulesQuickPanel(state) {
         </div>
       <input class="input" id="rules-search" placeholder="${t('rules.searchPlaceholder')}" value="${escapeHtml(state.rulesFilter || '')}" />
       <div class="list">
-        ${filtered.length ? filtered.map(rule => `
+        ${filtered.length ? filtered.map(rule => {
+          const state = getRuleState(rule)
+          const stateLabel = escapeHtml(t(`rules.states.${state}`))
+          return `
           <div class="item ${rule.diagnostics?.lastError ? 'rule-error' : ''}">
             <div class="item-title">
               <label class="status-toggle" title="${escapeHtml(rule.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}">
                 <input type="checkbox" data-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
                 <span class="status-toggle-track" aria-hidden="true"></span>
               </label>
-              <span class="rule-state-dot" data-rule-state="${rule.id}" data-state="${getRuleState(rule)}" title="${escapeHtml(t(`rules.states.${getRuleState(rule)}`))}"></span>
+              <span class="rule-state-dot" data-rule-state="${rule.id}" data-state="${state}" title="${stateLabel}" aria-label="${stateLabel}" role="img"></span>
               <span class="rule-hits-badge" data-rule-hit="${rule.id}">${Number(rule.diagnostics?.matchCount || 0)}</span>
               ${actionBadge(rule)}
             </div>
@@ -50,7 +53,8 @@ export function renderRulesQuickPanel(state) {
               <button class="btn" data-rule-advanced="${rule.id}" title="${escapeHtml(t('common.advanced'))}">${t('common.advanced')} ${icon('external', 12)}</button>
             </div>
           </div>
-        `).join('') : `<div class="empty">${t('rules.noRules')}</div>`}
+          `
+        }).join('') : `<div class="empty">${t('rules.noRules')}</div>`}
       </div>
       <p class="small"><button class="link-btn" id="quick-open-advanced-hint">${t('rules.advancedEditor')}</button></p>
     </div>

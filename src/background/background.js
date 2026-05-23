@@ -296,13 +296,23 @@ async function getFullState() {
   const attachedTab = await getAttachedTabRef()
 
   const conflicts = detectSimpleConflicts(state.rules)
-  const rules = state.rules.map(rule => ({
-    ...rule,
-    diagnostics: {
-      ...(rule.diagnostics || {}),
-      conflictIds: conflicts.get(rule.id) || []
+  const rules = state.rules.map(rule => {
+    const live = runtimeState.hitCounters.get(rule.id)
+    return {
+      ...rule,
+      diagnostics: {
+        ...(rule.diagnostics || {}),
+        ...(live
+          ? {
+              matchCount: live.count,
+              lastMatchedAt: live.lastMatchedAt,
+              lastError: live.lastError ?? rule.diagnostics?.lastError ?? ''
+            }
+          : {}),
+        conflictIds: conflicts.get(rule.id) || []
+      }
     }
-  }))
+  })
 
   return {
     collections: state.collections,
@@ -446,6 +456,7 @@ async function resetMatchedStateForNewPageCycle(tabId) {
   if (!runtimeState.attachedTabId || runtimeState.attachedTabId !== tabId) return
   const state = await getState()
   let changed = false
+  let liveChanged = false
   const nextRules = state.rules.map(rule => {
     if (!rule.diagnostics?.lastMatchedAt) return rule
     changed = true
@@ -457,13 +468,19 @@ async function resetMatchedStateForNewPageCycle(tabId) {
       }
     }
   })
-  if (!changed) return
 
   for (const counter of runtimeState.hitCounters.values()) {
-    counter.lastMatchedAt = null
+    if (counter.lastMatchedAt) {
+      counter.lastMatchedAt = null
+      counter.dirty = true
+      liveChanged = true
+    }
   }
 
-  await setState({ ...state, rules: nextRules })
+  if (!changed && !liveChanged) return
+
+  if (changed) await setState({ ...state, rules: nextRules })
+  if (liveChanged) scheduleHitFlush()
   broadcast({ type: 'state:hit-reset' })
 }
 
