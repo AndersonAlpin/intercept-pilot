@@ -34,7 +34,7 @@ export function renderSwitch({
     for: id || null
   })
   const inputHtml = renderCheckboxInput({ id, checked, inputClassName, attrs, data, disabled, ariaLabel })
-  return `<label ${labelAttrs}>${inputHtml}${label != null ? ` ${escapeHtml(label)}` : ''}</label>`
+  return `<label ${labelAttrs}>${inputHtml}<span class="switch-track" aria-hidden="true"></span>${label != null ? `<span class="switch-label">${escapeHtml(label)}</span>` : ''}</label>`
 }
 
 export function renderStatusToggle({

@@ -17,7 +17,7 @@ export function renderImportExportPage(state) {
         <input type="file" id="full-import-file-input" accept="application/json,.json" hidden />
       `,
       bodyHtml,
-      footerHtml: `<button class="btn primary" id="full-import-json-btn">${t('fullapp.importJson')}</button>`,
+      footerHtml: `<button class="btn primary" id="full-import-json-btn" disabled>${t('fullapp.importJson')}</button>`,
       className: 'import-export-panel',
       footerClassName: 'footer-actions'
     })}

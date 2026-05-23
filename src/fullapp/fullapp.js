@@ -22,6 +22,8 @@ import { confirmDialog, promptDialog } from '../shared/dialogs.js'
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import { entryToCurl, entryToFetch } from '../shared/network-format.js'
 import { delegate, patchHtml } from '../shared/ui/dom.js'
+import { renderDataPanel } from '../shared/ui/data-panel.js'
+import { renderSwitch } from '../shared/ui/toggle.js'
 import { renderAppShell } from './components/app-shell.js'
 import { renderSidebar } from './components/sidebar.js'
 import { renderTopbar } from './components/topbar.js'
@@ -268,12 +270,76 @@ function bindCaptureModeSelect() {
   select.addEventListener('blur', compact)
 }
 
+function normalizeSettingsNumber(value, fallback) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
+}
+
+function normalizeSettingsSnapshot(settings = {}) {
+  return {
+    autoAttach: Boolean(settings.autoAttach),
+    autoReloadAfterRuleChange: Boolean(settings.autoReloadAfterRuleChange),
+    language: String(settings.language || 'en').trim(),
+    captureMode: String(settings.captureMode || 'auto').trim(),
+    maxNetworkEntries: normalizeSettingsNumber(settings.maxNetworkEntries, 300),
+    maxLogs: normalizeSettingsNumber(settings.maxLogs, 300),
+    networkIgnorePatterns: parseNetworkIgnorePatterns(settings.networkIgnorePatterns)
+  }
+}
+
+function readSettingsFormPayload() {
+  const ignoreInput = $('#settings-network-ignore-input')
+  return normalizeSettingsSnapshot({
+    autoAttach: $('#settings-auto-attach')?.checked ?? false,
+    autoReloadAfterRuleChange: $('#settings-auto-reload')?.checked ?? false,
+    language: $('#settings-language')?.value || 'en',
+    captureMode: $('#settings-capture-mode')?.value || 'auto',
+    maxNetworkEntries: $('#settings-max-network')?.value || 300,
+    maxLogs: $('#settings-max-logs')?.value || 300,
+    networkIgnorePatterns: [
+      ...parseNetworkIgnorePatterns(state.settings.networkIgnorePatterns),
+      ...(ignoreInput?.value ? parseNetworkIgnorePatterns(ignoreInput.value) : [])
+    ]
+  })
+}
+
+function settingsSnapshotsEqual(a, b) {
+  if (!a || !b) return false
+  if (a.autoAttach !== b.autoAttach) return false
+  if (a.autoReloadAfterRuleChange !== b.autoReloadAfterRuleChange) return false
+  if (a.language !== b.language) return false
+  if (a.captureMode !== b.captureMode) return false
+  if (a.maxNetworkEntries !== b.maxNetworkEntries) return false
+  if (a.maxLogs !== b.maxLogs) return false
+  if (a.networkIgnorePatterns.length !== b.networkIgnorePatterns.length) return false
+  return a.networkIgnorePatterns.every((pattern, index) => pattern === b.networkIgnorePatterns[index])
+}
+
+function setSettingsSaveEnabled(enabled) {
+  const button = $('#settings-save-btn')
+  if (button) button.disabled = !enabled
+}
+
+function hasValidImportJson() {
+  const raw = $('#full-import-json')?.value || ''
+  if (!raw.trim()) return false
+  try {
+    JSON.parse(raw)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function updateImportJsonButtonState() {
+  const button = $('#full-import-json-btn')
+  if (button) button.disabled = !hasValidImportJson()
+}
+
 function renderSettingsPage() {
   const lang = state.settings.language || 'en'
   const captureMode = state.settings.captureMode || 'auto'
-  return `
-    <section class="card">
-      <h3>${t('common.settings')}</h3>
+  const bodyHtml = `
       <div class="grid two">
         <div>
           <div class="muted">${t('language.title')}</div>
@@ -307,12 +373,17 @@ function renderSettingsPage() {
           </div>
           <div class="muted">${t('fullapp.networkIgnorePatternsHelp')}</div>
         </div>
-        <label class="switch"><input type="checkbox" id="settings-auto-attach" ${state.settings.autoAttach ? 'checked' : ''}/> ${t('fullapp.autoAttach')}</label>
-        <label class="switch"><input type="checkbox" id="settings-auto-reload" ${state.settings.autoReloadAfterRuleChange ? 'checked' : ''}/> ${t('fullapp.autoReloadAfterRuleChange')}</label>
+        ${renderSwitch({ id: 'settings-auto-attach', checked: state.settings.autoAttach, label: t('fullapp.autoAttach'), className: 'settings-toggle' })}
+        ${renderSwitch({ id: 'settings-auto-reload', checked: state.settings.autoReloadAfterRuleChange, label: t('fullapp.autoReloadAfterRuleChange'), className: 'settings-toggle' })}
       </div>
-      <div class="footer-actions"><button class="btn primary" id="settings-save-btn">${t('fullapp.saveSettings')}</button></div>
-    </section>
   `
+
+  return renderDataPanel({
+    title: t('common.settings'),
+    actionsHtml: `<button class="btn primary" id="settings-save-btn" disabled>${t('fullapp.saveSettings')}</button>`,
+    bodyHtml,
+    className: 'settings-panel'
+  })
 }
 
 function renderPage() {
@@ -1143,12 +1214,19 @@ function bindEvents() {
   })
   bindLogsEvents()
 
+  const importTextarea = $('#full-import-json')
+  importTextarea?.addEventListener('input', updateImportJsonButtonState)
+  updateImportJsonButtonState()
+
   $('#full-import-json-btn')?.addEventListener('click', async () => {
     const textarea = $('#full-import-json')
     const raw = textarea?.value || ''
     if (!raw.trim()) return
     const ok = await importBundleFromText(raw)
-    if (ok && textarea) textarea.value = ''
+    if (ok && textarea) {
+      textarea.value = ''
+      updateImportJsonButtonState()
+    }
   })
 
   $('#full-import-pick-file-btn')?.addEventListener('click', () => {
@@ -1161,7 +1239,9 @@ function bindEvents() {
     try {
       const text = await file.text()
       event.target.value = ''
-      await importBundleFromText(text)
+      const textarea = $('#full-import-json')
+      if (textarea) textarea.value = text
+      updateImportJsonButtonState()
     } catch {
       toastError(t('toasts.importError'))
     }
@@ -1216,12 +1296,21 @@ function bindEvents() {
   })
   bindInspectorBodyEvents()
 
+  const settingsBaseline = normalizeSettingsSnapshot(state.settings)
+  const updateSettingsSaveState = () => setSettingsSaveEnabled(!settingsSnapshotsEqual(settingsBaseline, readSettingsFormPayload()))
+  document.querySelectorAll('#settings-language, #settings-capture-mode, #settings-max-network, #settings-max-logs, #settings-auto-attach, #settings-auto-reload')
+    .forEach(input => {
+      input.addEventListener('input', updateSettingsSaveState)
+      input.addEventListener('change', updateSettingsSaveState)
+    })
+
   const ignoreInput = $('#settings-network-ignore-input')
   ignoreInput?.addEventListener('keydown', event => {
     if (event.key === 'Enter' || event.key === ';') {
       event.preventDefault()
       addNetworkIgnorePatterns(ignoreInput.value)
       ignoreInput.value = ''
+      updateSettingsSaveState()
       return
     }
     if (event.key === 'Backspace' && !ignoreInput.value) {
@@ -1230,12 +1319,17 @@ function bindEvents() {
       current.pop()
       setNetworkIgnorePatterns(current)
       refreshNetworkIgnoreChips()
+      updateSettingsSaveState()
     }
   })
   ignoreInput?.addEventListener('input', () => {
-    if (!ignoreInput.value.includes(';')) return
+    if (!ignoreInput.value.includes(';')) {
+      updateSettingsSaveState()
+      return
+    }
     addNetworkIgnorePatterns(ignoreInput.value)
     ignoreInput.value = ''
+    updateSettingsSaveState()
   })
   ignoreInput?.addEventListener('paste', event => {
     const text = event.clipboardData?.getData('text') || ''
@@ -1243,6 +1337,7 @@ function bindEvents() {
     event.preventDefault()
     addNetworkIgnorePatterns(text)
     ignoreInput.value = ''
+    updateSettingsSaveState()
   })
 
   $('#settings-network-ignore-tags')?.addEventListener('click', event => {
@@ -1250,24 +1345,15 @@ function bindEvents() {
     const removeButton = target?.closest('[data-network-ignore-remove]')
     if (removeButton) {
       removeNetworkIgnorePattern(removeButton.dataset.networkIgnoreRemove)
+      updateSettingsSaveState()
       return
     }
     ignoreInput?.focus()
   })
+  updateSettingsSaveState()
 
   $('#settings-save-btn')?.addEventListener('click', async () => {
-    const payload = {
-      autoAttach: $('#settings-auto-attach')?.checked ?? false,
-      autoReloadAfterRuleChange: $('#settings-auto-reload')?.checked ?? false,
-      language: $('#settings-language')?.value || 'en',
-      captureMode: $('#settings-capture-mode')?.value || 'auto',
-      maxNetworkEntries: Number($('#settings-max-network')?.value || 300),
-      maxLogs: Number($('#settings-max-logs')?.value || 300),
-      networkIgnorePatterns: parseNetworkIgnorePatterns([
-        ...parseNetworkIgnorePatterns(state.settings.networkIgnorePatterns),
-        ...(ignoreInput?.value ? parseNetworkIgnorePatterns(ignoreInput.value) : [])
-      ])
-    }
+    const payload = readSettingsFormPayload()
     const result = await sendMessage({ type: MSG.SETTINGS_UPDATE, payload })
     if (result?.error) {
       toastError(translateBackendError(result.error))
