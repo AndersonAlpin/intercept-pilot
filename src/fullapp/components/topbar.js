@@ -45,10 +45,10 @@ export function renderTopbar(state) {
       <div class="actions">
         ${captureActive
           ? `
-            <button class="btn" id="full-reload-btn" ${canReload ? '' : 'disabled'}>${t('common.reload')}</button>
+            <button class="btn secondary" id="full-reload-btn" ${canReload ? '' : 'disabled'}>${t('common.reload')}</button>
             <button class="btn warning" id="full-attach-btn" data-tab-id="${escapeHtml(String(captureTab.id || ''))}">${t('status.restartCapture')}</button>
-            <button class="btn" id="full-detach-btn" data-tab-id="${escapeHtml(String(captureTab.id || ''))}">${t('status.stopCapture')}</button>
-            ${newCandidate ? `<button class="btn" id="full-attach-new-tab-btn" data-tab-id="${escapeHtml(String(newCandidate.id || ''))}">${t('status.captureNewTab')}</button>` : ''}
+            <button class="btn danger" id="full-detach-btn" data-tab-id="${escapeHtml(String(captureTab.id || ''))}">${t('status.stopCapture')}</button>
+            ${newCandidate ? `<button class="btn secondary" id="full-attach-new-tab-btn" data-tab-id="${escapeHtml(String(newCandidate.id || ''))}">${t('status.captureNewTab')}</button>` : ''}
           `
           : `
             <button class="btn primary" id="full-attach-btn" data-tab-id="${escapeHtml(String(currentTab?.id || ''))}" ${canStart ? '' : 'disabled'}>${t('status.startCapture')}</button>

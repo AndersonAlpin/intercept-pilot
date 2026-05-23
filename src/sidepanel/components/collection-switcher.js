@@ -18,7 +18,7 @@ export function renderCollectionSwitcher(state) {
     <div class="card compact-card">
       <div class="row space-between">
           <h2>${t('collections.title')}</h2>
-          <button class="btn" id="manage-collections-btn">${t('common.manage')}</button>
+          <button class="btn secondary" id="manage-collections-btn">${t('common.manage')}</button>
       </div>
       <div class="column">
         ${renderSelect({ id: 'active-collection-select', value: activeId, options })}

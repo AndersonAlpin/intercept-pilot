@@ -40,7 +40,7 @@ export function renderLogsPage(state) {
         <div class="filters-row">
           ${renderSelect({ id: 'full-logs-level', value: state.logsFilter.level, options: LOG_LEVEL_OPTIONS })}
           <input class="input" id="full-logs-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter.search || '')}" />
-          ${renderButton({ id: 'full-clear-logs', label: t('logs.clearLogs') })}
+          ${renderButton({ id: 'full-clear-logs', label: t('common.clear'), variant: 'warning' })}
           <span class="results-count">${escapeHtml(countText)}</span>
         </div>
       </section>

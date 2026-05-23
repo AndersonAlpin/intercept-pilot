@@ -25,7 +25,7 @@ export function renderDiagnosticsPage(state) {
         <div><strong>${t('fullapp.invalidRules')}</strong><div>${invalidRules.length}</div></div>
       </div>
       <div class="footer-actions">
-        <button class="btn" data-page="logs">${t('diagnostics.openWebLogs')}</button>
+        <button class="btn info" data-page="logs">${t('diagnostics.openWebLogs')}</button>
       </div>
       <h4>${t('diagnostics.extensionEvents')}</h4>
       <div class="list">

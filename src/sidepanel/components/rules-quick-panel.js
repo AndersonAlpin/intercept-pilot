@@ -48,11 +48,11 @@ export function renderRulesQuickPanel(state) {
             <strong>${escapeHtml(truncate(rule.name, 48))}</strong>
             <div class="item-meta">${escapeHtml(rule.match?.method || 'ANY')} · ${escapeHtml(truncate(rule.match?.urlPattern || '', 64))}</div>
             <div class="row-actions">
-              <button class="icon-btn" type="button" data-rule-edit="${rule.id}" title="${escapeHtml(t('common.edit'))}" aria-label="${escapeHtml(t('common.edit'))}">${icon('edit')}</button>
-              <button class="icon-btn" type="button" data-rule-copy="${rule.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
-              <button class="icon-btn" type="button" data-rule-export="${rule.id}" title="${escapeHtml(t('common.exportJson'))}" aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
+              <button class="icon-btn ghost" type="button" data-rule-edit="${rule.id}" title="${escapeHtml(t('common.edit'))}" aria-label="${escapeHtml(t('common.edit'))}">${icon('edit')}</button>
+              <button class="icon-btn ghost" type="button" data-rule-copy="${rule.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
+              <button class="icon-btn ghost" type="button" data-rule-export="${rule.id}" title="${escapeHtml(t('common.exportJson'))}" aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
               <button class="icon-btn danger" type="button" data-rule-delete="${rule.id}" title="${escapeHtml(t('common.delete'))}" aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>
-              <button class="btn" data-rule-advanced="${rule.id}" title="${escapeHtml(t('common.advanced'))}">${t('common.advanced')} ${icon('external', 12)}</button>
+              <button class="btn info" data-rule-advanced="${rule.id}" title="${escapeHtml(t('common.advanced'))}">${t('common.advanced')} ${icon('external', 12)}</button>
             </div>
           </div>
           `
@@ -82,7 +82,7 @@ export function renderQuickRuleEditor(state) {
   `
   const footerHtml = `
     <button class="btn" id="quick-editor-cancel">${t('common.cancel')}</button>
-    <button class="btn" id="quick-open-advanced">${t('rules.advanced')}</button>
+    <button class="btn info" id="quick-open-advanced">${t('rules.advanced')}</button>
     <button class="btn primary" id="quick-save-rule">${t('common.save')}</button>
   `
 

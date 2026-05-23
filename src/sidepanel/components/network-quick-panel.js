@@ -84,8 +84,8 @@ export function renderNetworkQuickRows(state) {
       <div class="url network-url"><strong title="${escapeHtml(entry.url)}">${escapeHtml(formatNetworkDisplayUrl(entry.url, { compact: true }))}</strong><span>${escapeHtml(getAppliedRuleLabel(entry))}</span></div>
       <div>${statusBadge(entry.status)}</div>
       <div class="footer-actions">
-        ${renderButton({ label: t('rules.mockThis'), data: { 'create-from-request': entry.id } })}
-        ${renderButton({ label: t('rules.inspect'), data: { 'open-inspect': entry.id } })}
+        ${renderButton({ label: t('rules.mockThis'), variant: 'secondary', data: { 'create-from-request': entry.id } })}
+        ${renderButton({ label: t('rules.inspect'), variant: 'info', data: { 'open-inspect': entry.id } })}
       </div>
     </div>
   `).join('')
@@ -98,8 +98,8 @@ export function renderNetworkQuickPanel(state) {
         <div class="row space-between">
           <h2>${t('network.title')}</h2>
           <div class="footer-actions">
-            ${renderButton({ id: 'network-refresh-btn', label: t('common.refresh') })}
-            ${renderButton({ id: 'network-clear-btn', label: t('common.clear') })}
+            ${renderButton({ id: 'network-refresh-btn', label: t('common.refresh'), variant: 'secondary' })}
+            ${renderButton({ id: 'network-clear-btn', label: t('common.clear'), variant: 'warning' })}
           </div>
         </div>
         <div class="column">

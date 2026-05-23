@@ -79,7 +79,7 @@ export function renderRulesPage(state) {
           <select class="select" id="full-rules-collection">${options}</select>
           <input class="input" id="full-rules-search" placeholder="${escapeHtml(t('rules.searchPlaceholder'))}" value="${escapeHtml(state.rulesSearch || '')}" />
           <button class="btn primary" id="full-new-rule-btn">${escapeHtml(t('fullapp.newRule'))}</button>
-          <button class="btn" id="full-import-rule-btn">${escapeHtml(t('common.import'))}</button>
+          <button class="btn secondary" id="full-import-rule-btn">${escapeHtml(t('common.import'))}</button>
         </div>
       </section>
       <section class="card data-card rules-data-card">

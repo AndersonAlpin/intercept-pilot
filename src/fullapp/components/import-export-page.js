@@ -7,7 +7,7 @@ export function renderImportExportPage(state) {
       <h3>${t('navigation.importExport')}</h3>
       <p class="muted">${t('fullapp.importStrategy')}</p>
       <div class="footer-actions">
-        <button class="btn" id="full-import-pick-file-btn">${t('fullapp.importPickFile')}</button>
+        <button class="btn secondary" id="full-import-pick-file-btn">${t('fullapp.importPickFile')}</button>
         <input type="file" id="full-import-file-input" accept="application/json,.json" hidden />
       </div>
       <textarea class="textarea code" id="full-import-json" placeholder="${t('fullapp.importPlaceholder')}"></textarea>

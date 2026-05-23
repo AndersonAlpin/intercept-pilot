@@ -21,7 +21,7 @@ export function renderLogsQuickPanel(state) {
         </div>
         <div class="logs-actions-row">
           ${renderSwitch({ id: 'logs-error-only', checked: state.logsErrorOnly, label: t('logs.errorOnly') })}
-          ${renderButton({ id: 'logs-clear-btn', label: t('logs.clearLogs') })}
+          ${renderButton({ id: 'logs-clear-btn', label: t('common.clear'), variant: 'warning' })}
         </div>
       </div>
       <div class="list">
@@ -36,7 +36,7 @@ export function renderLogsQuickPanel(state) {
           </div>
         `).join('') : renderEmptyState({ message: t('logs.webOnlyEmpty') })}
       </div>
-      <div class="footer-actions">${renderButton({ id: 'open-diagnostics-btn', label: `${t('common.diagnostics')} ↗` })}</div>
+      <div class="footer-actions">${renderButton({ id: 'open-diagnostics-btn', label: `${t('common.diagnostics')} ↗`, variant: 'info' })}</div>
     </div>
   `
 }

@@ -77,7 +77,7 @@ export function renderNetworkRows(state) {
       <div>${escapeHtml(entry.resourceType || '')}</div>
       <div>${escapeHtml(getAppliedRuleLabel(entry))}</div>
       <div>${escapeHtml(getResultLabel(entry))}</div>
-      <div class="footer-actions">${renderButton({ label: t('network.createRule'), data: { 'full-create-from-request': entry.id } })}</div>
+      <div class="footer-actions">${renderButton({ label: t('network.createRule'), variant: 'secondary', data: { 'full-create-from-request': entry.id } })}</div>
     </div>
   `).join('')
   return `${header}${rows}`
@@ -133,7 +133,7 @@ export function renderNetworkPage(state) {
           ${renderSelect({ id: 'full-network-method', value: state.networkFilter.method, options: NETWORK_METHOD_OPTIONS })}
           <input class="input" id="full-network-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilter.status || '')}" />
           ${renderSwitch({ id: 'full-network-intercepted', checked: state.networkFilter.interceptedOnly, label: t('network.interceptedOnly') })}
-          ${renderButton({ id: 'full-network-clear', label: t('common.clear') })}
+          ${renderButton({ id: 'full-network-clear', label: t('common.clear'), variant: 'warning' })}
         </div>
       </section>
       <section class="card data-card network-data-card">

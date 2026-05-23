@@ -26,7 +26,7 @@ export function renderConnectionHeader(state) {
     <header class="header">
       <div class="header-top">
         <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
-        <button class="btn btn-open" id="open-fullapp-btn">${t('common.open')}</button>
+        <button class="btn secondary btn-open" id="open-fullapp-btn">${t('common.open')}</button>
       </div>
 
       <div class="capture-context">
@@ -48,12 +48,12 @@ export function renderConnectionHeader(state) {
       <div class="capture-actions">
         ${captureActive ? `
           <div class="capture-actions-main">
-            <button class="btn" id="reload-tab-btn" title="${escapeHtml(t('status.reloadPage'))}" aria-label="${escapeHtml(t('status.reloadPage'))}" ${(!canReload || state.attachBusy) ? 'disabled' : ''}>${t('common.reload')}</button>
+            <button class="btn secondary" id="reload-tab-btn" title="${escapeHtml(t('status.reloadPage'))}" aria-label="${escapeHtml(t('status.reloadPage'))}" ${(!canReload || state.attachBusy) ? 'disabled' : ''}>${t('common.reload')}</button>
             <button class="btn warning" id="attach-btn" data-tab-id="${escapeHtml(String(captureTab.id || ''))}" title="${escapeHtml(t('status.restartCapture'))}" aria-label="${escapeHtml(t('status.restartCapture'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.restartCaptureShort')}</button>
-            <button class="btn ghost" id="detach-btn" data-tab-id="${escapeHtml(String(captureTab.id || ''))}" title="${escapeHtml(t('status.stopCapture'))}" aria-label="${escapeHtml(t('status.stopCapture'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.stopCaptureShort')}</button>
+            <button class="btn danger" id="detach-btn" data-tab-id="${escapeHtml(String(captureTab.id || ''))}" title="${escapeHtml(t('status.stopCapture'))}" aria-label="${escapeHtml(t('status.stopCapture'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.stopCaptureShort')}</button>
           </div>
           ${newCandidate ? `
-            <button class="btn capture-new-tab-btn" id="attach-new-tab-btn" data-tab-id="${escapeHtml(String(newCandidate.id || ''))}" title="${escapeHtml(t('status.captureNewTab'))}" aria-label="${escapeHtml(t('status.captureNewTab'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.captureNewTab')}</button>
+            <button class="btn secondary capture-new-tab-btn" id="attach-new-tab-btn" data-tab-id="${escapeHtml(String(newCandidate.id || ''))}" title="${escapeHtml(t('status.captureNewTab'))}" aria-label="${escapeHtml(t('status.captureNewTab'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.captureNewTab')}</button>
           ` : ''}
         ` : `
           <button class="btn primary capture-start-btn" id="attach-btn" data-tab-id="${escapeHtml(String(candidateTab?.id || ''))}" ${(!canStart || state.attachBusy) ? 'disabled' : ''}>${state.attachBusy ? t('status.connecting') : t('status.startCapture')}</button>
