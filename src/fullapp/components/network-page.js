@@ -41,7 +41,7 @@ export function renderNetworkRows(state) {
       <div role="columnheader" class="col-actions">${escapeHtml(t('rules.columns.actions'))}</div>
     </div>
   `
-  const rows = entries.slice(0, 200).map(entry => `
+  const rows = entries.map(entry => `
     <div class="table-row row-network clickable-row"
          data-entry-id="${entry.id}"
          ${state.selectedNetworkEntryId === entry.id ? 'data-selected="true"' : ''}>

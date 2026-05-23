@@ -6,8 +6,13 @@ export const runtimeState = {
   candidateTab: null,
   lastAttachableTab: null,
   fetchEnabled: false,
+  networkTabId: null,
+  networkMaxEntries: 300,
+  networkEntrySeq: 0,
   networkEntries: [],
   networkIndex: new Map(),
+  requestEntryMap: new Map(),
+  ignoredRequestIds: new Set(),
   requestRuleMap: new Map(),
   tabMeta: new Map(),
   hitCounters: new Map(),
@@ -24,5 +29,7 @@ export function getAttachedDebuggee() {
 export function resetRuntimeCollections() {
   runtimeState.networkEntries = []
   runtimeState.networkIndex.clear()
+  runtimeState.requestEntryMap.clear()
+  runtimeState.ignoredRequestIds.clear()
   runtimeState.requestRuleMap.clear()
 }

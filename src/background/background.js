@@ -1,7 +1,7 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
 import { ensureState, getState, setState, saveCollection, deleteCollection, saveRule, deleteRule, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
-import { clone, isHttpUrl, uid } from '../shared/utils.js'
+import { clone, isHttpUrl, tryPrettyJson, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
 import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureRehydrated, isAttachedSource, sendAttachedCommand } from './debugger.js'
 import { runtimeState } from './runtime-state.js'
@@ -52,6 +52,26 @@ function getRuntimeEventUrl(params = {}) {
   return ''
 }
 
+function shouldIgnoreNetworkUrl(url) {
+  const value = String(url || '').trim()
+  if (!value) return false
+  let parsed
+  try {
+    parsed = new URL(value)
+  } catch {
+    return false
+  }
+
+  const host = String(parsed.hostname || '').toLowerCase()
+  const path = String(parsed.pathname || '')
+
+  if (path.startsWith('/_nuxt/') || path.startsWith('/@vite/') || path.startsWith('/@fs/')) return true
+  if (host.includes('kaspersky')) return true
+  if (host.endsWith('.kaspersky-labs.com')) return true
+  if (host.endsWith('.kaspersky.com')) return true
+  return false
+}
+
 function getRequestHeader(params, headerName) {
   const target = String(headerName || '').toLowerCase()
   const headers = params?.request?.headers
@@ -75,12 +95,68 @@ function getEntryKey(params) {
   return params.networkId || params.requestId
 }
 
+function nextNetworkEntryId(baseKey) {
+  runtimeState.networkEntrySeq += 1
+  return `${Date.now()}-${runtimeState.networkEntrySeq}-${String(baseKey || 'request')}`
+}
+
+function resolveNetworkEntryId(rawKey, { create = false } = {}) {
+  const key = String(rawKey || '')
+  if (!key) return create ? nextNetworkEntryId('request') : null
+  const existing = runtimeState.requestEntryMap.get(key)
+  if (existing) return existing
+  if (!create) return null
+  const created = nextNetworkEntryId(key)
+  runtimeState.requestEntryMap.set(key, created)
+  return created
+}
+
+function releaseNetworkEntryId(rawKey) {
+  const key = String(rawKey || '')
+  if (!key) return
+  runtimeState.requestEntryMap.delete(key)
+}
+
 function rebuildNetworkIndex() {
   runtimeState.networkIndex.clear()
   runtimeState.networkEntries.forEach((entry, index) => runtimeState.networkIndex.set(entry.id, index))
 }
 
-function upsertNetworkEntry(key, patch, max = 300) {
+function isHighValueNetworkEntry(entry) {
+  const type = String(entry?.resourceType || '').toLowerCase()
+  if (type === 'xhr' || type === 'fetch' || type === 'preflight') return true
+  if (entry?.intercepted) return true
+  if (entry?.matchedRuleId || entry?.matchedRuleName) return true
+  return false
+}
+
+function trimNetworkEntries(max) {
+  while (runtimeState.networkEntries.length > max) {
+    let dropIndex = -1
+
+    // Prefer dropping the oldest low-value request first.
+    for (let i = runtimeState.networkEntries.length - 1; i >= 0; i -= 1) {
+      const entry = runtimeState.networkEntries[i]
+      if (!isHighValueNetworkEntry(entry)) {
+        dropIndex = i
+        break
+      }
+    }
+
+    if (dropIndex === -1) {
+      // Fallback: all entries are high-value, remove the oldest one.
+      dropIndex = runtimeState.networkEntries.length - 1
+    }
+
+    const [removed] = runtimeState.networkEntries.splice(dropIndex, 1)
+    if (removed?.requestId) releaseNetworkEntryId(removed.requestId)
+    if (removed?.networkId) releaseNetworkEntryId(removed.networkId)
+    runtimeState.requestRuleMap.delete(String(removed?.requestId || ''))
+    runtimeState.requestRuleMap.delete(String(removed?.networkId || ''))
+  }
+}
+
+function upsertNetworkEntry(key, patch, max = Number(runtimeState.networkMaxEntries || 300)) {
   const index = runtimeState.networkIndex.get(key)
   if (index == null) {
     const entry = {
@@ -115,7 +191,7 @@ function upsertNetworkEntry(key, patch, max = 300) {
       ...patch
     }
     runtimeState.networkEntries.unshift(entry)
-    if (runtimeState.networkEntries.length > max) runtimeState.networkEntries = runtimeState.networkEntries.slice(0, max)
+    if (runtimeState.networkEntries.length > max) trimNetworkEntries(max)
     rebuildNetworkIndex()
     return entry
   }
@@ -128,7 +204,7 @@ function upsertNetworkEntry(key, patch, max = 300) {
 }
 
 function publishNetwork() {
-  broadcast({ type: 'state:network', networkEntries: runtimeState.networkEntries.slice(0, 200) })
+  broadcast({ type: 'state:network', networkEntries: runtimeState.networkEntries })
 }
 
 async function getActiveTab() {
@@ -233,7 +309,7 @@ async function getFullState() {
     rules,
     logs: state.logs,
     settings: state.settings || DEFAULT_SETTINGS,
-    networkEntries: runtimeState.networkEntries.slice(0, 200),
+    networkEntries: runtimeState.networkEntries,
     attachedTabId: runtimeState.attachedTabId,
     attachedTab,
     activeTab: runtimeState.activeTab,
@@ -278,6 +354,16 @@ async function maybeAutoReloadAfterRuleChange() {
   if (!targetId) return false
   await chrome.tabs.reload(targetId).catch(() => {})
   return true
+}
+
+async function syncNetworkSettingsFromState() {
+  const state = await getState()
+  const limit = Number(state?.settings?.maxNetworkEntries || 300)
+  runtimeState.networkMaxEntries = Number.isFinite(limit) && limit > 0 ? limit : 300
+  if (runtimeState.networkEntries.length > runtimeState.networkMaxEntries) {
+    trimNetworkEntries(runtimeState.networkMaxEntries)
+    rebuildNetworkIndex()
+  }
 }
 
 function ensureHitCounter(rule) {
@@ -385,7 +471,7 @@ async function applyRule(params, rule) {
   const action = rule.action || {}
   const actionType = action.type || 'mockResponse'
 
-  const requestKey = getEntryKey(params)
+  const requestKey = resolveNetworkEntryId(getEntryKey(params), { create: true })
   upsertNetworkEntry(requestKey, {
     id: requestKey,
     requestId: params.requestId,
@@ -495,6 +581,12 @@ async function applyRule(params, rule) {
 
 async function handleRequestPaused(source, params) {
   if (!isAttachedSource(source)) return
+  if (shouldIgnoreNetworkUrl(params?.request?.url)) {
+    await sendAttachedCommand('Fetch.continueRequest', { requestId: params.requestId }).catch(() => {})
+    return
+  }
+  const rawEntryKey = getEntryKey(params)
+  const entryId = resolveNetworkEntryId(rawEntryKey, { create: true })
 
   if (params.responseStatusCode) {
     await sendAttachedCommand('Fetch.continueResponse', { requestId: params.requestId }).catch(async () => {
@@ -507,7 +599,8 @@ async function handleRequestPaused(source, params) {
   const rule = findMatchingRule(state.rules, state.collections, params.request.url, params.request.method, params.resourceType)
 
   if (!rule) {
-    upsertNetworkEntry(getEntryKey(params), {
+    upsertNetworkEntry(entryId, {
+      id: entryId,
       requestId: params.requestId,
       networkId: params.networkId,
       url: params.request.url,
@@ -521,12 +614,25 @@ async function handleRequestPaused(source, params) {
     return
   }
 
-  runtimeState.requestRuleMap.set(getEntryKey(params), rule)
+  runtimeState.requestRuleMap.set(String(params.requestId || ''), rule)
+  runtimeState.requestRuleMap.set(String(params.networkId || ''), rule)
   await applyRule(params, rule)
 }
 
 function handleNetworkRequestWillBeSent(source, params) {
   if (!isAttachedSource(source)) return
+  if (shouldIgnoreNetworkUrl(params?.request?.url)) {
+    runtimeState.ignoredRequestIds.add(String(params.requestId || ''))
+    return
+  }
+  const rawKey = params.requestId
+  const previousEntryId = resolveNetworkEntryId(rawKey)
+  if (previousEntryId) {
+    const previousIndex = runtimeState.networkIndex.get(previousEntryId)
+    const previousEntry = previousIndex != null ? runtimeState.networkEntries[previousIndex] : null
+    if (previousEntry?.endedAt) releaseNetworkEntryId(rawKey)
+  }
+  const entryId = resolveNetworkEntryId(rawKey, { create: true })
   const MAX_POST = 64 * 1024
   const rawPost = params.request?.postData
   let trimmedPost = null
@@ -539,7 +645,8 @@ function handleNetworkRequestWillBeSent(source, params) {
       trimmedPost = rawPost
     }
   }
-  upsertNetworkEntry(params.requestId, {
+  upsertNetworkEntry(entryId, {
+    id: entryId,
     requestId: params.requestId,
     networkId: params.requestId,
     url: params.request?.url || '',
@@ -557,7 +664,8 @@ function handleNetworkRequestWillBeSent(source, params) {
 
 function handleNetworkRequestWillBeSentExtraInfo(source, params) {
   if (!isAttachedSource(source)) return
-  const key = params.requestId
+  if (runtimeState.ignoredRequestIds.has(String(params.requestId || ''))) return
+  const key = resolveNetworkEntryId(params.requestId) || resolveNetworkEntryId(params.requestId, { create: true })
   const idx = runtimeState.networkIndex.get(key)
   if (idx == null) return
   const current = runtimeState.networkEntries[idx]
@@ -572,8 +680,9 @@ function handleNetworkRequestWillBeSentExtraInfo(source, params) {
 
 function handleNetworkResponseReceived(source, params) {
   if (!isAttachedSource(source)) return
-  const key = params.requestId
-  const existingRule = runtimeState.requestRuleMap.get(key)
+  if (runtimeState.ignoredRequestIds.has(String(params.requestId || ''))) return
+  const key = resolveNetworkEntryId(params.requestId) || resolveNetworkEntryId(params.requestId, { create: true })
+  const existingRule = runtimeState.requestRuleMap.get(String(params.requestId || '')) || runtimeState.requestRuleMap.get(String(params.networkId || ''))
   const response = params.response || {}
   upsertNetworkEntry(key, {
     status: response.status,
@@ -591,7 +700,8 @@ function handleNetworkResponseReceived(source, params) {
 
 function handleNetworkResponseReceivedExtraInfo(source, params) {
   if (!isAttachedSource(source)) return
-  const key = params.requestId
+  if (runtimeState.ignoredRequestIds.has(String(params.requestId || ''))) return
+  const key = resolveNetworkEntryId(params.requestId) || resolveNetworkEntryId(params.requestId, { create: true })
   const idx = runtimeState.networkIndex.get(key)
   if (idx == null) return
   const current = runtimeState.networkEntries[idx]
@@ -606,18 +716,34 @@ function handleNetworkResponseReceivedExtraInfo(source, params) {
 
 function handleLoadingFinished(source, params) {
   if (!isAttachedSource(source)) return
-  upsertNetworkEntry(params.requestId, { endedAt: Date.now() })
+  const requestId = String(params.requestId || '')
+  if (runtimeState.ignoredRequestIds.has(requestId)) {
+    runtimeState.ignoredRequestIds.delete(requestId)
+    return
+  }
+  const key = resolveNetworkEntryId(params.requestId) || resolveNetworkEntryId(params.requestId, { create: true })
+  upsertNetworkEntry(key, { endedAt: Date.now() })
+  releaseNetworkEntryId(params.requestId)
+  runtimeState.requestRuleMap.delete(String(params.requestId || ''))
   publishNetwork()
 }
 
 function handleLoadingFailed(source, params) {
   if (!isAttachedSource(source)) return
-  upsertNetworkEntry(params.requestId, {
+  const requestId = String(params.requestId || '')
+  if (runtimeState.ignoredRequestIds.has(requestId)) {
+    runtimeState.ignoredRequestIds.delete(requestId)
+    return
+  }
+  const key = resolveNetworkEntryId(params.requestId) || resolveNetworkEntryId(params.requestId, { create: true })
+  upsertNetworkEntry(key, {
     endedAt: Date.now(),
     status: 0,
     errorText: params.errorText || 'Failed',
     errorType: String(params.type || '')
   })
+  releaseNetworkEntryId(params.requestId)
+  runtimeState.requestRuleMap.delete(String(params.requestId || ''))
   publishNetwork()
 }
 
@@ -633,8 +759,10 @@ async function handleNetworkGetBody(message) {
   }
   entry.responseBodyLoaded = 'loading'
   try {
+    const responseBodyRequestId = entry.networkId || entry.requestId
+    if (!responseBodyRequestId) throw new Error('body_unavailable')
     const result = await sendAttachedCommand('Network.getResponseBody', {
-      requestId: entry.requestId
+      requestId: responseBodyRequestId
     })
     const MAX = 256 * 1024
     let body = String(result?.body || '')
@@ -657,6 +785,8 @@ async function handleNetworkGetBody(message) {
 async function clearNetworkEntries() {
   runtimeState.networkEntries = []
   runtimeState.networkIndex.clear()
+  runtimeState.requestEntryMap.clear()
+  runtimeState.ignoredRequestIds.clear()
   publishNetwork()
   return []
 }
@@ -696,6 +826,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 ;(async () => {
   const rehydrated = await ensureRehydrated()
+  await syncNetworkSettingsFromState()
   if (rehydrated) {
     await updateConnectionFromActiveTab()
     await broadcastConnectionState()
@@ -831,6 +962,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       case 'settings:update':
         sendResponse({ settings: await updateSettings(message.payload || {}) })
+        await syncNetworkSettingsFromState()
         await maybeAutoAttach()
         await updateConnectionFromActiveTab()
         await broadcastConnectionState()
@@ -946,6 +1078,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } catch {
           responseBody = '{\n  "ok": true\n}'
         }
+        const prettyResponseBody = tryPrettyJson(responseBody).pretty || '{\n  "ok": true\n}'
 
         const state = await getState()
         const rule = makeRule({
@@ -964,7 +1097,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             contentType: entry.responseMimeType || 'application/json',
             applyResponseBody: true,
             applyResponseHeaders: false,
-            responseBody: responseBody || '{\n  "ok": true\n}',
+            responseBody: prettyResponseBody,
             responseHeaders: ''
           }
         }, state.settings.activeCollectionId)

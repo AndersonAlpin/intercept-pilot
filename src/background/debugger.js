@@ -190,7 +190,10 @@ export async function attachToTab(tabId) {
     runtimeState.attachedTabId = tabId
     runtimeState.attachedDebuggee = attachedVia === 'targetId' ? { targetId: attachedTargetId } : { tabId }
     runtimeState.tabMeta.set(tabId, { url: tab.url || '', title: tab.title || '' })
-    resetRuntimeCollections()
+    if (runtimeState.networkTabId != null && runtimeState.networkTabId !== tabId) {
+      resetRuntimeCollections()
+    }
+    runtimeState.networkTabId = tabId
     await persistAttachedSession()
 
     await sendAttachedCommand('Network.enable').catch(() => {})
@@ -217,7 +220,6 @@ export async function detachCurrentTab() {
   runtimeState.attachedTabId = null
   runtimeState.attachedDebuggee = null
   runtimeState.fetchEnabled = false
-  resetRuntimeCollections()
   await clearPersistedAttachedSession()
   return { attachedTabId: null }
 }
