@@ -17,7 +17,7 @@ import { renderConnectionHeader } from './components/connection-header.js'
 import { renderCollectionSwitcher } from './components/collection-switcher.js'
 import { renderTabs } from './components/tabs.js'
 import { renderRulesQuickPanel, renderQuickRuleEditor } from './components/rules-quick-panel.js'
-import { renderNetworkQuickPanel } from './components/network-quick-panel.js'
+import { renderNetworkQuickCount, renderNetworkQuickPanel, renderNetworkQuickRows } from './components/network-quick-panel.js'
 import { renderLogsQuickPanel } from './components/logs-quick-panel.js'
 
 const appState = {
@@ -140,6 +140,54 @@ function filteredLogs() {
   })
 }
 
+function applyNetworkFilters() {
+  appState.filteredNetworkEntries = filteredNetworkEntries()
+}
+
+function bindNetworkRowEvents() {
+  const table = $('#network-entries-table')
+  if (!table || table.dataset.bound === 'true') return
+  table.dataset.bound = 'true'
+  table.addEventListener('click', async event => {
+    const target = event.target instanceof Element ? event.target : null
+    if (!target) return
+
+    const createButton = target.closest('[data-create-from-request]')
+    if (createButton && table.contains(createButton)) {
+      const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: createButton.dataset.createFromRequest })
+      if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
+      appState.currentTab = 'rules'
+      if (result.createdRule) {
+        appState.quickRuleEditorOpen = true
+        appState.quickRuleForm = hydrateQuickRule(result.createdRule)
+      }
+      await refreshState()
+      return
+    }
+
+    const inspectButton = target.closest('[data-open-inspect]')
+    if (inspectButton && table.contains(inspectButton)) {
+      const entryId = inspectButton.dataset.openInspect
+      const url = chrome.runtime.getURL(`src/fullapp/fullapp.html?page=network&inspect=${encodeURIComponent(entryId)}`)
+      chrome.tabs.create({ url })
+    }
+  })
+}
+
+function refreshSideNetworkOnly() {
+  if (appState.currentTab !== 'network') return
+  const table = $('#network-entries-table')
+  if (!table) {
+    render()
+    return
+  }
+  applyNetworkFilters()
+  table.innerHTML = renderNetworkQuickRows(appState)
+  const countEl = $('#network-results-count')
+  if (countEl) countEl.textContent = renderNetworkQuickCount(appState)
+  bindNetworkRowEvents()
+}
+
 function render() {
   const root = $('#app')
   const focusSnapshot = captureFocusSnapshot()
@@ -151,7 +199,7 @@ function render() {
     body = `${renderCollectionSwitcher(appState)}${renderRulesQuickPanel(appState)}${renderQuickRuleEditor(appState)}`
   }
   if (appState.currentTab === 'network') {
-    appState.filteredNetworkEntries = filteredNetworkEntries()
+    applyNetworkFilters()
     body = renderNetworkQuickPanel(appState)
   }
   if (appState.currentTab === 'logs') {
@@ -529,29 +577,34 @@ function bindEvents() {
 
   $('#network-refresh-btn')?.addEventListener('click', refreshState)
   $('#network-clear-btn')?.addEventListener('click', async () => {
-    await sendMessage({ type: MSG.NETWORK_CLEAR })
-    await refreshState()
+    const result = await sendMessage({ type: MSG.NETWORK_CLEAR })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      return
+    }
+    appState.networkEntries = result?.networkEntries || []
+    refreshSideNetworkOnly()
   })
 
   $('#network-filter-text')?.addEventListener('input', event => {
     appState.networkFilters.text = event.target.value
     persistSidepanelNetworkFilter()
-    render()
+    refreshSideNetworkOnly()
   })
   $('#network-filter-method')?.addEventListener('change', event => {
     appState.networkFilters.method = event.target.value
     persistSidepanelNetworkFilter()
-    render()
+    refreshSideNetworkOnly()
   })
   $('#network-filter-status')?.addEventListener('input', event => {
     appState.networkFilters.status = event.target.value
     persistSidepanelNetworkFilter()
-    render()
+    refreshSideNetworkOnly()
   })
   $('#network-filter-intercepted')?.addEventListener('change', event => {
     appState.networkFilters.interceptedOnly = event.target.checked
     persistSidepanelNetworkFilter()
-    render()
+    refreshSideNetworkOnly()
   })
 
   document.querySelectorAll('[data-preset-apply]').forEach(btn => {
@@ -565,26 +618,7 @@ function bindEvents() {
     quickBackdrop.addEventListener('change', markDirty)
   }
 
-  document.querySelectorAll('[data-create-from-request]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.createFromRequest })
-      if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
-      appState.currentTab = 'rules'
-      if (result.createdRule) {
-        appState.quickRuleEditorOpen = true
-        appState.quickRuleForm = hydrateQuickRule(result.createdRule)
-      }
-      await refreshState()
-    })
-  })
-
-  document.querySelectorAll('[data-open-inspect]').forEach(button => {
-    button.addEventListener('click', () => {
-      const entryId = button.dataset.openInspect
-      const url = chrome.runtime.getURL(`src/fullapp/fullapp.html?page=network&inspect=${encodeURIComponent(entryId)}`)
-      chrome.tabs.create({ url })
-    })
-  })
+  bindNetworkRowEvents()
 
   $('#logs-error-only')?.addEventListener('change', event => {
     appState.logsErrorOnly = event.target.checked
@@ -599,7 +633,7 @@ function bindEvents() {
 chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:network') {
     appState.networkEntries = message.networkEntries
-    if (appState.currentTab === 'network') render()
+    if (appState.currentTab === 'network') refreshSideNetworkOnly()
   }
   if (message?.type === 'state:logs') {
     appState.logs = message.logs
