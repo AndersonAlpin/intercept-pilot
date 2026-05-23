@@ -35,6 +35,8 @@ export function renderPagination({
 
   const previousLabel = labels.previous ?? (compact ? '‹' : 'Previous')
   const nextLabel = labels.next ?? (compact ? '›' : 'Next')
+  const previousContent = labels.previousHtml ?? escapeHtml(previousLabel)
+  const nextContent = labels.nextHtml ?? escapeHtml(nextLabel)
   const previousTitle = labels.previousTitle ?? labels.previousAriaLabel ?? previousLabel
   const nextTitle = labels.nextTitle ?? labels.nextAriaLabel ?? nextLabel
   const pageLabel = labels.pageLabel ?? `${currentPage}/${totalPages}`
@@ -63,9 +65,9 @@ export function renderPagination({
 
   return `${countHtml}
     <div ${containerAttrs}>
-      <button ${joinClasses(previousAttrs, dataPrev)}>${escapeHtml(previousLabel)}</button>
+      <button ${joinClasses(previousAttrs, dataPrev)}>${previousContent}</button>
       <span class="${escapeHtml(labelClassName)}" aria-label="${escapeHtml(pageAriaLabel)}">${escapeHtml(pageLabel)}</span>
-      <button ${joinClasses(nextAttrs, dataNext)}>${escapeHtml(nextLabel)}</button>
+      <button ${joinClasses(nextAttrs, dataNext)}>${nextContent}</button>
     </div>
   `
 }

@@ -7,6 +7,7 @@ import { debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff, matchesNetworkIgnore
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import {
   createRuleBundle,
+  copyTextToClipboard,
   copyJsonToClipboard,
   downloadJsonFile,
   buildRuleFilename
@@ -20,6 +21,7 @@ import { renderTabs } from './components/tabs.js'
 import { renderRulesQuickPanel, renderQuickRuleEditor } from './components/rules-quick-panel.js'
 import { renderNetworkQuickCount, renderNetworkQuickPagination, renderNetworkQuickPanel, renderNetworkQuickRows } from './components/network-quick-panel.js'
 import { renderLogsQuickPanel } from './components/logs-quick-panel.js'
+import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 
 const appState = {
   currentTab: 'rules',
@@ -49,7 +51,16 @@ const appState = {
     pageSize: 50
   },
   networkFiltersHydrated: false,
-  logsErrorOnly: false,
+  logsFilter: {
+    level: 'ANY',
+    search: ''
+  },
+  logsPagination: {
+    page: 1,
+    pageSize: 20
+  },
+  pagedLogs: [],
+  selectedLogId: null,
 
   quickRuleEditorOpen: false,
   editorMode: 'create',
@@ -142,10 +153,28 @@ function hydrateQuickRule(seed = {}) {
 
 function filteredLogs() {
   return appState.logs.filter(log => {
-    if (appState.logsErrorOnly && log.level !== 'error') return false
+    const filter = appState.logsFilter || { level: 'ANY', search: '' }
+    if (filter.level !== 'ANY' && log.level !== filter.level) return false
     if (String(log.scope || '').toLowerCase() !== 'web') return false
+    const text = String(filter.search || '').trim().toLowerCase()
+    if (text && !(`${log.message || ''} ${log.url || ''}`).toLowerCase().includes(text)) return false
     return true
   })
+}
+
+function applyLogsPagination() {
+  const pagination = appState.logsPagination || { page: 1, pageSize: 20 }
+  const pageSize = Math.max(1, Number(pagination.pageSize || 20))
+  const total = appState.filteredLogs.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const page = Math.min(Math.max(1, Number(pagination.page || 1)), totalPages)
+  appState.logsPagination = { page, pageSize }
+  const start = (page - 1) * pageSize
+  appState.pagedLogs = appState.filteredLogs.slice(start, start + pageSize)
+}
+
+function resetLogsPage() {
+  appState.logsPagination = { ...(appState.logsPagination || {}), page: 1 }
 }
 
 function applyNetworkFilters() {
@@ -223,6 +252,38 @@ function refreshSideNetworkOnly() {
   bindNetworkPaginationEvents()
 }
 
+function findLogById(logId) {
+  return appState.logs.find(log => log.id === logId) || null
+}
+
+function openLogDetail(logId) {
+  if (!findLogById(logId)) return
+  appState.selectedLogId = logId
+  render()
+}
+
+function closeLogDetail() {
+  appState.selectedLogId = null
+  render()
+}
+
+async function copySelectedLogField(field) {
+  const log = findLogById(appState.selectedLogId)
+  if (!log) return
+  const value = field === 'message'
+    ? log.message
+    : field === 'url'
+      ? log.url
+      : JSON.stringify(log, null, 2)
+  if (!value) return
+  try {
+    await copyTextToClipboard(value)
+    toastSuccess(t(`toasts.${field === 'message' ? 'logMessageCopied' : field === 'url' ? 'logUrlCopied' : 'logCopied'}`))
+  } catch {
+    toastError(t('toasts.copyError'))
+  }
+}
+
 function render() {
   const root = $('#app')
   const focusSnapshot = captureFocusSnapshot()
@@ -239,10 +300,12 @@ function render() {
   }
   if (appState.currentTab === 'logs') {
     appState.filteredLogs = filteredLogs()
+    applyLogsPagination()
     body = renderLogsQuickPanel(appState)
   }
 
-  root.innerHTML = `${header}${tabs}<section class="content">${body}</section>`
+  const selectedLog = appState.selectedLogId ? appState.logs.find(log => log.id === appState.selectedLogId) : null
+  root.innerHTML = `${header}${tabs}<section class="content">${body}</section>${renderLogDetailModal({ log: selectedLog, prefix: 'side', dialogClassName: 'side-log-detail-modal' })}`
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   updateHeaderOffset()
   bindEvents()
@@ -556,9 +619,11 @@ function bindEvents() {
 
   $('#quick-editor-cancel')?.addEventListener('click', closeQuickEditor)
   $('#quick-editor-close-x')?.addEventListener('click', closeQuickEditor)
-  document.querySelector('[data-modal-backdrop]')?.addEventListener('click', event => {
-    if (event.target === event.currentTarget) closeQuickEditor()
-  })
+  if (appState.quickRuleEditorOpen) {
+    document.querySelector('[data-modal-backdrop]')?.addEventListener('click', event => {
+      if (event.target === event.currentTarget) closeQuickEditor()
+    })
+  }
 
   $('#quick-save-rule')?.addEventListener('click', saveQuickRule)
   $('#quick-open-advanced')?.addEventListener('click', openAdvancedFromQuick)
@@ -629,7 +694,6 @@ function bindEvents() {
     })
   })
 
-  $('#network-refresh-btn')?.addEventListener('click', refreshState)
   $('#network-clear-btn')?.addEventListener('click', async () => {
     const result = await sendMessage({ type: MSG.NETWORK_CLEAR })
     if (result?.error) {
@@ -680,13 +744,53 @@ function bindEvents() {
   bindNetworkRowEvents()
   bindNetworkPaginationEvents()
 
-  $('#logs-error-only')?.addEventListener('change', event => {
-    appState.logsErrorOnly = event.target.checked
+  $('#logs-filter-level')?.addEventListener('change', event => {
+    appState.logsFilter.level = event.target.value
+    resetLogsPage()
+    render()
+  })
+  $('#logs-filter-search')?.addEventListener('input', event => {
+    appState.logsFilter.search = event.target.value
+    resetLogsPage()
     render()
   })
   $('#logs-clear-btn')?.addEventListener('click', async () => {
     await sendMessage({ type: MSG.LOGS_CLEAR })
+    appState.selectedLogId = null
+    resetLogsPage()
     await refreshState()
+  })
+
+  const logsPanel = document.querySelector('.logs-panel')
+  if (logsPanel && logsPanel.dataset.bound !== 'true') {
+    logsPanel.dataset.bound = 'true'
+    delegate(logsPanel, 'click', '[data-side-log-detail]', ({ delegateTarget }) => {
+      openLogDetail(delegateTarget.dataset.sideLogDetail)
+    })
+    delegate(logsPanel, 'keydown', '[data-side-log-detail]', ({ event, delegateTarget }) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      openLogDetail(delegateTarget.dataset.sideLogDetail)
+    })
+    delegate(logsPanel, 'click', '[data-side-logs-page]', ({ delegateTarget: button }) => {
+      const direction = button.dataset.sideLogsPage
+      const current = Number(appState.logsPagination?.page || 1)
+      appState.logsPagination = {
+        ...(appState.logsPagination || {}),
+        page: direction === 'next' ? current + 1 : current - 1
+      }
+      applyLogsPagination()
+      render()
+    })
+  }
+
+  document.querySelector('[data-log-detail-backdrop="side"]')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeLogDetail()
+  })
+  $('#side-log-detail-close')?.addEventListener('click', closeLogDetail)
+  $('#side-log-detail-close-x')?.addEventListener('click', closeLogDetail)
+  document.querySelectorAll('[data-side-log-copy]').forEach(button => {
+    button.addEventListener('click', () => copySelectedLogField(button.dataset.sideLogCopy))
   })
 }
 
@@ -697,6 +801,7 @@ chrome.runtime.onMessage.addListener(message => {
   }
   if (message?.type === 'state:logs') {
     appState.logs = message.logs
+    if (appState.selectedLogId && !findLogById(appState.selectedLogId)) appState.selectedLogId = null
     if (appState.currentTab === 'logs') render()
   }
   if (message?.type === 'state:attached') {
@@ -759,7 +864,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 })
 
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && appState.quickRuleEditorOpen) closeQuickEditor()
+  if (event.key !== 'Escape') return
+  if (appState.selectedLogId) {
+    closeLogDetail()
+    return
+  }
+  if (appState.quickRuleEditorOpen) closeQuickEditor()
 })
 
 window.addEventListener('resize', updateHeaderOffset)

@@ -34,6 +34,7 @@ import { renderLogsPage } from './components/logs-page.js'
 import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
 import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from './components/network-inspector-modal.js'
+import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 
 const state = {
   page: 'dashboard',
@@ -69,11 +70,17 @@ const state = {
     level: 'ANY',
     search: ''
   },
+  logsPagination: {
+    page: 1,
+    pageSize: 100
+  },
   filteredNetworkEntries: [],
   filteredLogs: [],
+  pagedLogs: [],
   lastImportExportMessage: '',
   inspector: null,
   selectedNetworkEntryId: null,
+  selectedLogId: null,
   networkFilterHydrated: false
 }
 
@@ -146,6 +153,7 @@ function applyLocalFilters() {
     if (text && !(`${log.message || ''} ${log.url || ''}`).toLowerCase().includes(text)) return false
     return true
   })
+  applyLogsPagination()
 }
 
 function applyNetworkPagination() {
@@ -161,6 +169,21 @@ function applyNetworkPagination() {
 
 function resetNetworkPage() {
   state.networkPagination = { ...(state.networkPagination || {}), page: 1 }
+}
+
+function applyLogsPagination() {
+  const pagination = state.logsPagination || { page: 1, pageSize: 100 }
+  const pageSize = Math.max(1, Number(pagination.pageSize || 100))
+  const total = state.filteredLogs.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const page = Math.min(Math.max(1, Number(pagination.page || 1)), totalPages)
+  state.logsPagination = { page, pageSize }
+  const start = (page - 1) * pageSize
+  state.pagedLogs = state.filteredLogs.slice(start, start + pageSize)
+}
+
+function resetLogsPage() {
+  state.logsPagination = { ...(state.logsPagination || {}), page: 1 }
 }
 
 function renderNetworkIgnoreChips() {
@@ -308,12 +331,13 @@ function render() {
   const root = $('#app')
   const focusSnapshot = captureFocusSnapshot()
   const isSplitScrollPage = state.page === 'network' || state.page === 'logs' || state.page === 'rules' || state.page === 'collections' || state.page === 'diagnostics'
+  const selectedLog = state.selectedLogId ? state.logs.find(log => log.id === state.selectedLogId) : null
   root.innerHTML = renderAppShell({
     sidebar: renderSidebar(state.page),
     topbar: renderTopbar(state),
     content: renderPage(),
     contentClass: isSplitScrollPage ? 'app-content-split' : ''
-  }) + renderNetworkInspectorModal(state)
+  }) + renderNetworkInspectorModal(state) + renderLogDetailModal({ log: selectedLog, prefix: 'full' })
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindEvents()
   restoreFocusSnapshot(focusSnapshot)
@@ -743,6 +767,77 @@ function bindNetworkPaginationEvents() {
   })
 }
 
+function findLogById(logId) {
+  return state.logs.find(log => log.id === logId) || null
+}
+
+function openLogDetail(logId) {
+  if (!findLogById(logId)) return
+  state.selectedLogId = logId
+  render()
+}
+
+function closeLogDetail() {
+  state.selectedLogId = null
+  render()
+}
+
+async function copySelectedLogField(field) {
+  const log = findLogById(state.selectedLogId)
+  if (!log) return
+  const value = field === 'message'
+    ? log.message
+    : field === 'url'
+      ? log.url
+      : JSON.stringify(log, null, 2)
+  if (!value) return
+  try {
+    await copyTextToClipboard(value)
+    toastSuccess(t(`toasts.${field === 'message' ? 'logMessageCopied' : field === 'url' ? 'logUrlCopied' : 'logCopied'}`))
+  } catch {
+    toastError(t('toasts.copyError'))
+  }
+}
+
+function bindLogsEvents() {
+  const logsTable = document.querySelector('.logs-data-panel')
+  if (logsTable && logsTable.dataset.logsBound !== 'true') {
+    logsTable.dataset.logsBound = 'true'
+    delegate(logsTable, 'click', '[data-full-log-detail]', ({ delegateTarget }) => {
+      openLogDetail(delegateTarget.dataset.fullLogDetail)
+    })
+    delegate(logsTable, 'keydown', '[data-full-log-detail]', ({ event, delegateTarget }) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      openLogDetail(delegateTarget.dataset.fullLogDetail)
+    })
+  }
+
+  const pagination = $('#full-logs-pagination')
+  if (pagination && pagination.dataset.bound !== 'true') {
+    pagination.dataset.bound = 'true'
+    delegate(pagination, 'click', '[data-full-logs-page]', ({ delegateTarget: button }) => {
+      const direction = button.dataset.fullLogsPage
+      const current = Number(state.logsPagination?.page || 1)
+      state.logsPagination = {
+        ...(state.logsPagination || {}),
+        page: direction === 'next' ? current + 1 : current - 1
+      }
+      applyLogsPagination()
+      render()
+    })
+  }
+
+  document.querySelector('[data-log-detail-backdrop="full"]')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeLogDetail()
+  })
+  $('#full-log-detail-close')?.addEventListener('click', closeLogDetail)
+  $('#full-log-detail-close-x')?.addEventListener('click', closeLogDetail)
+  document.querySelectorAll('[data-full-log-copy]').forEach(button => {
+    button.addEventListener('click', () => copySelectedLogField(button.dataset.fullLogCopy))
+  })
+}
+
 function readEditorRule() {
   if (!state.editingRule) return null
   return {
@@ -893,9 +988,11 @@ function bindEvents() {
 
   $('#editor-cancel-rule')?.addEventListener('click', closeEditor)
   $('#editor-close-x')?.addEventListener('click', closeEditor)
-  document.querySelector('[data-modal-backdrop]')?.addEventListener('click', event => {
-    if (event.target === event.currentTarget) closeEditor()
-  })
+  if (state.editingRule) {
+    document.querySelector('[data-modal-backdrop]')?.addEventListener('click', event => {
+      if (event.target === event.currentTarget) closeEditor()
+    })
+  }
 
   $('#full-new-collection-btn')?.addEventListener('click', async () => {
     const name = await promptDialog({
@@ -1028,18 +1125,23 @@ function bindEvents() {
 
   $('#full-logs-level')?.addEventListener('change', event => {
     state.logsFilter.level = event.target.value
+    resetLogsPage()
     applyLocalFilters()
     render()
   })
   $('#full-logs-search')?.addEventListener('input', event => {
     state.logsFilter.search = event.target.value
+    resetLogsPage()
     applyLocalFilters()
     render()
   })
   $('#full-clear-logs')?.addEventListener('click', async () => {
     await sendMessage({ type: MSG.LOGS_CLEAR })
+    state.selectedLogId = null
+    resetLogsPage()
     await refreshState()
   })
+  bindLogsEvents()
 
   $('#full-import-json-btn')?.addEventListener('click', async () => {
     const textarea = $('#full-import-json')
@@ -1192,6 +1294,7 @@ chrome.runtime.onMessage.addListener(message => {
   }
   if (message?.type === 'state:logs') {
     state.logs = message.logs
+    if (state.selectedLogId && !findLogById(state.selectedLogId)) state.selectedLogId = null
     if (state.page === 'logs' || state.page === 'diagnostics') {
       applyLocalFilters()
       render()
@@ -1270,6 +1373,10 @@ document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return
   if (state.inspector) {
     closeInspector()
+    return
+  }
+  if (state.selectedLogId) {
+    closeLogDetail()
     return
   }
   if (state.editingRule) closeEditor()

@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { icon } from '../../shared/icons.js'
 import { formatNetworkDisplayUrl } from '../../shared/network-display.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
@@ -75,8 +76,8 @@ export function renderNetworkQuickPagination(state) {
     className: 'network-pagination',
     buttonClassName: 'network-page-btn',
     labels: {
-      previous: '‹',
-      next: '›',
+      previousHtml: icon('chevron-left', 14),
+      nextHtml: icon('chevron-right', 14),
       previousTitle: t('network.previousPage'),
       nextTitle: t('network.nextPage'),
       pageLabel: `${page}/${totalPages}`,
@@ -114,7 +115,6 @@ export function renderNetworkQuickPanel(state) {
         <div class="row space-between">
           <h2>${t('network.title')}</h2>
           <div class="footer-actions">
-            ${renderButton({ id: 'network-refresh-btn', label: t('common.refresh'), variant: 'secondary' })}
             ${renderButton({ id: 'network-clear-btn', label: t('network.clearNetwork'), variant: 'warning' })}
           </div>
         </div>

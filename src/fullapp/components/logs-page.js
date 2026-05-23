@@ -2,9 +2,10 @@ import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 import { renderButton } from '../../shared/ui/button.js'
-import { formatShowingCount } from '../../shared/ui/count.js'
+import { formatShowingCount, formatShowingRange } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderEmptyState } from '../../shared/ui/empty-state.js'
+import { renderPagination } from '../../shared/ui/pagination.js'
 import { renderSelect } from '../../shared/ui/select.js'
 
 function getLogLevelOptions() {
@@ -33,13 +34,27 @@ function levelBadge(level) {
 
 export function renderLogsPage(state) {
   const logs = state.filteredLogs || state.logs.filter(isWebLog)
+  const pagedLogs = state.pagedLogs || logs
   const total = state.logs.filter(isWebLog).length
-  const countText = formatShowingCount({
-    shown: Math.min(logs.length, 200),
-    total,
-    singular: t('logs.entityOne'),
-    plural: t('logs.entityMany')
-  })
+  const pageSize = Number(state.logsPagination?.pageSize || 100)
+  const page = Number(state.logsPagination?.page || 1)
+  const start = logs.length ? ((page - 1) * pageSize) + 1 : 0
+  const end = Math.min(logs.length, page * pageSize)
+  const totalPages = Math.max(1, Math.ceil(logs.length / pageSize))
+  const countText = logs.length
+    ? formatShowingRange({
+      start,
+      end,
+      total: logs.length,
+      singular: t('logs.entityOne'),
+      plural: t('logs.entityMany')
+    })
+    : formatShowingCount({
+      shown: 0,
+      total,
+      singular: t('logs.entityOne'),
+      plural: t('logs.entityMany')
+    })
   const emptyKey = hasActiveLogsFilter(state) ? 'logs.noResults' : 'logs.noLogs'
 
   const header = `
@@ -59,9 +74,9 @@ export function renderLogsPage(state) {
   `
   const bodyHtml = `
     <div class="table table-wide">
-      ${logs.length ? header : ''}
-      ${logs.length ? logs.slice(0, 200).map(log => `
-        <div class="table-row row-logs">
+      ${pagedLogs.length ? header : ''}
+      ${pagedLogs.length ? pagedLogs.map(log => `
+        <div class="table-row row-logs clickable-row" role="button" tabindex="0" data-full-log-detail="${escapeHtml(log.id)}" title="${escapeHtml(t('logs.openDetails'))}">
           <div class="cell-network-url" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</div>
           <div>${levelBadge(log.level || 'info')}</div>
           <div>${escapeHtml(log.timestamp || '')}</div>
@@ -78,7 +93,25 @@ export function renderLogsPage(state) {
         actionsHtml: renderButton({ id: 'full-clear-logs', label: t('logs.clearLogs'), variant: 'warning' }),
         filtersHtml,
         bodyHtml,
-        footerHtml: `<span class="data-panel__count">${escapeHtml(countText)}</span>`,
+        footerHtml: renderPagination({
+          page,
+          totalItems: logs.length,
+          pageSize,
+          countLabel: countText,
+          countClassName: 'network-footer-count',
+          dataAction: 'full-logs-page',
+          className: 'network-pagination-controls',
+          buttonClassName: 'btn network-page-btn',
+          labels: {
+            previous: t('network.previous'),
+            next: t('network.next'),
+            previousTitle: t('network.previousPage'),
+            nextTitle: t('network.nextPage'),
+            pageLabel: t('network.pageShort', { page, totalPages })
+          }
+        }),
+        footerClassName: 'network-table-footer',
+        footerAttrs: { id: 'full-logs-pagination' },
         className: 'logs-data-panel'
       })}
     </section>
