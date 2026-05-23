@@ -39,8 +39,28 @@ import { renderDiagnosticsPage } from './components/diagnostics-page.js'
 import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from './components/network-inspector-modal.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 
+const PAGE_IDS = ['dashboard', 'rules', 'collections', 'network', 'logs', 'import-export', 'diagnostics', 'settings']
+const PAGE_URL_ALIASES = {
+  import: 'import-export',
+  'import-export': 'import-export'
+}
+
+function normalizePageId(page) {
+  const value = PAGE_URL_ALIASES[page] || page
+  return PAGE_IDS.includes(value) ? value : 'dashboard'
+}
+
+function pageToUrlSlug(page) {
+  return page === 'import-export' ? 'import' : page
+}
+
+function getInitialPageFromUrl() {
+  const params = new URLSearchParams(window.location.search)
+  return normalizePageId(params.get('page'))
+}
+
 const state = {
-  page: 'dashboard',
+  page: getInitialPageFromUrl(),
   collections: [],
   rules: [],
   logs: [],
@@ -92,6 +112,39 @@ const state = {
 
 function $(selector) {
   return document.querySelector(selector)
+}
+
+function getPageTitleLabel(page = state.page) {
+  const labels = {
+    dashboard: t('navigation.dashboard'),
+    rules: t('navigation.rules'),
+    collections: t('navigation.collections'),
+    network: t('navigation.network'),
+    logs: t('navigation.logs'),
+    'import-export': t('navigation.importExport'),
+    diagnostics: t('navigation.diagnostics'),
+    settings: t('navigation.settings')
+  }
+  return labels[page] || ''
+}
+
+function updateDocumentTitle() {
+  const label = getPageTitleLabel()
+  document.title = label ? `MockPilot · ${label}` : 'MockPilot'
+}
+
+function syncPageUrl(page = state.page) {
+  const url = new URL(window.location.href)
+  url.search = ''
+  url.searchParams.set('page', pageToUrlSlug(normalizePageId(page)))
+  window.history.replaceState({}, '', `${url.pathname}${url.search}`)
+}
+
+function setCurrentPage(page, options = {}) {
+  const nextPage = normalizePageId(page)
+  state.page = nextPage
+  if (options.syncUrl !== false) syncPageUrl(nextPage)
+  if (options.renderPage !== false) render()
 }
 
 function captureFocusSnapshot() {
@@ -420,6 +473,7 @@ function render() {
   const focusSnapshot = captureFocusSnapshot()
   const isSplitScrollPage = state.page === 'network' || state.page === 'logs' || state.page === 'rules' || state.page === 'collections' || state.page === 'diagnostics'
   const selectedLog = state.selectedLogId ? findLogById(state.selectedLogId) : null
+  updateDocumentTitle()
   root.innerHTML = renderAppShell({
     sidebar: renderSidebar(state.page),
     topbar: renderTopbar(state),
@@ -455,12 +509,10 @@ function bindTopbarEvents() {
     await refreshState()
   })
   $('#full-open-auto-attach-settings')?.addEventListener('click', () => {
-    state.page = 'settings'
-    render()
+    openFullPage('settings')
   })
   $('#full-capture-mode-settings')?.addEventListener('click', () => {
-    state.page = 'settings'
-    render()
+    openFullPage('settings')
   })
   $('#full-reload-btn')?.addEventListener('click', async () => {
     const result = await sendMessage({ type: MSG.TAB_RELOAD })
@@ -823,7 +875,7 @@ function bindCreateRuleFromRequestEvents() {
     event.stopPropagation()
     const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.fullCreateFromRequest })
     if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
-    state.page = 'rules'
+    setCurrentPage('rules', { renderPage: false })
     state.editingRule = result.createdRule || null
     state.editorMode = 'create'
     state.editorPristine = true
@@ -964,9 +1016,8 @@ function readEditorRule() {
   }
 }
 
-async function openFullPage(page) {
-  state.page = page
-  render()
+function openFullPage(page) {
+  setCurrentPage(page)
 }
 
 function bindEvents() {
@@ -1295,7 +1346,7 @@ function bindEvents() {
           return
         }
         state.inspector = null
-        state.page = 'rules'
+        setCurrentPage('rules', { renderPage: false })
         state.editingRule = result.createdRule || null
         state.editorMode = 'create'
         state.editorPristine = true
@@ -1529,9 +1580,8 @@ async function bootstrap() {
 
   if (editId) {
     const rule = state.rules.find(item => item.id === editId)
-    window.history.replaceState({}, '', window.location.pathname)
     if (rule) {
-      state.page = 'rules'
+      setCurrentPage('rules', { renderPage: false })
       state.editingRule = clone(rule)
       state.editorMode = 'edit'
       state.editorPristine = false
@@ -1542,37 +1592,36 @@ async function bootstrap() {
     try {
       const draftRule = JSON.parse(draft)
       if (draftRule && typeof draftRule === 'object') {
-        state.page = 'rules'
+        setCurrentPage('rules', { renderPage: false })
         state.editingRule = draftRule
         state.editorMode = 'create'
         state.editorPristine = true
-        window.history.replaceState({}, '', window.location.pathname)
         render()
         return
       }
     } catch {
-      window.history.replaceState({}, '', window.location.pathname)
+      setCurrentPage('dashboard', { renderPage: false })
     }
   } else if (inspectId) {
-    state.page = 'network'
+    setCurrentPage('network', { renderPage: false })
     const entry = state.networkEntries.find(e => e.id === inspectId)
     if (entry) {
       state.selectedNetworkEntryId = inspectId
       state.inspector = { entryId: inspectId, tab: 'overview' }
     }
-    window.history.replaceState({}, '', window.location.pathname)
     render()
     return
   } else if (targetPage) {
-    window.history.replaceState({}, '', window.location.pathname)
-    state.page = targetPage
-    if (targetPage === 'network' && filterUrl) {
+    const page = normalizePageId(targetPage)
+    setCurrentPage(page, { renderPage: false })
+    if (page === 'network' && filterUrl) {
       state.networkFilter.url = filterUrl
       applyLocalFilters()
     }
     render()
     return
   }
+  syncPageUrl()
   render()
 }
 
