@@ -1,5 +1,5 @@
 (() => {
-  const MESSAGE_PREFIX = 'mockpilot:compat:'
+  const MESSAGE_PREFIX = 'interceptpilot:compat:'
   const MAIN_SCRIPT_URL = chrome.runtime.getURL('src/content/compat-main.js')
 
   let mainInjected = false
@@ -13,7 +13,7 @@
     return Boolean(
       message
       && typeof message === 'object'
-      && message.source === 'mockpilot-compat-main'
+      && message.source === 'interceptpilot-compat-main'
       && message.type === `${MESSAGE_PREFIX}${type}`
     )
   }
@@ -42,7 +42,7 @@
     const script = document.createElement('script')
     script.src = MAIN_SCRIPT_URL
     script.async = false
-    script.dataset.mockpilotCompat = 'main'
+    script.dataset.interceptpilotCompat = 'main'
     script.onload = () => script.remove()
     script.onerror = () => script.remove()
 
@@ -81,7 +81,7 @@
       }, { action: 'passThrough', disabled: true })
 
       window.postMessage({
-        source: 'mockpilot-compat-bridge',
+        source: 'interceptpilot-compat-bridge',
         type: `${MESSAGE_PREFIX}decision`,
         compatRequestId: request.compatRequestId,
         payload: response || { action: 'passThrough', disabled: true }
@@ -113,7 +113,7 @@
     if (message?.type === 'compat:modeChanged' && message.captureMode === 'compat') {
       appendMainScript()
       window.postMessage({
-        source: 'mockpilot-compat-bridge',
+        source: 'interceptpilot-compat-bridge',
         type: `${MESSAGE_PREFIX}mode`,
         captureMode: 'compat'
       }, '*')

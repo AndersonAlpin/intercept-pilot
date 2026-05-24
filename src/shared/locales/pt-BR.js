@@ -232,7 +232,7 @@ const ptBR = {
     collectionImported: 'Coleção importada.',
     importCompleted: 'Importação concluída.',
     invalidJson: 'JSON inválido.',
-    unsupportedType: 'Tipo de JSON do MockPilot não suportado.',
+    unsupportedType: 'Tipo de JSON do InterceptPilot não suportado.',
     copyError: 'Não foi possível copiar o JSON.',
     logMessageCopied: 'Mensagem do log copiada.',
     logUrlCopied: 'URL do log copiada.',

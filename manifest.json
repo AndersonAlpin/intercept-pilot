@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "MockPilot",
-  "description": "Mock HTTP requests and responses from a side panel.",
+  "name": "InterceptPilot",
+  "description": "Intercept, inspect, and mock HTTP requests from a focused side panel and full app.",
   "version": "0.6.0",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -36,7 +36,7 @@
     "default_path": "src/sidepanel/sidepanel.html"
   },
   "action": {
-    "default_title": "MockPilot",
+    "default_title": "InterceptPilot",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

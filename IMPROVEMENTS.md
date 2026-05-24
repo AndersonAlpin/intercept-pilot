@@ -1,10 +1,10 @@
-# MockPilot Improvements Roadmap
+# InterceptPilot Improvements Roadmap
 
 ## Etapa 1 — Redesign estrutural e Full App básico
 
 > Status: **finalizada**
 
-Objetivo: reorganizar o MockPilot para separar melhor o uso rápido no sidepanel do gerenciamento avançado no Full App.
+Objetivo: reorganizar o InterceptPilot para separar melhor o uso rápido no sidepanel do gerenciamento avançado no Full App.
 
 ### Escopo
 
@@ -154,7 +154,7 @@ Escopo:
 
 ### 2.5 i18n / Localização
 
-Objetivo: preparar o MockPilot para múltiplos idiomas sem espalhar textos hardcoded pela UI.
+Objetivo: preparar o InterceptPilot para múltiplos idiomas sem espalhar textos hardcoded pela UI.
 
 Idiomas iniciais:
 

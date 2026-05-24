@@ -25,7 +25,7 @@ export function renderConnectionHeader(state) {
   return `
     <header class="header">
       <div class="header-top">
-        <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="MockPilot" />
+        <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="InterceptPilot" />
         <button class="btn secondary btn-open" id="open-fullapp-btn">${t('common.open')}</button>
       </div>
 

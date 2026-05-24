@@ -1,15 +1,15 @@
-# MockPilot Agent Guide
+# InterceptPilot Agent Guide
 
 ## Product overview
 
-MockPilot is a Chrome/Edge Manifest V3 extension for frontend development and QA. It helps capture, inspect, mock, and control HTTP requests while testing applications.
+InterceptPilot is a Chrome/Edge Manifest V3 extension for frontend development and QA. It helps capture, inspect, mock, and control HTTP requests while testing applications.
 
 The product has two main UIs:
 
 - Sidepanel: compact, fast access to rules, network, logs, and the active collection.
 - Full App: complete workspace for dashboard, rules, collections, network, logs, import, diagnostics, and settings.
 
-MockPilot supports two capture modes:
+InterceptPilot supports two capture modes:
 
 - Full capture
 - Light capture
@@ -18,11 +18,11 @@ MockPilot supports two capture modes:
 
 Current repository path:
 
-`D:\Biblioteca\Development\GitHub\Anderson\mock-pilot`
+`D:\Biblioteca\Development\GitHub\Anderson\intercept-pilot`
 
 Do not use the old path:
 
-`D:\Biblioteca\Development\GitHub\Anderson\MockPilot`
+`D:\Biblioteca\Development\GitHub\Anderson\InterceptPilot`
 
 ## Stack
 

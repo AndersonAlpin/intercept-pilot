@@ -357,7 +357,7 @@ const en = {
     collectionImported: 'Collection imported.',
     importCompleted: 'Import completed.',
     invalidJson: 'Invalid JSON.',
-    unsupportedType: 'Unsupported MockPilot JSON type.',
+    unsupportedType: 'Unsupported InterceptPilot JSON type.',
     copyError: 'Could not copy JSON.',
     logMessageCopied: 'Log message copied.',
     logUrlCopied: 'Log URL copied.',

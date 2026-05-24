@@ -1,8 +1,8 @@
 import { nowIso } from './utils.js'
 
 export const SCHEMA_VERSION = 1
-export const BUNDLE_TYPE_RULE = 'mockpilot.rule'
-export const BUNDLE_TYPE_COLLECTION = 'mockpilot.collection'
+export const BUNDLE_TYPE_RULE = 'interceptpilot.rule'
+export const BUNDLE_TYPE_COLLECTION = 'interceptpilot.collection'
 
 export function createRuleBundle(rule) {
   return {
@@ -67,12 +67,12 @@ export function getUniqueName(baseName, existingNames) {
 
 export function buildRuleFilename(rule) {
   const name = sanitizeFileName(rule?.name || 'rule')
-  return `mockpilot-rule-${name}.json`
+  return `interceptpilot-rule-${name}.json`
 }
 
 export function buildCollectionFilename(collection) {
   const name = sanitizeFileName(collection?.name || 'collection')
-  return `mockpilot-collection-${name}.json`
+  return `interceptpilot-collection-${name}.json`
 }
 
 export async function copyTextToClipboard(text) {

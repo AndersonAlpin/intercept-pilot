@@ -1,4 +1,4 @@
-# MockPilot Future Ideas
+# InterceptPilot Future Ideas
 
 ## 1. Objetivo
 
@@ -67,7 +67,7 @@ Cuidados:
 
 Ideia:
 
-Pensar em temas, cores e logo do MockPilot.
+Pensar em temas, cores e logo do InterceptPilot.
 
 Itens para estudar:
 
@@ -85,7 +85,7 @@ Itens para estudar:
 
 Tambem considerar familia de produtos:
 
-- MockPilot;
+- InterceptPilot;
 - LayoutPilot;
 - possivel marca guarda-chuva, como Alpin Labs ou Alpin Tools;
 - decidir se mantem "Pilot" nos nomes ou se cria naming mais proprio.
@@ -205,4 +205,4 @@ Nao sao prioridade agora:
 
 Este arquivo e um backlog futuro. Nao implementar tudo de uma vez.
 
-Cada ideia deve virar uma auditoria ou plano proprio antes de codar. A priorizacao deve partir de dor real apos uso do MockPilot, nao da simples existencia de uma ideia neste documento.
+Cada ideia deve virar uma auditoria ou plano proprio antes de codar. A priorizacao deve partir de dor real apos uso do InterceptPilot, nao da simples existencia de uma ideia neste documento.

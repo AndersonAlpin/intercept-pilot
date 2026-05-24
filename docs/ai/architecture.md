@@ -1,8 +1,8 @@
-# MockPilot Architecture Notes
+# InterceptPilot Architecture Notes
 
 ## Overview
 
-MockPilot is a Manifest V3 browser extension with a background service worker, shared domain helpers, and two UI surfaces: Sidepanel and Full App.
+InterceptPilot is a Manifest V3 browser extension with a background service worker, shared domain helpers, and two UI surfaces: Sidepanel and Full App.
 
 The codebase intentionally uses vanilla JavaScript, HTML templates, and CSS. There is no framework and no bundler.
 

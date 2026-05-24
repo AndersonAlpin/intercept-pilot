@@ -1,13 +1,13 @@
 (() => {
-  if (window.__MOCKPILOT_COMPAT_FETCH_INSTALLED__) return
+  if (window.__INTERCEPTPILOT_COMPAT_FETCH_INSTALLED__) return
   if (typeof window.fetch !== 'function') return
 
-  const MESSAGE_PREFIX = 'mockpilot:compat:'
+  const MESSAGE_PREFIX = 'interceptpilot:compat:'
   const MAX_BODY_CHARS = 64 * 1024
   const originalFetch = window.fetch.bind(window)
   const pending = new Map()
 
-  window.__MOCKPILOT_COMPAT_FETCH_INSTALLED__ = true
+  window.__INTERCEPTPILOT_COMPAT_FETCH_INSTALLED__ = true
 
   function nextId() {
     const cryptoObj = window.crypto
@@ -123,7 +123,7 @@
 
   function postToBridge(type, payload) {
     window.postMessage({
-      source: 'mockpilot-compat-main',
+      source: 'interceptpilot-compat-main',
       type: `${MESSAGE_PREFIX}${type}`,
       payload
     }, '*')
@@ -199,7 +199,7 @@
   window.addEventListener('message', event => {
     if (event.source !== window) return
     const message = event.data
-    if (!message || message.source !== 'mockpilot-compat-bridge') return
+    if (!message || message.source !== 'interceptpilot-compat-bridge') return
     if (message.type === `${MESSAGE_PREFIX}mode`) return
     if (message.type !== `${MESSAGE_PREFIX}decision`) return
     const item = pending.get(message.compatRequestId)
@@ -209,7 +209,7 @@
     item.resolve(normalizeDecision(message.payload))
   })
 
-  window.fetch = async function mockpilotCompatFetch(input, init) {
+  window.fetch = async function interceptpilotCompatFetch(input, init) {
     const compatRequestId = nextId()
     const startedAt = Date.now()
     const url = resolveUrl(input)

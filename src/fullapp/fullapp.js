@@ -130,7 +130,7 @@ function getPageTitleLabel(page = state.page) {
 
 function updateDocumentTitle() {
   const label = getPageTitleLabel()
-  document.title = label ? `MockPilot · ${label}` : 'MockPilot'
+  document.title = label ? `InterceptPilot · ${label}` : 'InterceptPilot'
 }
 
 function syncPageUrl(page = state.page) {

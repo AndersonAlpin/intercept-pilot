@@ -330,7 +330,7 @@ function renderHeader() {
     <header class="header">
       <div class="header-top">
         <div class="brand">
-          <h1>MockPilot</h1>
+          <h1>InterceptPilot</h1>
           <p class="attach-status ${statusClass}">${statusText}</p>
         </div>
         <div class="header-actions compact">

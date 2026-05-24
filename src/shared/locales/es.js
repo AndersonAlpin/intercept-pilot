@@ -233,7 +233,7 @@ const es = {
     collectionImported: 'Colección importada.',
     importCompleted: 'Importación completada.',
     invalidJson: 'JSON inválido.',
-    unsupportedType: 'Tipo de JSON de MockPilot no soportado.',
+    unsupportedType: 'Tipo de JSON de InterceptPilot no soportado.',
     copyError: 'No se pudo copiar el JSON.',
     logMessageCopied: 'Mensaje del log copiado.',
     logUrlCopied: 'URL del log copiada.',

@@ -1,4 +1,4 @@
-# MockPilot UI Patterns
+# InterceptPilot UI Patterns
 
 ## Capture terminology
 
