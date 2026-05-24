@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "InterceptPilot"
+  },
+  "extensionDescription": {
+    "message": "Intercepte, inspecione e simule requisições HTTP pelo painel lateral e app completo."
+  }
+}

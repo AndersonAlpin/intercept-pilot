@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "InterceptPilot"
+  },
+  "extensionDescription": {
+    "message": "Intercept, inspect, and mock HTTP requests from a focused side panel and full app."
+  }
+}
