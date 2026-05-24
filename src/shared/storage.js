@@ -1,6 +1,7 @@
 import { DEFAULT_COLLECTION_ID, DEFAULT_SETTINGS, STORAGE_KEYS } from './constants.js'
 import { clone, parseNetworkIgnorePatterns } from './utils.js'
 import { makeCollection, makeDefaultCollection, makeRule } from './models.js'
+import { normalizeLocale, resolveLocale } from './i18n.js'
 
 async function rawGet(keys) {
   return chrome.storage.local.get(keys)
@@ -54,6 +55,9 @@ function normalizeRules(stored, collections, settings) {
 
 function normalizeSettings(stored, collections) {
   const settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) }
+  settings.language = stored.settings?.language
+    ? normalizeLocale(stored.settings.language) || DEFAULT_SETTINGS.language
+    : resolveLocale()
   if (!['cdp', 'compat', 'auto'].includes(settings.captureMode)) settings.captureMode = DEFAULT_SETTINGS.captureMode
   settings.networkFilters = {
     fullApp: {
@@ -195,6 +199,9 @@ export async function setActiveCollectionId(collectionId) {
 export async function updateSettings(patch = {}) {
   const state = await getState()
   state.settings = { ...state.settings, ...patch }
+  if ('language' in patch) {
+    state.settings.language = normalizeLocale(patch.language) || resolveLocale()
+  }
   await setState(state)
   return state.settings
 }

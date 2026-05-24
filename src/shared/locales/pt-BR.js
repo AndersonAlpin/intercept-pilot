@@ -1,4 +1,4 @@
-const pt = {
+const ptBR = {
   common: {
     open: 'Abrir', attach: 'Ativar captura', reattach: 'Reiniciar captura', detach: 'Parar captura', reload: 'Recarregar',
     enabled: 'ativado', disabled: 'desativado', manage: 'Gerenciar', edit: 'Editar', delete: 'Excluir',
@@ -110,6 +110,7 @@ const pt = {
     title: 'Rede', entityOne: 'requisição', entityMany: 'requisições', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Status',
     clearNetwork: 'Limpar rede',
     matchedOnly: 'Somente match', interceptedOnly: 'Somente interceptadas', noRequests: 'Sem requisições capturadas.',
+    activateCaptureToSeeRequests: 'Ative a captura para ver requisições.',
     lightCaptureHelper: 'Captura leve captura apenas requests fetch.',
     noResults: 'Nenhuma requisição corresponde a esses filtros.',
     pageShort: 'Página {page}/{totalPages}',
@@ -276,5 +277,5 @@ const pt = {
   badges: { mock: 'mock', fail: 'falha', delay: 'atraso', pass: 'pass', ok: 'ok', conflict: 'conflito', error: 'erro', warn: 'aviso', info: 'info' }
 }
 
-export default pt
+export default ptBR
 

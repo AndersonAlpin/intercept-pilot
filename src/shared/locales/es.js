@@ -110,6 +110,7 @@ const es = {
     title: 'Red', entityOne: 'solicitud', entityMany: 'solicitudes', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Estado',
     clearNetwork: 'Limpiar red',
     matchedOnly: 'Solo matched', interceptedOnly: 'Solo interceptadas', noRequests: 'Sin requests capturadas.',
+    activateCaptureToSeeRequests: 'Activa la captura para ver solicitudes.',
     lightCaptureHelper: 'Captura ligera captura solo requests fetch.',
     noResults: 'Ninguna request coincide con estos filtros.',
     pageShort: 'Página {page}/{totalPages}',

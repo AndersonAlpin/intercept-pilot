@@ -122,7 +122,9 @@ export function renderNetworkPagination(state) {
 }
 
 export function renderNetworkFooter(state) {
-  const { filtered, pageSize, page, totalPages, countText } = getNetworkPaginationSummary(state)
+  const { total, filtered, pageSize, page, totalPages, countText } = getNetworkPaginationSummary(state)
+  if (!total && !filtered) return ''
+
   return renderPagination({
     page,
     totalItems: filtered,

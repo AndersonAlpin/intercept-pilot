@@ -209,6 +209,7 @@ const en = {
     clearNetwork: 'Clear network',
     matchedOnly: 'Matched only',
     interceptedOnly: 'Intercepted only',
+    activateCaptureToSeeRequests: 'Start capture to see requests.',
     noRequests: 'No requests captured yet.',
     lightCaptureHelper: 'Light capture captures fetch requests only.',
     noResults: 'No requests match these filters.',

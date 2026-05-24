@@ -118,12 +118,14 @@ export function renderRulesPage(state) {
     </div>
   `
 
-  const footerCount = formatShowingCount({
-    shown: rules.length,
-    total: collectionRules.length,
-    singular: t('rules.entityOne'),
-    plural: t('rules.entityMany')
-  })
+  const footerCount = collectionRules.length
+    ? formatShowingCount({
+      shown: rules.length,
+      total: collectionRules.length,
+      singular: t('rules.entityOne'),
+      plural: t('rules.entityMany')
+    })
+    : ''
 
   return `
     <section class="split-page rules-page">
@@ -135,7 +137,7 @@ export function renderRulesPage(state) {
         `,
         filtersHtml,
         bodyHtml,
-        footerHtml: `<span class="data-panel__count">${escapeHtml(footerCount)}</span>`,
+        footerHtml: footerCount ? `<span class="data-panel__count">${escapeHtml(footerCount)}</span>` : '',
         className: 'rules-data-panel'
       })}
     </section>

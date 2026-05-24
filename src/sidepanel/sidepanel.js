@@ -251,10 +251,12 @@ function refreshSideNetworkOnly() {
   }
   applyNetworkFilters()
   patchHtml(table, renderNetworkQuickRows(appState))
+  const countText = renderNetworkQuickCount(appState)
+  const paginationHtml = renderNetworkQuickPagination(appState)
   const countEl = $('#network-results-count')
-  if (countEl) countEl.textContent = renderNetworkQuickCount(appState)
+  if (countEl) countEl.textContent = countText
   const paginationEl = $('#network-pagination-controls')
-  if (paginationEl) patchHtml(paginationEl, renderNetworkQuickPagination(appState))
+  if (paginationEl) patchHtml(paginationEl, paginationHtml)
   bindNetworkRowEvents()
   bindNetworkPaginationEvents()
 }
@@ -468,7 +470,7 @@ async function refreshState() {
   const next = await sendMessage({ type: MSG.STATE_GET })
   if (next?.error) return
   Object.assign(appState, next)
-  setLocale(appState.settings?.language || 'en')
+  setLocale(appState.settings?.language)
   if (!appState.settings?.activeCollectionId) {
     appState.settings = { ...(appState.settings || {}), activeCollectionId: appState.collections[0]?.id || '' }
   }
@@ -603,7 +605,6 @@ function bindEvents() {
 
   bindHeaderEvents()
   $('#manage-collections-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL, page: 'collections' }))
-  $('#open-diagnostics-btn')?.addEventListener('click', async () => sendMessage({ type: MSG.APP_OPEN_FULL }))
 
   $('#active-collection-select')?.addEventListener('change', async event => {
     const activeCollectionId = event.target.value

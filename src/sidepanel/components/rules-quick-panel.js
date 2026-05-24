@@ -27,12 +27,14 @@ export function renderRulesQuickPanel(state) {
     const hay = `${rule.name} ${rule.match?.urlPattern || ''} ${rule.match?.method || 'ANY'}`.toLowerCase()
     return !text || hay.includes(text)
   })
-  const countText = formatShowingCount({
-    shown: filtered.length,
-    total: rules.length,
-    singular: t('rules.entityOne'),
-    plural: t('rules.entityMany')
-  })
+  const countText = rules.length
+    ? formatShowingCount({
+      shown: filtered.length,
+      total: rules.length,
+      singular: t('rules.entityOne'),
+      plural: t('rules.entityMany')
+    })
+    : ''
 
   return `
     <div class="card compact-card">
@@ -69,8 +71,8 @@ export function renderRulesQuickPanel(state) {
           `
         }).join('') : `<div class="empty">${t('rules.noRules')}</div>`}
       </div>
-      <div class="sidepanel-list-footer">
-        <span class="small">${escapeHtml(countText)}</span>
+      <div class="sidepanel-list-footer ${countText ? '' : 'is-centered'}">
+        ${countText ? `<span class="small">${escapeHtml(countText)}</span>` : ''}
         <button class="link-btn" id="quick-open-advanced-hint">${t('rules.advancedEditor')}</button>
       </div>
     </div>

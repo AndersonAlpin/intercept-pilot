@@ -2,7 +2,7 @@ import { MSG, sendMessage } from '../shared/messaging.js'
 import { clone, debounce, escapeHtml, isHitOnlyDiff, isOnlyNetworkFiltersDiff, matchesNetworkIgnorePatterns, parseNetworkIgnorePatterns } from '../shared/utils.js'
 import { makeCollection, makeRule } from '../shared/models.js'
 import { validateRule } from '../shared/validators.js'
-import { setLocale, t } from '../shared/i18n.js'
+import { normalizeLocale, setLocale, t } from '../shared/i18n.js'
 import { DEFAULT_NETWORK_FILTER_FULL } from '../shared/constants.js'
 import { getVisibleLogsForCapture, getVisibleNetworkEntriesForCapture, normalizeLogScope } from '../shared/capture-context.js'
 import {
@@ -188,7 +188,7 @@ async function refreshState() {
   const next = await sendMessage({ type: MSG.STATE_GET })
   if (next?.error) return
   Object.assign(state, next)
-  setLocale(state.settings?.language || 'en')
+  setLocale(state.settings?.language)
   if (state.editingRule) {
     state.editingRule = state.rules.find(rule => rule.id === state.editingRule.id) || null
   }
@@ -349,7 +349,7 @@ function normalizeSettingsSnapshot(settings = {}) {
   return {
     autoAttach: Boolean(settings.autoAttach),
     autoReloadAfterRuleChange: Boolean(settings.autoReloadAfterRuleChange),
-    language: String(settings.language || 'en').trim(),
+    language: normalizeLocale(settings.language) || 'en',
     captureMode: String(settings.captureMode || 'auto').trim(),
     maxNetworkEntries: normalizeSettingsNumber(settings.maxNetworkEntries, 300),
     maxLogs: normalizeSettingsNumber(settings.maxLogs, 300),
@@ -407,7 +407,7 @@ function updateImportJsonButtonState() {
 }
 
 function renderSettingsPage() {
-  const lang = state.settings.language || 'en'
+  const lang = normalizeLocale(state.settings.language) || 'en'
   const captureMode = state.settings.captureMode || 'auto'
   const bodyHtml = `
       <div class="grid two">
@@ -415,7 +415,7 @@ function renderSettingsPage() {
           <div class="muted">${t('language.title')}</div>
           <select class="select" id="settings-language">
             <option value="en" ${lang === 'en' ? 'selected' : ''}>${t('language.english')}</option>
-            <option value="pt" ${lang === 'pt' ? 'selected' : ''}>${t('language.portuguese')}</option>
+            <option value="pt-BR" ${lang === 'pt-BR' ? 'selected' : ''}>${t('language.portuguese')}</option>
             <option value="es" ${lang === 'es' ? 'selected' : ''}>${t('language.spanish')}</option>
           </select>
         </div>
@@ -893,9 +893,13 @@ function refreshNetworkTableOnly() {
   const table = $('#full-network-table')
   if (!table) return
   patchHtml(table, renderNetworkRows(state))
+  const footerHtml = renderNetworkFooter(state)
   const paginationEl = $('#full-network-pagination')
   if (paginationEl) {
-    patchHtml(paginationEl, renderNetworkFooter(state))
+    patchHtml(paginationEl, footerHtml)
+  } else if (footerHtml) {
+    render()
+    return
   }
   bindCreateRuleFromRequestEvents()
   bindNetworkPaginationEvents()

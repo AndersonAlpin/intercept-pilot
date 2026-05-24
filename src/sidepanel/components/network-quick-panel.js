@@ -113,6 +113,9 @@ export function renderNetworkQuickRows(state) {
 }
 
 export function renderNetworkQuickPanel(state) {
+  const countText = renderNetworkQuickCount(state)
+  const paginationHtml = renderNetworkQuickPagination(state)
+
   return `
     <div class="card compact-card sticky-filters">
       <div class="sticky-bar">
@@ -127,10 +130,10 @@ export function renderNetworkQuickPanel(state) {
           ${renderSelect({ id: 'network-filter-method', value: state.networkFilters.method, options: getNetworkMethodOptions() })}
           <input class="input" id="network-filter-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilters.status)}" />
           ${renderSwitch({ id: 'network-filter-intercepted', checked: state.networkFilters.interceptedOnly, label: t('network.interceptedOnly') })}
-          <div class="network-quick-meta">
-            <span class="small network-results-count" id="network-results-count">${escapeHtml(renderNetworkQuickCount(state))}</span>
-            <div id="network-pagination-controls">${renderNetworkQuickPagination(state)}</div>
-          </div>
+            <div class="network-quick-meta" id="network-quick-meta">
+              <span class="small network-results-count" id="network-results-count">${escapeHtml(countText)}</span>
+              <div id="network-pagination-controls">${paginationHtml}</div>
+            </div>
         </div>
       </div>
       <div class="table" id="network-entries-table">

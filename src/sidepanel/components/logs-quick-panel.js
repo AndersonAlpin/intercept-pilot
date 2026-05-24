@@ -95,9 +95,6 @@ export function renderLogsQuickPanel(state) {
           </div>
         `).join('') : renderEmptyState({ message: t(hasActiveCaptureContext(state) ? 'logs.webOnlyEmpty' : 'logs.activateCaptureToSeeLogs') })}
       </div>
-      <div class="sidepanel-list-footer">
-        ${renderButton({ id: 'open-diagnostics-btn', label: `${t('common.diagnostics')} ↗`, variant: 'info' })}
-      </div>
     </div>
   `
 }
