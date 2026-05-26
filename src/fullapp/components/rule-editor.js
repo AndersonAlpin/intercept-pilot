@@ -1,6 +1,7 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { renderModalShell } from '../../shared/ui/modal-shell.js'
+import { renderSwitch } from '../../shared/ui/toggle.js'
 import { renderPresetPicker } from './preset-picker.js'
 
 function field({ id, label, control }) {
@@ -84,14 +85,18 @@ export function renderRuleEditor(state) {
     </div>
 
     <div class="grid two">
-      <label class="switch checkbox-field" for="editor-apply-body">
-        <input type="checkbox" id="editor-apply-body" ${rule.action.applyResponseBody ? 'checked' : ''}/>
-        <span>${escapeHtml(t('rules.fields.applyResponseBody'))}</span>
-      </label>
-      <label class="switch checkbox-field" for="editor-apply-headers">
-        <input type="checkbox" id="editor-apply-headers" ${rule.action.applyResponseHeaders ? 'checked' : ''}/>
-        <span>${escapeHtml(t('rules.fields.applyResponseHeaders'))}</span>
-      </label>
+      ${renderSwitch({
+        id: 'editor-apply-body',
+        checked: rule.action.applyResponseBody,
+        label: t('rules.fields.applyResponseBody'),
+        className: 'checkbox-field'
+      })}
+      ${renderSwitch({
+        id: 'editor-apply-headers',
+        checked: rule.action.applyResponseHeaders,
+        label: t('rules.fields.applyResponseHeaders'),
+        className: 'checkbox-field'
+      })}
     </div>
 
     ${field({
