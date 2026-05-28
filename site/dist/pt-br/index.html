@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Política de Privacidade da InterceptPilot, uma extensão para Chrome e Edge voltada à inspeção local de HTTP e HTTPS, mocks e fluxos de QA."
+    />
+    <title>InterceptPilot | Política de Privacidade</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f17'/%3E%3Cpath d='M18 32h28' stroke='%235b82ff' stroke-width='8' stroke-linecap='round'/%3E%3Ccircle cx='46' cy='32' r='8' fill='%2338bdf8'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="InterceptPilot" />
+          <h1>Política de Privacidade</h1>
+          <p class="lede">
+            A InterceptPilot foi criada para fluxos locais de desenvolvimento e QA. O processamento técnico acontece
+            dentro do navegador do usuário e só começa quando a captura é ativada de forma explícita para uma aba
+            escolhida pelo próprio usuário.
+          </p>
+        </div>
+
+        <nav class="language-switcher" aria-label="Seletor de idioma">
+          <details class="language-dropdown">
+            <summary class="language-trigger">
+              <img class="language-trigger-flag" src="../assets/flags/pt-BR.png" alt="" aria-hidden="true" />
+              <span class="language-trigger-name">Português</span>
+              <span class="language-chevron" aria-hidden="true"></span>
+            </summary>
+
+            <div class="language-menu">
+              <a class="language-menu-item" href="../">English</a>
+              <a class="language-menu-item is-active" href="./" aria-current="page">Português</a>
+              <a class="language-menu-item" href="../es/">Español</a>
+            </div>
+          </details>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero-card">
+          <div class="hero-copy">
+            <p class="hero-kicker">Ferramenta local para o navegador</p>
+            <h2>Projetada para inspecionar e simular o comportamento de rede sem enviar seus dados para outro lugar.</h2>
+            <p>
+              A InterceptPilot é uma extensão Manifest V3 para Chrome e Edge voltada a desenvolvedores frontend e
+              equipes de QA. Ela ajuda a inspecionar requisições HTTP e HTTPS, criar regras de mock, revisar logs e
+              testar cenários de API diretamente no navegador.
+            </p>
+
+            <div class="highlight-row" aria-label="Destaques de privacidade">
+              <span class="highlight-badge">Somente local</span>
+              <span class="highlight-badge">Sem backend</span>
+              <span class="highlight-badge">Sem rastreamento</span>
+              <span class="highlight-badge">Sem compartilhamento com terceiros</span>
+              <span class="highlight-badge">Captura controlada pelo usuário</span>
+            </div>
+          </div>
+
+          <aside class="signal-panel" aria-label="Indicadores principais de privacidade">
+            <div class="signal-item">
+              <span class="signal-label">Fluxo de dados</span>
+              <strong>Somente no navegador</strong>
+            </div>
+            <div class="signal-item">
+              <span class="signal-label">Transporte externo</span>
+              <strong>Desativado</strong>
+            </div>
+            <div class="signal-item">
+              <span class="signal-label">Escopo da captura</span>
+              <strong>Aba selecionada</strong>
+            </div>
+            <div class="signal-item">
+              <span class="signal-label">Ativação</span>
+              <strong>Ação explícita do usuário</strong>
+            </div>
+          </aside>
+        </section>
+
+        <section class="cards-grid">
+          <article class="policy-card">
+            <h3>Visão geral</h3>
+            <p>
+              Esta política explica como a InterceptPilot trata dados técnicos ao oferecer depuração local, inspeção de
+              requisições, mocks e testes de QA dentro do navegador.
+            </p>
+            <p>
+              A InterceptPilot não opera backend próprio, não envia dados capturados para servidores externos e não
+              compartilha nem vende dados do usuário.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>Propósito único</h3>
+            <p>
+              A InterceptPilot tem um único propósito: ajudar desenvolvedores frontend e equipes de QA a inspecionar
+              requisições do navegador, simular o comportamento de APIs e testar cenários da aplicação localmente.
+            </p>
+            <p>
+              A captura só começa depois que o usuário a inicia explicitamente, e apenas para a aba escolhida por ele.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>Dados tratados localmente</h3>
+            <p>
+              Para cumprir sua finalidade de desenvolvimento e QA, a InterceptPilot pode processar localmente dados
+              técnicos como:
+            </p>
+            <ul>
+              <li>atividade de navegação e de requisições da aba selecionada pelo usuário</li>
+              <li>URLs de requisições, métodos HTTP, status, headers e tempos</li>
+              <li>detalhes técnicos adicionais de requisições ou respostas, como conteúdo de payload, quando necessários para inspeção, depuração e fluxos de mock</li>
+              <li>logs, regras, coleções, filtros e configurações da extensão</li>
+            </ul>
+            <p>Esse processamento acontece dentro do navegador, no dispositivo do usuário.</p>
+          </article>
+
+          <article class="policy-card">
+            <h3>Dados que não coletamos</h3>
+            <p>
+              A InterceptPilot não coleta nem transmite dados para um backend da empresa porque não possui backend
+              próprio.
+            </p>
+            <ul>
+              <li>sem analytics ou telemetria</li>
+              <li>sem identificadores publicitários</li>
+              <li>sem rastreamento entre sites</li>
+              <li>sem perfilamento</li>
+              <li>sem venda de dados</li>
+            </ul>
+          </article>
+
+          <article class="policy-card">
+            <h3>Como os dados são usados</h3>
+            <p>
+              Os dados técnicos são usados localmente e apenas para sustentar as funcionalidades visíveis da extensão,
+              incluindo:
+            </p>
+            <ul>
+              <li>exibir na interface da extensão a atividade de rede inspecionada da aba selecionada</li>
+              <li>apoiar depuração, diagnósticos e fluxos locais de desenvolvimento e QA</li>
+              <li>criar, aplicar e revisar regras de mock e coleções</li>
+              <li>preservar configurações e contexto de trabalho necessários para a ferramenta entre sessões</li>
+            </ul>
+          </article>
+
+          <article class="policy-card">
+            <h3>Armazenamento local</h3>
+            <p>
+              Regras, coleções, filtros, logs e configurações são armazenados na área de armazenamento local do
+              navegador usada pela extensão.
+            </p>
+            <p>
+              A InterceptPilot usa esse armazenamento local para que o usuário mantenha suas configurações e continue o
+              trabalho entre sessões sem depender de infraestrutura remota.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>Compartilhamento com terceiros</h3>
+            <p>
+              A InterceptPilot não compartilha dados capturados, regras, logs ou configurações com terceiros. Ela não
+              vende dados nem disponibiliza dados técnicos capturados para anunciantes, data brokers ou provedores
+              externos de analytics.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>Código remoto</h3>
+            <p>
+              A InterceptPilot não executa código remoto. Seus arquivos JavaScript, HTML, CSS e recursos relacionados
+              são empacotados junto com a própria extensão.
+            </p>
+            <p>
+              Os scripts da extensão são carregados a partir dos recursos da própria extensão, não de servidores
+              remotos, e o produto não é baseado em código executável hospedado externamente.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>Permissões</h3>
+            <p>
+              A InterceptPilot usa permissões do navegador apenas para oferecer seus recursos de desenvolvimento e QA,
+              como se conectar à aba escolhida pelo usuário, inspecionar requisições, apoiar fluxos de depuração,
+              armazenar regras e configurações locais e renderizar a interface da extensão.
+            </p>
+            <p>
+              Essas permissões são usadas somente para a finalidade declarada da extensão. Elas não são usadas para
+              rastreamento, publicidade, analytics ou coleta em segundo plano.
+            </p>
+            <div class="permission-badges" aria-label="Permissões do navegador usadas pela InterceptPilot">
+              <code>debugger</code>
+              <code>activeTab</code>
+              <code>tabs</code>
+              <code>webNavigation</code>
+              <code>scripting</code>
+              <code>sidePanel</code>
+              <code>storage</code>
+              <code>management</code>
+              <code>host permissions</code>
+            </div>
+          </article>
+
+          <article class="policy-card">
+            <h3>Controle do usuário</h3>
+            <p>
+              O usuário escolhe quando a captura começa, qual aba será envolvida e quando a captura termina. A
+              InterceptPilot não ativa a captura de requisições silenciosamente em abas não relacionadas.
+            </p>
+            <p>
+              Como os dados permanecem locais, o usuário continua em controle direto sobre regras, coleções, logs,
+              filtros e configurações armazenados no navegador.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>Contato</h3>
+            <p>
+              Para dúvidas de privacidade sobre a InterceptPilot, entre em contato pelo e-mail
+              <a href="mailto:anderalpin@gmail.com">anderalpin@gmail.com</a>.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>Última atualização</h3>
+            <p>28 de maio de 2026</p>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

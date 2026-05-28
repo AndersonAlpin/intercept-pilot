@@ -210,7 +210,7 @@ Common validation:
 
 ## Current known caveats
 
-- `docs/plans` and `docs/audits` can contain old terms because they are historical.
+- `docs/internal/plans` and `docs/internal/audits` can contain old terms because they are historical.
 - Light capture is currently limited to fetch.
 - XHR support in light capture can be a future improvement.
 - Some temporary docs may be discarded later.

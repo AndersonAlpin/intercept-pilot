@@ -11,6 +11,11 @@ The extension is built with vanilla JS/HTML/CSS and runs as an MV3 service worke
 - `src/sidepanel/*`: compact operational UI.
 - `src/fullapp/*`: full management UI in dedicated extension tab.
 - `icons/*`: extension icons.
+- `tools/*`: packaging and release helpers that do not ship inside the extension.
+- `site/dist/*`: public static privacy policy site for Chrome Web Store and future product web presence.
+- `docs/examples/*`: example import bundles and other QA/support artifacts.
+- `docs/store/*`: Chrome Web Store support notes and publication material.
+- `docs/internal/*`: internal plans, audits, and AI notes that do not affect runtime.
 
 ## Load unpacked
 
