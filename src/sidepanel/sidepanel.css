@@ -246,9 +246,7 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .sidepanel-list-footer .btn { padding-inline: 14px; }
 .sidepanel-list-footer .link-btn {
   min-width: 0;
-  text-align: left;
-}
-.sidepanel-list-footer.is-centered .link-btn {
+  width: 100%;
   text-align: center;
 }
 .badge { border: 1px solid var(--border-strong); color: var(--text-soft); border-radius: 999px; padding: 2px 8px; font-size: 11px; }

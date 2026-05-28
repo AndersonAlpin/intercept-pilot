@@ -179,7 +179,25 @@ export async function deleteRule(ruleId) {
 
 export async function updateRuleEnabled(ruleId, enabled) {
   const state = await getState()
-  state.rules = state.rules.map(rule => rule.id === ruleId ? { ...rule, enabled: enabled !== false, updatedAt: new Date().toISOString() } : rule)
+  const nextEnabled = enabled !== false
+  state.rules = state.rules.map(rule => {
+    if (rule.id !== ruleId) return rule
+
+    const nextRule = {
+      ...rule,
+      enabled: nextEnabled,
+      updatedAt: new Date().toISOString()
+    }
+
+    if (nextEnabled && rule.enabled === false) {
+      nextRule.diagnostics = {
+        ...(rule.diagnostics || {}),
+        lastMatchedAt: null
+      }
+    }
+
+    return nextRule
+  })
   await setState(state)
   return state.rules
 }

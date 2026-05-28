@@ -9,7 +9,12 @@ import { renderPresetPicker } from '../../fullapp/components/preset-picker.js'
 
 function actionBadge(rule) {
   const type = rule.action?.type || 'mockResponse'
-  if (type === 'mockResponse') return renderRuleActionBadge({ actionType: type, label: `${t('badges.mock')} 200` })
+  if (type === 'mockResponse') {
+    return renderRuleActionBadge({
+      actionType: type,
+      label: `${t('badges.mock')} ${rule.action?.statusCode || 200}`
+    })
+  }
   if (type === 'failRequest') return renderRuleActionBadge({ actionType: type, label: t('badges.fail') })
   if (type === 'delayOnly') return renderRuleActionBadge({ actionType: type, label: t('badges.delay') })
   return renderRuleActionBadge({ actionType: type, label: t('badges.pass') })
@@ -47,19 +52,23 @@ export function renderRulesQuickPanel(state) {
         ${filtered.length ? filtered.map(rule => {
           const state = getRuleState(rule)
           const stateLabel = t(`rules.states.${state}`)
+          const ruleName = rule.name || ''
+          const ruleMethod = methodOptionLabel(rule.match?.method || 'ANY')
+          const ruleUrlPattern = rule.match?.urlPattern || ''
+          const ruleMeta = `${ruleMethod} · ${ruleUrlPattern}`
           return `
           <div class="item ${rule.diagnostics?.lastError ? 'rule-error' : ''}">
             <div class="item-title">
-              <label class="status-toggle" title="${escapeHtml(rule.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}">
-                <input type="checkbox" data-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
+              <label class="status-toggle">
+                <input type="checkbox" data-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(rule.enabled ? t('common.enabled') : t('common.disabled'))}" />
                 <span class="status-toggle-track" aria-hidden="true"></span>
               </label>
               ${renderRuleStateDot({ state, label: stateLabel, data: { 'rule-state': rule.id } })}
               <span class="rule-hits-badge" data-rule-hit="${rule.id}">${Number(rule.diagnostics?.matchCount || 0)}</span>
               ${actionBadge(rule)}
             </div>
-            <strong>${escapeHtml(truncate(rule.name, 48))}</strong>
-            <div class="item-meta">${escapeHtml(methodOptionLabel(rule.match?.method || 'ANY'))} · ${escapeHtml(truncate(rule.match?.urlPattern || '', 64))}</div>
+            <strong title="${escapeHtml(ruleName)}">${escapeHtml(truncate(ruleName, 48))}</strong>
+            <div class="item-meta" title="${escapeHtml(ruleMeta)}">${escapeHtml(ruleMethod)} · ${escapeHtml(truncate(ruleUrlPattern, 64))}</div>
             <div class="row-actions">
               <button class="icon-btn ghost" type="button" data-rule-edit="${rule.id}" title="${escapeHtml(t('common.edit'))}" aria-label="${escapeHtml(t('common.edit'))}">${icon('edit')}</button>
               <button class="icon-btn ghost" type="button" data-rule-copy="${rule.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
