@@ -256,6 +256,7 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .app-tooltip {
   position: fixed;
   z-index: 2000;
+  isolation: isolate;
   pointer-events: none;
   opacity: 0;
   transform: translateY(4px);
@@ -281,17 +282,19 @@ button,input,select,textarea { font: inherit; color: inherit; }
   left: 50%;
   width: 10px;
   height: 10px;
+  z-index: -1;
   background: rgba(14, 20, 32, .98);
-  border-left: 1px solid rgba(91, 130, 255, .34);
-  border-top: 1px solid rgba(91, 130, 255, .34);
   transform: translateX(-50%) rotate(45deg);
 }
 .app-tooltip[data-placement="top"]::after {
-  bottom: -6px;
+  bottom: -7px;
+  border-right: 1px solid rgba(91, 130, 255, .34);
+  border-bottom: 1px solid rgba(91, 130, 255, .34);
 }
 .app-tooltip[data-placement="bottom"]::after {
-  top: -6px;
-  transform: translateX(-50%) rotate(225deg);
+  top: -7px;
+  border-left: 1px solid rgba(91, 130, 255, .34);
+  border-top: 1px solid rgba(91, 130, 255, .34);
 }
 .rule-error { border-color: rgba(255,92,102,.5); }
 .table { display: flex; flex-direction: column; gap: 8px; }

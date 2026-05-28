@@ -7,6 +7,14 @@ import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderRuleActionBadge, renderRuleStateBadge } from '../../shared/ui/rule-status.js'
 import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 
+const LABEL_TOOLTIP_DELAY_MS = 700
+
+function renderTruncatedTooltipAttrs(text, size) {
+  const value = String(text || '')
+  if (!value || value.length <= size) return ''
+  return renderTooltipAttrs(value, { delayMs: LABEL_TOOLTIP_DELAY_MS })
+}
+
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
   return collection?.name || ''
@@ -94,8 +102,8 @@ export function renderRulesPage(state) {
           return `
             <div class="table-row row-rule ${rule.diagnostics?.lastError ? 'row-error' : ''}" role="row">
               <div class="cell-rule">
-                <strong ${renderTooltipAttrs(rule.name)}>${escapeHtml(truncate(rule.name, 60))}</strong>
-                ${urlPattern ? `<span class="cell-rule-url" ${renderTooltipAttrs(urlPattern)}>${escapeHtml(truncate(urlPattern, 80))}</span>` : ''}
+                <strong ${renderTruncatedTooltipAttrs(rule.name, 60)}>${escapeHtml(truncate(rule.name, 60))}</strong>
+                ${urlPattern ? `<span class="cell-rule-url" ${renderTruncatedTooltipAttrs(urlPattern, 80)}>${escapeHtml(truncate(urlPattern, 80))}</span>` : ''}
               </div>
               <div>
                 <label class="status-toggle" ${renderTooltipAttrs(rule.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}>

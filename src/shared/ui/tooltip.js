@@ -1,8 +1,12 @@
 import { renderAttrs } from './dom.js'
 
 const TOOLTIP_ID = 'app-tooltip'
+const DEFAULT_TOOLTIP_DELAY_MS = 0
 let isBound = false
 let activeTarget = null
+let pendingTarget = null
+let showTimer = null
+let isPointerDown = false
 
 function getTooltipElement() {
   let element = document.getElementById(TOOLTIP_ID)
@@ -22,11 +26,26 @@ function clamp(value, min, max) {
 }
 
 function hideTooltip() {
+  clearPendingTooltip()
   const tooltip = document.getElementById(TOOLTIP_ID)
   if (!tooltip) return
   tooltip.classList.remove('is-visible')
   tooltip.setAttribute('aria-hidden', 'true')
   activeTarget = null
+}
+
+function clearPendingTooltip() {
+  if (showTimer) {
+    window.clearTimeout(showTimer)
+    showTimer = null
+  }
+  pendingTarget = null
+}
+
+function hasActiveTextSelection() {
+  if (typeof window === 'undefined' || typeof window.getSelection !== 'function') return false
+  const selection = window.getSelection()
+  return Boolean(selection && !selection.isCollapsed && String(selection).trim())
 }
 
 function getTooltipTarget(node) {
@@ -67,13 +86,48 @@ function updateTooltipPosition(target) {
   activeTarget = target
 }
 
-export function getTooltipAttrs(text) {
-  if (text == null || String(text).trim() === '') return {}
-  return { 'data-tooltip': String(text) }
+function parseTooltipDelay(value) {
+  const delay = Number(value)
+  if (!Number.isFinite(delay) || delay <= 0) return DEFAULT_TOOLTIP_DELAY_MS
+  return Math.round(delay)
 }
 
-export function renderTooltipAttrs(text) {
-  return renderAttrs(getTooltipAttrs(text))
+function scheduleTooltip(target) {
+  const delay = parseTooltipDelay(target?.dataset?.tooltipDelay)
+
+  clearPendingTooltip()
+  if (activeTarget && activeTarget !== target) {
+    hideTooltip()
+  }
+
+  if (isPointerDown || hasActiveTextSelection()) {
+    return
+  }
+
+  if (delay <= 0) {
+    updateTooltipPosition(target)
+    return
+  }
+
+  pendingTarget = target
+  showTimer = window.setTimeout(() => {
+    if (pendingTarget === target) {
+      updateTooltipPosition(target)
+    }
+    clearPendingTooltip()
+  }, delay)
+}
+
+export function getTooltipAttrs(text, { delayMs } = {}) {
+  if (text == null || String(text).trim() === '') return {}
+  const attrs = { 'data-tooltip': String(text) }
+  const delay = parseTooltipDelay(delayMs)
+  if (delay > 0) attrs['data-tooltip-delay'] = String(delay)
+  return attrs
+}
+
+export function renderTooltipAttrs(text, options) {
+  return renderAttrs(getTooltipAttrs(text, options))
 }
 
 export function initTooltips() {
@@ -81,13 +135,37 @@ export function initTooltips() {
   isBound = true
   getTooltipElement()
 
+  document.addEventListener('pointerdown', () => {
+    isPointerDown = true
+    hideTooltip()
+  })
+
+  document.addEventListener('pointerup', () => {
+    isPointerDown = false
+  })
+
   document.addEventListener('pointerover', event => {
     const target = getTooltipTarget(event.target)
     if (!target) return
-    updateTooltipPosition(target)
+    scheduleTooltip(target)
+  })
+
+  document.addEventListener('pointermove', event => {
+    const target = getTooltipTarget(event.target)
+    if (!target) {
+      clearPendingTooltip()
+      return
+    }
+
+    const delay = parseTooltipDelay(target.dataset?.tooltipDelay)
+    if (delay <= 0) return
+    if (activeTarget === target) return
+
+    scheduleTooltip(target)
   })
 
   document.addEventListener('pointerout', event => {
+    clearPendingTooltip()
     if (!activeTarget) return
     const nextTarget = getTooltipTarget(event.relatedTarget)
     if (nextTarget === activeTarget) return
@@ -97,14 +175,22 @@ export function initTooltips() {
   document.addEventListener('focusin', event => {
     const target = getTooltipTarget(event.target)
     if (!target) return
+    clearPendingTooltip()
     updateTooltipPosition(target)
   })
 
   document.addEventListener('focusout', event => {
+    clearPendingTooltip()
     if (!activeTarget) return
     const nextTarget = getTooltipTarget(event.relatedTarget)
     if (nextTarget === activeTarget) return
     hideTooltip()
+  })
+
+  document.addEventListener('selectionchange', () => {
+    if (hasActiveTextSelection()) {
+      hideTooltip()
+    }
   })
 
   window.addEventListener('scroll', hideTooltip, true)

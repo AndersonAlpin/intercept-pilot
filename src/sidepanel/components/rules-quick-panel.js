@@ -8,6 +8,14 @@ import { renderModalShell } from '../../shared/ui/modal-shell.js'
 import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 import { renderPresetPicker } from '../../fullapp/components/preset-picker.js'
 
+const LABEL_TOOLTIP_DELAY_MS = 700
+
+function renderTruncatedTooltipAttrs(text, size) {
+  const value = String(text || '')
+  if (!value || value.length <= size) return ''
+  return renderTooltipAttrs(value, { delayMs: LABEL_TOOLTIP_DELAY_MS })
+}
+
 function actionBadge(rule) {
   const type = rule.action?.type || 'mockResponse'
   if (type === 'mockResponse') {
@@ -69,8 +77,8 @@ export function renderRulesQuickPanel(state) {
               <span class="rule-hits-badge" data-rule-hit="${rule.id}">${Number(rule.diagnostics?.matchCount || 0)}</span>
               ${actionBadge(rule)}
             </div>
-            <strong ${renderTooltipAttrs(ruleName)}>${escapeHtml(truncate(ruleName, 48))}</strong>
-            <div class="item-meta" ${renderTooltipAttrs(ruleMeta)}>${escapeHtml(ruleMethod)} · ${escapeHtml(truncate(ruleUrlPattern, 64))}</div>
+            <strong ${renderTruncatedTooltipAttrs(ruleName, 48)}>${escapeHtml(truncate(ruleName, 48))}</strong>
+            <div class="item-meta" ${renderTruncatedTooltipAttrs(ruleMeta, 64)}>${escapeHtml(ruleMethod)} · ${escapeHtml(truncate(ruleUrlPattern, 64))}</div>
             <div class="row-actions">
               <button class="icon-btn ghost" type="button" data-rule-edit="${rule.id}" ${renderTooltipAttrs(t('common.edit'))} aria-label="${escapeHtml(t('common.edit'))}">${icon('edit')}</button>
               <button class="icon-btn ghost" type="button" data-rule-copy="${rule.id}" ${renderTooltipAttrs(t('common.copyJson'))} aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
