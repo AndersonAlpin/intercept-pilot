@@ -1,5 +1,6 @@
 import { icon } from '../icons.js'
 import { joinClasses, renderAttrs, renderDataAttrs } from './dom.js'
+import { getTooltipAttrs } from './tooltip.js'
 
 export function renderIconButton({
   iconName,
@@ -20,7 +21,7 @@ export function renderIconButton({
   if (id != null) resolvedAttrs.id = id
   if (disabled) resolvedAttrs.disabled = true
   if (label != null) {
-    resolvedAttrs.title = label
+    Object.assign(resolvedAttrs, getTooltipAttrs(label))
     resolvedAttrs['aria-label'] = label
   }
 

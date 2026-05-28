@@ -5,6 +5,7 @@ import { getRuleState } from '../../shared/rule-state.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderRuleActionBadge, renderRuleStateDot } from '../../shared/ui/rule-status.js'
 import { renderModalShell } from '../../shared/ui/modal-shell.js'
+import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 import { renderPresetPicker } from '../../fullapp/components/preset-picker.js'
 
 function actionBadge(rule) {
@@ -67,14 +68,14 @@ export function renderRulesQuickPanel(state) {
               <span class="rule-hits-badge" data-rule-hit="${rule.id}">${Number(rule.diagnostics?.matchCount || 0)}</span>
               ${actionBadge(rule)}
             </div>
-            <strong title="${escapeHtml(ruleName)}">${escapeHtml(truncate(ruleName, 48))}</strong>
-            <div class="item-meta" title="${escapeHtml(ruleMeta)}">${escapeHtml(ruleMethod)} · ${escapeHtml(truncate(ruleUrlPattern, 64))}</div>
+            <strong ${renderTooltipAttrs(ruleName)}>${escapeHtml(truncate(ruleName, 48))}</strong>
+            <div class="item-meta" ${renderTooltipAttrs(ruleMeta)}>${escapeHtml(ruleMethod)} · ${escapeHtml(truncate(ruleUrlPattern, 64))}</div>
             <div class="row-actions">
-              <button class="icon-btn ghost" type="button" data-rule-edit="${rule.id}" title="${escapeHtml(t('common.edit'))}" aria-label="${escapeHtml(t('common.edit'))}">${icon('edit')}</button>
-              <button class="icon-btn ghost" type="button" data-rule-copy="${rule.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
-              <button class="icon-btn ghost" type="button" data-rule-export="${rule.id}" title="${escapeHtml(t('common.exportJson'))}" aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
-              <button class="icon-btn danger" type="button" data-rule-delete="${rule.id}" title="${escapeHtml(t('common.delete'))}" aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>
-              <button class="btn info" data-rule-advanced="${rule.id}" title="${escapeHtml(t('common.advanced'))}">${t('common.advanced')} ${icon('external', 12)}</button>
+              <button class="icon-btn ghost" type="button" data-rule-edit="${rule.id}" ${renderTooltipAttrs(t('common.edit'))} aria-label="${escapeHtml(t('common.edit'))}">${icon('edit')}</button>
+              <button class="icon-btn ghost" type="button" data-rule-copy="${rule.id}" ${renderTooltipAttrs(t('common.copyJson'))} aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
+              <button class="icon-btn ghost" type="button" data-rule-export="${rule.id}" ${renderTooltipAttrs(t('common.exportJson'))} aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
+              <button class="icon-btn danger" type="button" data-rule-delete="${rule.id}" ${renderTooltipAttrs(t('common.delete'))} aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>
+              <button class="btn info" data-rule-advanced="${rule.id}" ${renderTooltipAttrs(t('common.advanced'))}>${t('common.advanced')} ${icon('external', 12)}</button>
             </div>
           </div>
           `

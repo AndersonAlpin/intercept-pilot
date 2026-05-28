@@ -24,6 +24,7 @@ import { renderRulesQuickPanel, renderQuickRuleEditor } from './components/rules
 import { renderNetworkQuickCount, renderNetworkQuickPagination, renderNetworkQuickPanel, renderNetworkQuickRows } from './components/network-quick-panel.js'
 import { renderLogsQuickPanel } from './components/logs-quick-panel.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
+import { initTooltips } from '../shared/ui/tooltip.js'
 
 const appState = {
   currentTab: 'rules',
@@ -844,7 +845,7 @@ chrome.runtime.onMessage.addListener(message => {
     if (stateEl) {
       const stateLabel = t('rules.states.matched')
       stateEl.setAttribute('data-state', 'matched')
-      stateEl.setAttribute('title', stateLabel)
+      stateEl.setAttribute('data-tooltip', stateLabel)
       stateEl.setAttribute('aria-label', stateLabel)
     }
   }
@@ -884,4 +885,5 @@ document.addEventListener('keydown', event => {
 
 window.addEventListener('resize', updateHeaderOffset)
 
+initTooltips()
 refreshState()

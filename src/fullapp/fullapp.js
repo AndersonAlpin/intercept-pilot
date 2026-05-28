@@ -40,6 +40,7 @@ import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
 import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from './components/network-inspector-modal.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
+import { initTooltips } from '../shared/ui/tooltip.js'
 
 const PAGE_IDS = ['dashboard', 'rules', 'collections', 'network', 'logs', 'import-export', 'diagnostics', 'settings']
 const PAGE_URL_ALIASES = {
@@ -1631,6 +1632,7 @@ const persistFullAppNetworkFilter = debounce(async () => {
 }, 300)
 
 async function bootstrap() {
+  initTooltips()
   await refreshState()
 
   const params = new URLSearchParams(window.location.search)

@@ -5,6 +5,7 @@ import { getRuleState } from '../../shared/rule-state.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderRuleActionBadge, renderRuleStateBadge } from '../../shared/ui/rule-status.js'
+import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
@@ -47,12 +48,12 @@ function hitsCell(rule) {
   } else {
     tooltip = t('rules.lastMatchedNever')
   }
-  return `<span class="rule-hits-cell" data-rule-hit="${rule.id}" title="${escapeHtml(tooltip)}">${count}</span>`
+  return `<span class="rule-hits-cell" data-rule-hit="${rule.id}" ${renderTooltipAttrs(tooltip)}>${count}</span>`
 }
 
 function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {
   const cls = `icon-btn${danger ? ' danger' : ''}`
-  return `<button class="${cls}" type="button" data-full-rule-${action}="${ruleId}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${icon(iconName)}</button>`
+  return `<button class="${cls}" type="button" data-full-rule-${action}="${ruleId}" ${renderTooltipAttrs(label)} aria-label="${escapeHtml(label)}">${icon(iconName)}</button>`
 }
 
 export function renderRulesPage(state) {
@@ -93,11 +94,11 @@ export function renderRulesPage(state) {
           return `
             <div class="table-row row-rule ${rule.diagnostics?.lastError ? 'row-error' : ''}" role="row">
               <div class="cell-rule">
-                <strong title="${escapeHtml(rule.name)}">${escapeHtml(truncate(rule.name, 60))}</strong>
-                ${urlPattern ? `<span class="cell-rule-url" title="${escapeHtml(urlPattern)}">${escapeHtml(truncate(urlPattern, 80))}</span>` : ''}
+                <strong ${renderTooltipAttrs(rule.name)}>${escapeHtml(truncate(rule.name, 60))}</strong>
+                ${urlPattern ? `<span class="cell-rule-url" ${renderTooltipAttrs(urlPattern)}>${escapeHtml(truncate(urlPattern, 80))}</span>` : ''}
               </div>
               <div>
-                <label class="status-toggle" title="${escapeHtml(rule.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}">
+                <label class="status-toggle" ${renderTooltipAttrs(rule.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}>
                   <input type="checkbox" data-full-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
                   <span class="status-toggle-track" aria-hidden="true"></span>
                 </label>

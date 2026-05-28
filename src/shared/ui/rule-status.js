@@ -2,6 +2,7 @@ import { escapeHtml } from '../utils.js'
 import { icon } from '../icons.js'
 import { joinClasses, renderAttrs, renderDataAttrs } from './dom.js'
 import { renderBadge } from './badge.js'
+import { getTooltipAttrs } from './tooltip.js'
 
 const STATE_ICONS = {
   ready: 'check',
@@ -33,9 +34,9 @@ export function renderRuleStateBadge({ state, label, compact = false, className,
   const resolvedAttrs = {
     ...(attrs || {}),
     class: joinClasses('rule-state-badge', 'badge', compact ? 'compact' : '', className, attrs?.class),
-    title: label,
     'aria-label': label
   }
+  Object.assign(resolvedAttrs, getTooltipAttrs(label))
   const dataAttrs = renderDataAttrs({
     state: stateValue,
     ...(data || {})
@@ -55,10 +56,10 @@ export function renderRuleStateDot({ state, label, className, attrs, data } = {}
   const resolvedAttrs = {
     ...(attrs || {}),
     class: joinClasses('rule-state-dot', className, attrs?.class),
-    title: label,
     'aria-label': label,
     role: 'img'
   }
+  Object.assign(resolvedAttrs, getTooltipAttrs(label))
   const dataAttrs = renderDataAttrs({
     state: stateValue,
     ...(data || {})
