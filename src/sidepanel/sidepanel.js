@@ -5,6 +5,7 @@ import { setLocale, t } from '../shared/i18n.js'
 import { DEFAULT_NETWORK_FILTER_SIDE } from '../shared/constants.js'
 import { getVisibleLogsForCapture, getVisibleNetworkEntriesForCapture } from '../shared/capture-context.js'
 import { debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff, matchesNetworkIgnorePatterns } from '../shared/utils.js'
+import { mergeConnectionState } from '../shared/connection-state.js'
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import {
   createRuleBundle,
@@ -418,16 +419,7 @@ const flushConnectionUpdate = debounce(() => {
     compatActiveTabId: appState.compatActiveTabId ?? null,
     networkMeta: appState.networkMeta ?? null
   }
-  const next = {
-    attachedTabId: patch.attachedTabId ?? current.attachedTabId,
-    attachedTab: patch.attachedTab ?? current.attachedTab,
-    compatActiveTab: patch.compatActiveTab ?? current.compatActiveTab,
-    activeTab: patch.activeTab ?? current.activeTab,
-    candidateTab: patch.candidateTab ?? current.candidateTab,
-    lastAttachableTab: patch.lastAttachableTab ?? current.lastAttachableTab,
-    compatActiveTabId: patch.compatActiveTabId ?? current.compatActiveTabId,
-    networkMeta: patch.networkMeta ?? current.networkMeta
-  }
+  const next = mergeConnectionState(current, patch)
 
   const changed = connectionChanged(current, next)
   appState.attachedTabId = next.attachedTabId
