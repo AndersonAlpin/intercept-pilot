@@ -13,6 +13,7 @@ function actionBadge(rule) {
   if (type === 'mockResponse') {
     return renderRuleActionBadge({
       actionType: type,
+      statusCode: rule.action?.statusCode || 200,
       label: `${t('badges.mock')} ${rule.action?.statusCode || 200}`
     })
   }

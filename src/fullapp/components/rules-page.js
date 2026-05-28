@@ -18,7 +18,7 @@ function displayMethod(method) {
 
 function actionBadge(rule) {
   const type = rule.action?.type || 'mockResponse'
-  if (type === 'mockResponse') return renderRuleActionBadge({ actionType: type, label: `${t('rules.actionLabels.mock')} ${rule.action?.statusCode || 200}` })
+  if (type === 'mockResponse') return renderRuleActionBadge({ actionType: type, statusCode: rule.action?.statusCode || 200, label: `${t('rules.actionLabels.mock')} ${rule.action?.statusCode || 200}` })
   if (type === 'failRequest') return renderRuleActionBadge({ actionType: type, label: t('rules.actionLabels.fail') })
   if (type === 'delayOnly') return renderRuleActionBadge({ actionType: type, label: `${t('rules.actionLabels.delay')} ${rule.action?.delayMs || 0}ms` })
   return renderRuleActionBadge({ actionType: type, label: t('rules.actionLabels.pass') })

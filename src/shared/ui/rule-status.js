@@ -13,16 +13,29 @@ const STATE_ICONS = {
 }
 
 const ACTION_VARIANTS = {
-  mockResponse: 'success',
   failRequest: 'danger',
   delayOnly: 'warning',
   passThrough: ''
 }
 
-export function renderRuleActionBadge({ actionType, label, className, attrs, data } = {}) {
+function getMockResponseVariant(statusCode) {
+  const code = Number(statusCode)
+
+  if (Number.isNaN(code) || code < 200) return ''
+  if (code < 300) return 'success'
+  if (code < 500) return 'warning'
+  return 'danger'
+}
+
+function getActionVariant(actionType, statusCode) {
+  if (actionType === 'mockResponse') return getMockResponseVariant(statusCode)
+  return ACTION_VARIANTS[actionType] || ''
+}
+
+export function renderRuleActionBadge({ actionType, statusCode, label, className, attrs, data } = {}) {
   return renderBadge({
     label,
-    variant: ACTION_VARIANTS[actionType] || '',
+    variant: getActionVariant(actionType, statusCode),
     className,
     attrs,
     data
