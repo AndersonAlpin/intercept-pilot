@@ -20,7 +20,8 @@ import {
   BUNDLE_TYPE_COLLECTION
 } from '../shared/export.js'
 import { toastSuccess, toastError } from '../shared/toast.js'
-import { confirmDialog, promptDialog } from '../shared/dialogs.js'
+import { choiceDialog, confirmDialog, promptDialog } from '../shared/dialogs.js'
+import { findCollectionConflictById, parseImportBundle } from '../shared/import-bundles.js'
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import { entryToCurl, entryToFetch } from '../shared/network-format.js'
 import { delegate, patchHtml } from '../shared/ui/dom.js'
@@ -793,10 +794,22 @@ async function importRuleBundle(bundle) {
   await refreshState()
 }
 
-async function importCollectionBundle(bundle) {
+function buildImportedRulePayload(rule, overrides = {}) {
+  return {
+    ...rule,
+    ...overrides,
+    action: {
+      ...rule.action,
+      applyResponseBody: rule.action?.applyResponseBody ?? true,
+      applyResponseHeaders: rule.action?.applyResponseHeaders ?? false
+    }
+  }
+}
+
+async function importCollectionBundleAsCopy(bundle) {
   if (!bundle?.collection || !Array.isArray(bundle.rules)) {
     toastError(t('toasts.collectionImportError'))
-    return
+    return false
   }
   const existingCollectionNames = state.collections.map(item => item.name)
   const seedCollection = bundle.collection
@@ -810,52 +823,109 @@ async function importCollectionBundle(bundle) {
   const createResult = await sendMessage({ type: MSG.COLLECTIONS_CREATE, payload: collectionPayload })
   if (createResult?.error) {
     toastError(t('toasts.collectionImportError'))
-    return
+    return false
   }
 
   const usedNames = []
   for (const rule of bundle.rules) {
     const ruleName = getUniqueName(rule.name, usedNames)
     usedNames.push(ruleName)
-    const rulePayload = {
-      ...rule,
+    const rulePayload = buildImportedRulePayload(rule, {
       id: null,
       collectionId: collectionPayload.id,
-      name: ruleName,
-      action: {
-        ...rule.action,
-        applyResponseBody: rule.action?.applyResponseBody ?? true,
-        applyResponseHeaders: rule.action?.applyResponseHeaders ?? false
-      }
-    }
+      name: ruleName
+    })
     await sendMessage({ type: MSG.RULES_CREATE, payload: rulePayload })
   }
   toastSuccess(t('toasts.collectionImported'))
   await refreshState()
+  return true
 }
 
-async function importBundleFromText(raw) {
-  let parsed
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    toastError(t('toasts.invalidJson'))
+async function importCollectionBundleAsUpdate(bundle, existingCollection) {
+  if (!existingCollection || !bundle?.collection || !Array.isArray(bundle.rules)) {
+    toastError(t('toasts.collectionImportError'))
     return false
   }
-  if (!parsed || parsed.schemaVersion !== SCHEMA_VERSION) {
-    toastError(t('toasts.unsupportedType'))
+
+  const result = await sendMessage({
+    type: MSG.COLLECTIONS_REPLACE_CONTENTS,
+    payload: {
+      ...existingCollection,
+      name: bundle.collection.name,
+      description: bundle.collection.description,
+      enabled: bundle.collection.enabled !== false
+    },
+    rules: bundle.rules.map(rule => buildImportedRulePayload(rule, {
+      collectionId: existingCollection.id
+    }))
+  })
+
+  if (result?.error) {
+    toastError(t('toasts.collectionImportError'))
     return false
   }
-  if (parsed.type === BUNDLE_TYPE_RULE) {
-    await importRuleBundle(parsed)
+
+  toastSuccess(t('toasts.collectionUpdated'))
+  await refreshState()
+  return true
+}
+
+async function chooseCollectionImportStrategy(existingCollection) {
+  if (!existingCollection) return 'copy'
+  return choiceDialog({
+    title: t('fullapp.importConflictTitle'),
+    message: t('fullapp.importConflictMessage', { name: existingCollection.name }),
+    cancelLabel: t('common.cancel'),
+    actions: [
+      {
+        label: t('fullapp.importConflictCopy'),
+        value: 'copy'
+      },
+      {
+        label: t('fullapp.importConflictUpdate'),
+        value: 'update',
+        variant: 'primary'
+      }
+    ]
+  })
+}
+
+async function importCollectionBundle(bundle) {
+  const existingCollection = findCollectionConflictById(bundle, state.collections)
+  const strategy = await chooseCollectionImportStrategy(existingCollection)
+  if (!strategy) return false
+  if (strategy === 'update') return importCollectionBundleAsUpdate(bundle, existingCollection)
+  return importCollectionBundleAsCopy(bundle)
+}
+
+async function importParsedBundle(bundle) {
+  if (bundle.type === BUNDLE_TYPE_RULE) {
+    await importRuleBundle(bundle)
     return true
   }
-  if (parsed.type === BUNDLE_TYPE_COLLECTION) {
-    await importCollectionBundle(parsed)
-    return true
+  if (bundle.type === BUNDLE_TYPE_COLLECTION) {
+    return importCollectionBundle(bundle)
   }
   toastError(t('toasts.unsupportedType'))
   return false
+}
+
+async function importBundleFromText(raw) {
+  const parsed = parseImportBundle(raw, {
+    schemaVersion: SCHEMA_VERSION,
+    ruleType: BUNDLE_TYPE_RULE,
+    collectionType: BUNDLE_TYPE_COLLECTION
+  })
+  if (parsed.error === 'invalidJson') {
+    toastError(t('toasts.invalidJson'))
+    return false
+  }
+  if (parsed.error) {
+    toastError(t('toasts.unsupportedType'))
+    return false
+  }
+  return importParsedBundle(parsed.bundle)
 }
 
 function bindCreateRuleFromRequestEvents() {
@@ -1228,8 +1298,6 @@ function bindEvents() {
     })
   })
 
-  $('#full-import-rule-btn')?.addEventListener('click', () => openFullPage('import-export'))
-
   $('#full-network-url')?.addEventListener('input', event => {
     state.networkFilter.url = event.target.value
     resetNetworkPage()
@@ -1314,9 +1382,7 @@ function bindEvents() {
     try {
       const text = await file.text()
       event.target.value = ''
-      const textarea = $('#full-import-json')
-      if (textarea) textarea.value = text
-      updateImportJsonButtonState()
+      await importBundleFromText(text)
     } catch {
       toastError(t('toasts.importError'))
     }

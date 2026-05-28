@@ -9,6 +9,7 @@ export const MSG = {
 
   COLLECTIONS_CREATE: 'collections:create',
   COLLECTIONS_UPDATE: 'collections:update',
+  COLLECTIONS_REPLACE_CONTENTS: 'collections:replaceContents',
   COLLECTIONS_DELETE: 'collections:delete',
 
   RULES_CREATE: 'rules:create',

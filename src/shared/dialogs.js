@@ -121,3 +121,32 @@ export function promptDialog({ title, message, placeholder, defaultValue = '', c
     }
   })
 }
+
+export function choiceDialog({ title, message, actions = [], cancelLabel } = {}) {
+  const resolvedTitle = title || ''
+  const resolvedCancel = cancelLabel || t('common.cancel')
+  const bodyHtml = message ? `<p class="dialog-message">${escapeHtml(message)}</p>` : ''
+  const footerHtml = `
+    <button class="btn" type="button" data-dialog-cancel>${escapeHtml(resolvedCancel)}</button>
+    ${actions.map((action, index) => `
+      <button
+        class="btn ${escapeHtml(action.variant || (index === 0 ? 'primary' : ''))}"
+        type="button"
+        data-dialog-action="${escapeHtml(action.value)}"
+      >${escapeHtml(action.label)}</button>
+    `).join('')}
+  `
+
+  return openDialog({
+    title: resolvedTitle,
+    bodyHtml,
+    footerHtml,
+    onMount(root) {
+      root.querySelectorAll('[data-dialog-action]').forEach(button => {
+        button.addEventListener('click', () => closeDialog(button.dataset.dialogAction || null))
+      })
+      const focusTarget = root.querySelector('[data-dialog-action]') || root.querySelector('[data-dialog-cancel]')
+      requestAnimationFrame(() => focusTarget?.focus())
+    }
+  })
+}

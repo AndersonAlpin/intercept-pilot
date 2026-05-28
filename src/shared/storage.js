@@ -140,6 +140,49 @@ export async function saveCollection(collection) {
   return state.collections
 }
 
+export async function replaceCollectionContents(collection, rules = []) {
+  const state = await getState()
+  const idx = state.collections.findIndex(item => item.id === collection?.id)
+  if (idx === -1) {
+    return {
+      collections: state.collections,
+      rules: state.rules
+    }
+  }
+
+  const currentCollection = state.collections[idx]
+  const nextCollection = makeCollection({
+    ...currentCollection,
+    ...collection,
+    id: currentCollection.id,
+    order: currentCollection.order,
+    createdAt: currentCollection.createdAt
+  })
+  state.collections[idx] = { ...currentCollection, ...nextCollection }
+
+  const preservedRules = state.rules.filter(rule => rule.collectionId !== currentCollection.id)
+  const usedRuleIds = new Set(preservedRules.map(rule => rule.id))
+  const nextRules = []
+
+  for (const rule of Array.isArray(rules) ? rules : []) {
+    const nextId = rule?.id && !usedRuleIds.has(rule.id) ? rule.id : null
+    const nextRule = makeRule({
+      ...rule,
+      id: nextId,
+      collectionId: currentCollection.id
+    }, state.settings.activeCollectionId)
+    usedRuleIds.add(nextRule.id)
+    nextRules.push(nextRule)
+  }
+
+  state.rules = [...nextRules, ...preservedRules]
+  await setState(state)
+  return {
+    collections: state.collections,
+    rules: state.rules
+  }
+}
+
 export async function deleteCollection(collectionId) {
   const state = await getState()
   if (collectionId === DEFAULT_COLLECTION_ID) return state.collections

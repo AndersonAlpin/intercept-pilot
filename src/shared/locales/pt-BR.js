@@ -181,7 +181,7 @@ const ptBR = {
   },
   fullapp: {
     noRuleSelected: 'Selecione uma regra para editar.', ruleEditor: 'Editor de Regra',
-    importPlaceholder: 'Cole o JSON para importar', importStrategy: 'Importa como cópia. Dados existentes não são sobrescritos. Nomes duplicados são incrementados.',
+    importPlaceholder: 'Cole o JSON de uma regra ou coleção do InterceptPilot', importStrategy: 'Cole JSON manualmente ou escolha um arquivo para importar na hora.',
     noImportExportAction: 'Nenhuma ação de import/export ainda.', exportCurrentCollection: 'Exportar coleção atual',
     exportAllData: 'Exportar todos os dados', importJson: 'Importar JSON', importPickFile: 'Escolher arquivo JSON', saveSettings: 'Salvar configurações',
     autoAttach: 'Capturar aba ativa automaticamente', autoReloadAfterRuleChange: 'Auto recarregar após alterar regra',
@@ -199,7 +199,7 @@ const ptBR = {
     attachedUrl: 'URL capturada', attachedTabId: 'ID da aba capturada', isAttached: 'Status da captura', enabledRules: 'Regras Ativas',
     invalidRules: 'Regras Inválidas', recentRuntimeLogs: 'Logs recentes do runtime', noLogs: 'Sem logs.',
     newRule: 'Nova regra', exportCollection: 'Exportar coleção', importRule: 'Importar', settingsSaved: 'Configurações salvas.',
-    importCompleted: 'Importação concluída (merge por id).', exportCopiedCollection: 'JSON da coleção atual copiado.', exportCopiedAll: 'JSON de todos os dados copiado.'
+    importCompleted: 'Importação concluída.', importConflictTitle: 'Coleção já existente', importConflictMessage: 'Já existe uma coleção com este ID. O que deseja fazer?', importConflictUpdate: 'Atualizar', importConflictCopy: 'Criar cópia', exportCopiedCollection: 'JSON da coleção atual copiado.', exportCopiedAll: 'JSON de todos os dados copiado.'
   },
   errors: {
     invalidJson: 'Formato JSON inválido.',
@@ -230,6 +230,7 @@ const ptBR = {
     collectionExported: 'JSON da coleção exportado.',
     ruleImported: 'Regra importada.',
     collectionImported: 'Coleção importada.',
+    collectionUpdated: 'Coleção atualizada.',
     importCompleted: 'Importação concluída.',
     invalidJson: 'JSON inválido.',
     unsupportedType: 'Tipo de JSON do InterceptPilot não suportado.',

@@ -133,7 +133,6 @@ export function renderRulesPage(state) {
         title: t('rules.title'),
         actionsHtml: `
           <button class="btn primary" id="full-new-rule-btn">${escapeHtml(t('fullapp.newRule'))}</button>
-          <button class="btn secondary" id="full-import-rule-btn">${escapeHtml(t('common.import'))}</button>
         `,
         filtersHtml,
         bodyHtml,

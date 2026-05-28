@@ -52,7 +52,6 @@ export function renderDiagnosticsPage(state) {
     <section class="split-page diagnostics-page">
       ${renderDataPanel({
         title: t('common.diagnostics'),
-        actionsHtml: `<button class="btn info" data-page="logs">${t('diagnostics.openWebLogs')}</button>`,
         bodyHtml: summaryHtml,
         className: 'diagnostics-summary-panel'
       })}

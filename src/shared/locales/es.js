@@ -181,7 +181,7 @@ const es = {
   },
   fullapp: {
     noRuleSelected: 'Selecciona una regla para editar.', ruleEditor: 'Editor de reglas',
-    importPlaceholder: 'Pega JSON para importar', importStrategy: 'Importa como copia. Los datos existentes no se sobrescriben. Los nombres duplicados se incrementan.',
+    importPlaceholder: 'Pega el JSON de una regla o colección de InterceptPilot', importStrategy: 'Pega JSON manualmente o elige un archivo para importarlo al instante.',
     noImportExportAction: 'Sin acciones de import/export todavía.', exportCurrentCollection: 'Exportar colección actual',
     exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', importPickFile: 'Elegir archivo JSON', saveSettings: 'Guardar configuración',
     autoAttach: 'Capturar pestaña activa automáticamente', autoReloadAfterRuleChange: 'Auto-recargar tras cambio de regla',
@@ -200,7 +200,7 @@ const es = {
     attachedTabId: 'ID de la pestaña capturada', isAttached: 'Estado de captura', enabledRules: 'Reglas Habilitadas',
     invalidRules: 'Reglas Inválidas', recentRuntimeLogs: 'Logs recientes de runtime', noLogs: 'Sin logs.',
     newRule: 'Nueva regla', exportCollection: 'Exportar colección', importRule: 'Importar', settingsSaved: 'Configuración guardada.',
-    importCompleted: 'Importación completada (merge por id).', exportCopiedCollection: 'JSON de colección copiado.', exportCopiedAll: 'JSON de todos los datos copiado.'
+    importCompleted: 'Importación completada.', importConflictTitle: 'La colección ya existe', importConflictMessage: 'Ya existe una colección con este ID. ¿Qué deseas hacer?', importConflictUpdate: 'Actualizar', importConflictCopy: 'Crear copia', exportCopiedCollection: 'JSON de colección copiado.', exportCopiedAll: 'JSON de todos los datos copiado.'
   },
   errors: {
     invalidJson: 'Formato JSON inválido.',
@@ -231,6 +231,7 @@ const es = {
     collectionExported: 'JSON de la colección exportado.',
     ruleImported: 'Regla importada.',
     collectionImported: 'Colección importada.',
+    collectionUpdated: 'Colección actualizada.',
     importCompleted: 'Importación completada.',
     invalidJson: 'JSON inválido.',
     unsupportedType: 'Tipo de JSON de InterceptPilot no soportado.',
