@@ -43,7 +43,7 @@ const es = {
     active: 'Activa',
     newCollection: 'Nueva colección', newCollectionTitle: 'Nueva colección', newCollectionPlaceholder: 'Nombre de la colección',
     setActive: 'Definir activa', rename: 'Renombrar', renameTitle: 'Renombrar colección', renamePlaceholder: 'Nuevo nombre',
-    deleteConfirm: '¿Eliminar esta colección? Las reglas irán a la colección de respaldo.',
+    deleteConfirm: '¿Deseas eliminar esta colección con todas sus reglas?',
     deleteTitle: 'Eliminar colección', rulesCount: 'regla(s)', entityOne: 'colección', entityMany: 'colecciones'
   },
   rules: {

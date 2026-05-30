@@ -191,7 +191,7 @@ export async function deleteCollection(collectionId) {
   if (!state.collections.length) state.collections = [makeDefaultCollection()]
 
   const fallback = state.collections[0].id
-  state.rules = state.rules.map(rule => rule.collectionId === collectionId ? { ...rule, collectionId: fallback } : rule)
+  state.rules = state.rules.filter(rule => rule.collectionId !== collectionId)
 
   if (state.settings.activeCollectionId === collectionId) state.settings.activeCollectionId = fallback
   await setState(state)

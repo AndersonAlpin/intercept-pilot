@@ -43,7 +43,7 @@ const ptBR = {
     active: 'Ativa',
     newCollection: 'Nova coleção', newCollectionTitle: 'Nova coleção', newCollectionPlaceholder: 'Nome da coleção',
     setActive: 'Definir ativa', rename: 'Renomear', renameTitle: 'Renomear coleção', renamePlaceholder: 'Novo nome',
-    deleteConfirm: 'Excluir esta coleção? As regras serão movidas para a coleção de fallback.',
+    deleteConfirm: 'Deseja excluir esta coleção com todas as suas regras?',
     deleteTitle: 'Excluir coleção', rulesCount: 'regra(s)', entityOne: 'coleção', entityMany: 'coleções'
   },
   rules: {

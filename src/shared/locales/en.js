@@ -99,7 +99,7 @@ const en = {
     rename: 'Rename',
     renameTitle: 'Rename collection',
     renamePlaceholder: 'New name',
-    deleteConfirm: 'Delete this collection? Rules will move to fallback collection.',
+    deleteConfirm: 'Delete this collection with all its rules?',
     deleteTitle: 'Delete collection',
     rulesCount: 'rule(s)',
     entityOne: 'collection',
