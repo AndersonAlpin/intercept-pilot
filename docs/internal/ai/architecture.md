@@ -11,7 +11,7 @@ The codebase intentionally uses vanilla JavaScript, HTML templates, and CSS. The
 `src/background/`
 
 - Owns capture lifecycle, debugger integration, rule matching, runtime state, and broadcasts.
-- `background.js` is the main orchestration file.
+- `src/background/background.js` is the main orchestration file.
 - `debugger.js` handles CDP / `chrome.debugger` work for Full capture.
 - `runtime-state.js` stores in-memory capture/network/log/rule state.
 - `rule-engine.js` evaluates rules against requests.

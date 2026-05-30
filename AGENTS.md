@@ -38,7 +38,7 @@ Do not use the old path:
 
 `src/background/`
 
-- `background.js`: main service worker orchestration, message handling, capture lifecycle, broadcasts.
+- `src/background/background.js`: main service worker orchestration, message handling, capture lifecycle, broadcasts.
 - `debugger.js`: Chrome debugger/CDP integration for full capture.
 - `runtime-state.js`: in-memory runtime state.
 - `rule-engine.js`: rule matching and response behavior.
