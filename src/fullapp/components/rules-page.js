@@ -106,8 +106,8 @@ export function renderRulesPage(state) {
                 ${urlPattern ? `<span class="cell-rule-url" ${renderTruncatedTooltipAttrs(urlPattern, 80)}>${escapeHtml(truncate(urlPattern, 80))}</span>` : ''}
               </div>
               <div>
-                <label class="status-toggle" ${renderTooltipAttrs(rule.enabled ? t('rules.states.disabled') : t('rules.states.ready'))}>
-                  <input type="checkbox" data-full-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
+                <label class="status-toggle">
+                  <input type="checkbox" data-full-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(rule.enabled ? t('common.enabled') : t('common.disabled'))}" />
                   <span class="status-toggle-track" aria-hidden="true"></span>
                 </label>
               </div>
