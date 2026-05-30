@@ -6,7 +6,7 @@ import { makeRule } from '../shared/models.js'
 import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureAttachedDomainsReady, ensureRehydrated, isAttachedSource, sendAttachedCommand } from './debugger.js'
 import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
-import { detectSimpleConflicts, findMatchingRule } from './rule-engine.js'
+import { detectSimpleConflicts, findMatchingRule, getExecutableRules } from './rule-engine.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
@@ -468,7 +468,7 @@ async function getFullState() {
   const compatActiveTabId = getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null)
   const compatActiveTab = await getCompatTabRef(compatActiveTabId)
 
-  const conflicts = detectSimpleConflicts(state.rules)
+  const conflicts = detectSimpleConflicts(getExecutableRules(state.rules, state.collections, state.settings))
   const rules = state.rules.map(rule => {
     const live = runtimeState.hitCounters.get(rule.id)
     return {
@@ -799,7 +799,7 @@ async function handleRequestPaused(source, params) {
   }
 
   const state = await getState()
-  const rule = findMatchingRule(state.rules, state.collections, params.request.url, params.request.method, params.resourceType)
+  const rule = findMatchingRule(state.rules, state.collections, state.settings, params.request.url, params.request.method, params.resourceType)
 
   if (!rule) {
     upsertNetworkEntry(entryId, {
@@ -1044,7 +1044,7 @@ async function handleCompatFetchRequest(message, sender) {
   const entryId = resolveNetworkEntryId(entryKey, { create: true })
   const method = String(payload.method || 'GET').toUpperCase()
   const requestBody = truncateCompatBody(payload.body)
-  const rule = findMatchingRule(state.rules, state.collections, url, method, 'Fetch')
+  const rule = findMatchingRule(state.rules, state.collections, state.settings, url, method, 'Fetch')
   const actionType = rule?.action?.type || 'passThrough'
   const decision = buildCompatDecision(rule)
   const isMockResponse = rule && decision.action === 'mockResponse'

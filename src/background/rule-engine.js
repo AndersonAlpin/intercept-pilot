@@ -34,6 +34,13 @@ export function sortRulesByPriority(rules = []) {
   return [...rules].sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0))
 }
 
+export function getExecutableRules(rules = [], collections = [], settings = {}) {
+  const activeCollectionId = settings?.activeCollectionId || collections[0]?.id || null
+  const activeCollection = collections.find(collection => collection.id === activeCollectionId)
+  if (!activeCollection || activeCollection.enabled === false) return []
+  return rules.filter(rule => rule.collectionId === activeCollection.id)
+}
+
 export function detectSimpleConflicts(rules = []) {
   const byKey = new Map()
   for (const rule of rules) {
@@ -53,11 +60,9 @@ export function detectSimpleConflicts(rules = []) {
   return conflicts
 }
 
-export function findMatchingRule(rules, collections, url, method, resourceType) {
-  const enabledCollectionIds = new Set(collections.filter(collection => collection.enabled !== false).map(collection => collection.id))
-  for (const rule of sortRulesByPriority(rules)) {
+export function findMatchingRule(rules, collections, settings, url, method, resourceType) {
+  for (const rule of sortRulesByPriority(getExecutableRules(rules, collections, settings))) {
     if (!rule.enabled) continue
-    if (!enabledCollectionIds.has(rule.collectionId)) continue
     if (!matchesUrl(url, rule)) continue
     if (!matchesMethod(method, rule)) continue
     if (!matchesResourceType(resourceType, rule)) continue
