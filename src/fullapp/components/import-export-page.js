@@ -1,6 +1,8 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
+import { renderButton } from '../../shared/ui/button.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
+import { renderImportTemplateMenu } from '../../shared/ui/import-template-menu.js'
 
 export function renderImportExportPage(state) {
   const bodyHtml = `
@@ -13,7 +15,8 @@ export function renderImportExportPage(state) {
       title: t('navigation.importExport'),
       description: t('fullapp.importStrategy'),
       actionsHtml: `
-        <button class="btn secondary" id="full-import-pick-file-btn">${t('fullapp.importPickFile')}</button>
+        ${renderImportTemplateMenu({ id: 'full-import-templates-menu', dataName: 'import-template-action' })}
+        ${renderButton({ id: 'full-import-pick-file-btn', label: t('fullapp.importPickFile'), variant: 'secondary', iconName: 'upload', iconPosition: 'start' })}
         <input type="file" id="full-import-file-input" accept="application/json,.json" hidden />
       `,
       bodyHtml,

@@ -3,9 +3,11 @@ import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { getRuleState } from '../../shared/rule-state.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
+import { renderImportTemplateMenu } from '../../shared/ui/import-template-menu.js'
 import { renderRuleActionBadge, renderRuleStateDot } from '../../shared/ui/rule-status.js'
 import { renderModalShell } from '../../shared/ui/modal-shell.js'
 import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
+import { renderSelect } from '../../shared/ui/select.js'
 import { renderPresetPicker } from '../../fullapp/components/preset-picker.js'
 
 const LABEL_TOOLTIP_DELAY_MS = 700
@@ -34,8 +36,14 @@ function methodOptionLabel(method) {
   return method === 'ANY' ? t('common.all') : method
 }
 
+function displayCollectionName(collection) {
+  if (collection?.id === 'collection-default') return t('collections.defaultName')
+  return collection?.name || ''
+}
+
 export function renderRulesQuickPanel(state) {
-  const activeCollectionId = state.settings?.activeCollectionId
+  const activeCollectionId = state.settings?.activeCollectionId || state.collections[0]?.id || ''
+  const collectionOptions = state.collections.map(collection => ({ value: collection.id, label: displayCollectionName(collection) }))
   const rules = state.rules.filter(rule => rule.collectionId === activeCollectionId)
   const text = state.rulesFilter?.toLowerCase() || ''
   const filtered = rules.filter(rule => {
@@ -52,12 +60,23 @@ export function renderRulesQuickPanel(state) {
     : ''
 
   return `
-    <div class="card compact-card">
-      <div class="row space-between">
+    <div class="card compact-card sticky-filters rules-panel">
+      <div class="sticky-bar rules-sticky-bar">
+        <div class="row space-between rules-head">
           <h2>${t('rules.title')}</h2>
-          <button class="btn primary" id="quick-new-rule-btn">${t('rules.newRule')}</button>
+          <div class="rules-head-actions">
+            ${renderImportTemplateMenu({ id: 'side-templates-menu', dataName: 'template-action' })}
+            <button class="btn primary" id="quick-new-rule-btn">${t('rules.newRule')}</button>
+          </div>
         </div>
-      <input class="input" id="rules-search" placeholder="${t('rules.searchPlaceholder')}" value="${escapeHtml(state.rulesFilter || '')}" />
+        <div class="rules-collection-row">
+          <div class="rules-collection-select">
+            ${renderSelect({ id: 'active-collection-select', value: activeCollectionId, options: collectionOptions })}
+          </div>
+          <button class="icon-btn ghost" type="button" id="manage-collections-btn" ${renderTooltipAttrs(t('common.manage'))} aria-label="${escapeHtml(t('common.manage'))}">${icon('settings')}</button>
+        </div>
+        <input class="input" id="rules-search" placeholder="${t('rules.searchPlaceholder')}" value="${escapeHtml(state.rulesFilter || '')}" />
+      </div>
       <div class="list">
         ${filtered.length ? filtered.map(rule => {
           const state = getRuleState(rule)

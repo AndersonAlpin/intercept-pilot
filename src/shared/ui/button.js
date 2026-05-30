@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils.js'
+import { icon } from '../icons.js'
 import { joinClasses, renderAttrs, renderDataAttrs } from './dom.js'
 
 export function renderButton({
@@ -12,6 +13,7 @@ export function renderButton({
   title,
   ariaLabel,
   type = 'button',
+  iconName,
   iconHtml,
   iconPosition = 'end'
 } = {}) {
@@ -27,8 +29,11 @@ export function renderButton({
 
   const attributes = renderAttrs(resolvedAttrs)
   const dataAttrs = renderDataAttrs(data)
-  const icon = iconHtml || ''
-  const text = escapeHtml(label ?? '')
-  const content = icon && iconPosition === 'start' ? `${icon}${text}` : `${text}${icon}`
+  const renderedIcon = iconHtml || (iconName ? icon(iconName) : '')
+  const iconMarkup = renderedIcon ? `<span class="btn__icon">${renderedIcon}</span>` : ''
+  const labelMarkup = label != null ? `<span class="btn__label">${escapeHtml(label)}</span>` : ''
+  const content = iconMarkup && iconPosition === 'start'
+    ? `${iconMarkup}${labelMarkup}`
+    : `${labelMarkup}${iconMarkup}`
   return `<button ${joinClasses(attributes, dataAttrs)}>${content}</button>`
 }

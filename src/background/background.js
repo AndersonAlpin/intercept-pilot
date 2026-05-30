@@ -1445,7 +1445,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             await pushLog({
               level: 'warn',
               scope: 'runtime',
-              message: `Full capture could not attach on tab ${tabId}; using Light capture for fetch requests only.`
+              message: `Full capture could not attach on tab ${tabId}; using Light capture for fetch requests and basic page logs.`
             })
             await broadcastConnectionState()
             sendResponse({

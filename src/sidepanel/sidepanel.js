@@ -18,13 +18,13 @@ import { toastSuccess, toastError } from '../shared/toast.js'
 import { confirmDialog } from '../shared/dialogs.js'
 import { delegate, patchHtml } from '../shared/ui/dom.js'
 import { renderConnectionHeader } from './components/connection-header.js'
-import { renderCollectionSwitcher } from './components/collection-switcher.js'
 import { renderTabs } from './components/tabs.js'
 import { renderRulesQuickPanel, renderQuickRuleEditor } from './components/rules-quick-panel.js'
 import { renderNetworkQuickCount, renderNetworkQuickPagination, renderNetworkQuickPanel, renderNetworkQuickRows } from './components/network-quick-panel.js'
 import { renderLogsQuickPanel } from './components/logs-quick-panel.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
+import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
 
 const appState = {
   currentTab: 'rules',
@@ -303,7 +303,7 @@ function render() {
 
   let body = ''
   if (appState.currentTab === 'rules') {
-    body = `${renderCollectionSwitcher(appState)}${renderRulesQuickPanel(appState)}${renderQuickRuleEditor(appState)}`
+    body = `${renderRulesQuickPanel(appState)}${renderQuickRuleEditor(appState)}`
   }
   if (appState.currentTab === 'network') {
     applyNetworkFilters()
@@ -316,7 +316,7 @@ function render() {
   }
 
   const selectedLog = appState.selectedLogId ? findLogById(appState.selectedLogId) : null
-  root.innerHTML = `${header}${tabs}<section class="content">${body}</section>${renderLogDetailModal({ log: selectedLog, prefix: 'side', dialogClassName: 'side-log-detail-modal' })}`
+  root.innerHTML = `<div class="sidepanel-top">${header}${tabs}</div><section class="content">${body}</section>${renderLogDetailModal({ log: selectedLog, prefix: 'side', dialogClassName: 'side-log-detail-modal' })}`
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   updateHeaderOffset()
   bindEvents()
@@ -446,9 +446,9 @@ function queueConnectionPatch(patch) {
 }
 
 function updateHeaderOffset() {
-  const headerEl = document.querySelector('.header')
-  if (!headerEl) return
-  const height = headerEl.offsetHeight
+  const topEl = document.querySelector('.sidepanel-top') || document.querySelector('.header')
+  if (!topEl) return
+  const height = topEl.offsetHeight
   document.documentElement.style.setProperty('--sp-header-h', `${height}px`)
 }
 
@@ -588,6 +588,64 @@ async function openAdvancedFromQuick() {
   await sendMessage({ type: MSG.APP_OPEN_FULL, draftRule: JSON.stringify(draftRule) })
 }
 
+async function handleTemplateAction(action) {
+  try {
+    if (action === 'copy-collection') {
+      await copyJsonToClipboard(buildCollectionTemplate(t))
+      toastSuccess(t('toasts.templateCopied'))
+      return
+    }
+    if (action === 'copy-rule') {
+      await copyJsonToClipboard(buildRuleTemplate(t))
+      toastSuccess(t('toasts.templateCopied'))
+      return
+    }
+    if (action === 'download-collection') {
+      downloadJsonFile(buildCollectionTemplate(t), 'interceptpilot-template.json')
+      toastSuccess(t('toasts.templateDownloaded'))
+      return
+    }
+    if (action === 'download-rule') {
+      downloadJsonFile(buildRuleTemplate(t), 'interceptpilot-rule-template.json')
+      toastSuccess(t('toasts.templateDownloaded'))
+      return
+    }
+    if (action === 'copy-ai-prompt') {
+      await copyTextToClipboard(getAiPrompt(t))
+      toastSuccess(t('toasts.aiPromptCopied'))
+    }
+  } catch {
+    toastError(t('toasts.copyError'))
+  }
+}
+
+function bindTemplatesMenuEvents() {
+  const menu = $('#side-templates-menu')
+  if (!menu) return
+  const closeMenu = event => {
+    const target = event.target instanceof Node ? event.target : null
+    if (target && menu.contains(target)) return
+    menu.open = false
+    document.removeEventListener('click', closeMenu, true)
+  }
+
+  document.querySelectorAll('[data-template-action]').forEach(button => {
+    button.addEventListener('click', async () => {
+      menu.open = false
+      document.removeEventListener('click', closeMenu, true)
+      await handleTemplateAction(button.dataset.templateAction)
+    })
+  })
+
+  menu.addEventListener('toggle', () => {
+    if (menu.open) {
+      requestAnimationFrame(() => document.addEventListener('click', closeMenu, true))
+      return
+    }
+    document.removeEventListener('click', closeMenu, true)
+  })
+}
+
 function bindEvents() {
   document.querySelectorAll('[data-tab]').forEach(button => {
     button.addEventListener('click', () => {
@@ -604,13 +662,6 @@ function bindEvents() {
     appState.settings.activeCollectionId = activeCollectionId
     await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { activeCollectionId } })
     render()
-  })
-
-  $('#active-collection-enabled')?.addEventListener('change', async event => {
-    const current = appState.collections.find(collection => collection.id === activeCollectionId())
-    if (!current) return
-    await sendMessage({ type: MSG.COLLECTIONS_UPDATE, payload: { ...current, enabled: event.target.checked } })
-    await refreshState()
   })
 
   $('#rules-search')?.addEventListener('input', event => {
@@ -637,6 +688,7 @@ function bindEvents() {
   $('#quick-save-rule')?.addEventListener('click', saveQuickRule)
   $('#quick-open-advanced')?.addEventListener('click', openAdvancedFromQuick)
   $('#quick-open-advanced-hint')?.addEventListener('click', openAdvancedFromQuick)
+  bindTemplatesMenuEvents()
 
   document.querySelectorAll('[data-rule-edit]').forEach(button => {
     button.addEventListener('click', () => {
@@ -876,6 +928,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return
+  const templatesMenu = $('#side-templates-menu')
+  if (templatesMenu?.open) {
+    templatesMenu.open = false
+    return
+  }
   if (appState.selectedLogId) {
     closeLogDetail()
     return

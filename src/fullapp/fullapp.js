@@ -41,6 +41,7 @@ import { renderDiagnosticsPage } from './components/diagnostics-page.js'
 import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from './components/network-inspector-modal.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
+import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
 
 const PAGE_IDS = ['dashboard', 'rules', 'collections', 'network', 'logs', 'import-export', 'diagnostics', 'settings']
 const PAGE_URL_ALIASES = {
@@ -929,6 +930,37 @@ async function importBundleFromText(raw) {
   return importParsedBundle(parsed.bundle)
 }
 
+async function handleImportTemplateAction(action) {
+  try {
+    if (action === 'copy-collection') {
+      await copyJsonToClipboard(buildCollectionTemplate(t))
+      toastSuccess(t('toasts.templateCopied'))
+      return
+    }
+    if (action === 'copy-rule') {
+      await copyJsonToClipboard(buildRuleTemplate(t))
+      toastSuccess(t('toasts.templateCopied'))
+      return
+    }
+    if (action === 'download-collection') {
+      downloadJsonFile(buildCollectionTemplate(t), 'interceptpilot-template.json')
+      toastSuccess(t('toasts.templateDownloaded'))
+      return
+    }
+    if (action === 'download-rule') {
+      downloadJsonFile(buildRuleTemplate(t), 'interceptpilot-rule-template.json')
+      toastSuccess(t('toasts.templateDownloaded'))
+      return
+    }
+    if (action === 'copy-ai-prompt') {
+      await copyTextToClipboard(getAiPrompt(t))
+      toastSuccess(t('toasts.aiPromptCopied'))
+    }
+  } catch {
+    toastError(t('toasts.copyError'))
+  }
+}
+
 function bindCreateRuleFromRequestEvents() {
   const table = $('#full-network-table')
   if (!table || table.dataset.boundRows === 'true') return
@@ -1389,6 +1421,13 @@ function bindEvents() {
     }
   })
 
+  document.querySelectorAll('[data-import-template-action]').forEach(button => {
+    button.addEventListener('click', () => {
+      button.closest('details')?.removeAttribute('open')
+      handleImportTemplateAction(button.dataset.importTemplateAction)
+    })
+  })
+
   // Network Inspector modal binds
   document.querySelector('[data-inspector-backdrop]')?.addEventListener('click', event => {
     if (event.target === event.currentTarget) closeInspector()
@@ -1601,6 +1640,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return
+  const importTemplatesMenu = $('#full-import-templates-menu')
+  if (importTemplatesMenu?.open) {
+    importTemplatesMenu.open = false
+    return
+  }
   if (state.inspector) {
     closeInspector()
     return
