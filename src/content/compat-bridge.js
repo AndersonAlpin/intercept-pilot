@@ -100,6 +100,12 @@
       const payload = message.payload || {}
       if (!payload.compatRequestId) return
       sendRuntimeMessage({ type: 'compat:fetchError', payload }).catch(() => {})
+      return
+    }
+
+    if (isCompatMessage(message, 'pageLog')) {
+      const payload = message.payload || {}
+      sendRuntimeMessage({ type: 'compat:pageLog', payload }).catch(() => {})
     }
   }
 

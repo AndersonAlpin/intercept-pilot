@@ -27,8 +27,8 @@ const ptBR = {
     reloadPage: 'Recarregar página',
     autoAttachActive: 'Captura automática da aba ativa ligada',
     lightCaptureName: 'Captura leve',
-    lightCaptureFetchOnly: 'Captura leve · apenas fetch',
-    lightCaptureTooltip: 'Captura leve está ativa. Captura requests fetch sem usar debugger e pode não capturar todos os tipos de request.',
+    lightCaptureFetchOnly: 'Captura leve · fetch + logs básicos',
+    lightCaptureTooltip: 'Captura leve está ativa. Captura requests fetch e logs básicos da página sem usar debugger, mas pode perder logs iniciais e alguns tipos de request.',
     openAutoAttachSettings: 'Abrir configurações de captura automática da aba ativa',
     noActiveUrl: 'Sem URL ativa', noAttachableTab: 'Nenhuma aba capturável disponível', noEligibleTab: 'Aba atual não elegível',
     tabPosition: 'Aba {position}', currentTabLabel: 'Atual', reloadHint: 'Recarregue a página atual para aplicar as regras'
@@ -111,7 +111,7 @@ const ptBR = {
     clearNetwork: 'Limpar rede',
     matchedOnly: 'Somente match', interceptedOnly: 'Somente interceptadas', noRequests: 'Sem requisições capturadas.',
     activateCaptureToSeeRequests: 'Ative a captura para ver requisições.',
-    lightCaptureHelper: 'Captura leve captura apenas requests fetch.',
+    lightCaptureHelper: 'Captura leve captura requests fetch e logs básicos da página.',
     noResults: 'Nenhuma requisição corresponde a esses filtros.',
     pageShort: 'Página {page}/{totalPages}',
     pageOf: 'Página {page} de {totalPages}',
@@ -191,7 +191,7 @@ const ptBR = {
     captureModeLight: 'Captura leve',
     captureModeAutoDescription: 'tenta Captura completa; usa Captura leve se houver conflito.',
     captureModeFullDescription: 'captura mais requests; pode conflitar com DevTools/extensões.',
-    captureModeLightDescription: 'captura apenas fetch; não usa debugger.',
+    captureModeLightDescription: 'captura fetch e logs básicos da página; não usa debugger.',
     maxNetworkEntries: 'Máximo de entradas de rede', maxLogs: 'Máximo de logs',
     networkIgnorePatterns: 'Ocultar requests contendo', networkIgnorePatternPlaceholder: 'Adicionar padrão...',
     networkIgnorePatternsHelp: 'Pressione Enter para adicionar. Requests com esses trechos ficam ocultas na Network.',
@@ -250,8 +250,8 @@ const ptBR = {
     headerCopied: 'Header copiado',
     headersCopied: 'Todos os headers copiados',
     bodyCopied: 'Corpo copiado',
-    compatFallbackCdpBusy: 'Captura completa está ocupada. Usando Captura leve apenas para requests fetch.',
-    compatFallbackExtensionBlocked: 'Captura completa foi bloqueada por outra extensão. Usando Captura leve apenas para requests fetch.'
+    compatFallbackCdpBusy: 'Captura completa está ocupada. Usando Captura leve para requests fetch e logs básicos da página.',
+    compatFallbackExtensionBlocked: 'Captura completa foi bloqueada por outra extensão. Usando Captura leve para requests fetch e logs básicos da página.'
   },
   presets: {
     success200: 'Sucesso 200',

@@ -51,16 +51,17 @@ Full capture can see more request types, but may conflict with DevTools or other
 
 ### Light capture
 
-Light capture avoids `chrome.debugger` and uses fetch interception.
+Light capture avoids `chrome.debugger` and uses fetch interception plus basic page-log capture.
 
 General flow:
 
 1. User activates capture.
 2. Background enables the lightweight interception path.
 3. Fetch activity is collected with less coverage than Full capture.
-4. Rule matching and UI updates follow the same high-level runtime state path.
+4. Basic console/error activity is bridged from the page context into web logs.
+5. Rule matching and UI updates follow the same high-level runtime state path.
 
-Light capture is more compatible, but currently limited to fetch.
+Light capture is more compatible, but network interception is currently limited to fetch and page-log capture is not CDP-equivalent.
 
 ## Network flow
 

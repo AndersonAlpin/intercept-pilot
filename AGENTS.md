@@ -73,11 +73,11 @@ Official UI terminology:
 Technical mapping:
 
 - Full capture = CDP / `chrome.debugger`.
-- Light capture = fetch interception without debugger.
+- Light capture = fetch interception plus basic page logs without debugger.
 
 Full capture sees more request types, but can conflict with DevTools or other debugger-based extensions.
 
-Light capture is more compatible because it avoids the debugger, but is currently limited to fetch interception.
+Light capture is more compatible because it avoids the debugger, but network interception is currently limited to fetch.
 
 Use these UI labels:
 
@@ -211,6 +211,6 @@ Common validation:
 ## Current known caveats
 
 - `docs/internal/plans` and `docs/internal/audits` can contain old terms because they are historical.
-- Light capture is currently limited to fetch.
+- Light capture network interception is currently limited to fetch; it also captures basic page logs.
 - XHR support in light capture can be a future improvement.
 - Some temporary docs may be discarded later.

@@ -1139,6 +1139,33 @@ async function handleCompatFetchError(message, sender) {
   return { ok: true }
 }
 
+async function handleCompatPageLog(message, sender) {
+  const tabId = sender?.tab?.id || null
+  const state = await getState()
+  if (!isCompatActiveForTab(tabId, state.settings)) return { ok: false }
+
+  const payload = message.payload || {}
+  const text = truncateCompatBody(payload.message, 16 * 1024)
+  const messageText = String(text.body || '').trim()
+  if (!messageText) return { ok: false }
+
+  await pushLog({
+    level: normalizeBrowserLogLevel(payload.level),
+    scope: 'web',
+    tabId,
+    captureSessionId: runtimeState.currentCaptureSessionId || null,
+    networkCycleId: runtimeState.currentNetworkCycleId || null,
+    message: messageText,
+    url: String(payload.url || sender?.tab?.url || ''),
+    source: String(payload.source || 'console'),
+    lineNumber: payload.lineNumber || null,
+    columnNumber: payload.columnNumber || null,
+    stack: payload.stack ? String(payload.stack) : '',
+    truncated: Boolean(text.truncated || payload.truncated)
+  })
+  return { ok: true }
+}
+
 async function clearNetworkEntries() {
   clearNetworkEntryCollections()
   publishNetworkNow()
@@ -1187,7 +1214,7 @@ function getLogEntryUrl(entry) {
 function normalizeBrowserLogLevel(level) {
   const normalized = String(level || '').toLowerCase()
   if (normalized === 'error') return 'error'
-  if (normalized === 'warning') return 'warn'
+  if (normalized === 'warning' || normalized === 'warn') return 'warn'
   return 'info'
 }
 
@@ -1610,6 +1637,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       case 'compat:fetchError':
         sendResponse(await handleCompatFetchError(message, sender))
+        return
+      case 'compat:pageLog':
+        sendResponse(await handleCompatPageLog(message, sender))
         return
       case 'logs:clear':
         await setLogs([])

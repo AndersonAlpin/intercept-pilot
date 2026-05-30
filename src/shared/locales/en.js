@@ -72,8 +72,8 @@ const en = {
     openAutoAttachSettings: 'Open automatic active-tab capture settings',
     autoAttachActive: 'Automatic active-tab capture on',
     lightCaptureName: 'Light capture',
-    lightCaptureFetchOnly: 'Light capture · fetch only',
-    lightCaptureTooltip: 'Light capture is active. It captures fetch requests without debugger and may not capture every request type.',
+    lightCaptureFetchOnly: 'Light capture · fetch + basic logs',
+    lightCaptureTooltip: 'Light capture is active. It captures fetch requests and basic page logs without debugger, but may miss early logs and some request types.',
     reloadHint: 'Reload current page to apply rules'
   },
   navigation: {
@@ -211,7 +211,7 @@ const en = {
     interceptedOnly: 'Intercepted only',
     activateCaptureToSeeRequests: 'Start capture to see requests.',
     noRequests: 'No requests captured yet.',
-    lightCaptureHelper: 'Light capture captures fetch requests only.',
+    lightCaptureHelper: 'Light capture captures fetch requests and basic page logs.',
     noResults: 'No requests match these filters.',
     pageShort: 'Page {page}/{totalPages}',
     pageOf: 'Page {page} of {totalPages}',
@@ -304,7 +304,7 @@ const en = {
     captureModeLight: 'Light capture',
     captureModeAutoDescription: 'tries Full capture; uses Light capture if there is a conflict.',
     captureModeFullDescription: 'captures more requests; may conflict with DevTools/extensions.',
-    captureModeLightDescription: 'captures only fetch; does not use debugger.',
+    captureModeLightDescription: 'captures fetch and basic page logs; does not use debugger.',
     maxNetworkEntries: 'Max network entries',
     maxLogs: 'Max logs',
     networkIgnorePatterns: 'Hide requests containing',
@@ -379,8 +379,8 @@ const en = {
     headerCopied: 'Header copied',
     headersCopied: 'All headers copied',
     bodyCopied: 'Body copied',
-    compatFallbackCdpBusy: 'Full capture is busy. Using Light capture for fetch requests only.',
-    compatFallbackExtensionBlocked: 'Full capture was blocked by another extension. Using Light capture for fetch requests only.'
+    compatFallbackCdpBusy: 'Full capture is busy. Using Light capture for fetch requests and basic page logs.',
+    compatFallbackExtensionBlocked: 'Full capture was blocked by another extension. Using Light capture for fetch requests and basic page logs.'
   },
   presets: {
     success200: 'Success 200',

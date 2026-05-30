@@ -4,6 +4,7 @@
 
   const MESSAGE_PREFIX = 'interceptpilot:compat:'
   const MAX_BODY_CHARS = 64 * 1024
+  const MAX_LOG_CHARS = 16 * 1024
   const originalFetch = window.fetch.bind(window)
   const pending = new Map()
 
@@ -27,6 +28,31 @@
       return { value: text, truncated: false }
     }
     return { value: text.slice(0, MAX_BODY_CHARS), truncated: true }
+  }
+
+  function truncateLogText(value) {
+    const text = String(value ?? '')
+    if (text.length <= MAX_LOG_CHARS) return { value: text, truncated: false }
+    return { value: text.slice(0, MAX_LOG_CHARS), truncated: true }
+  }
+
+  function serializeLogArg(value) {
+    if (value == null) return String(value)
+    if (typeof value === 'string') return value
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value)
+    if (typeof value === 'undefined') return 'undefined'
+    if (typeof value === 'symbol') return String(value)
+    if (typeof value === 'function') return value.name ? `[function ${value.name}]` : '[function]'
+    if (value instanceof Error) return value.stack || value.message || String(value)
+    try {
+      return JSON.stringify(value)
+    } catch {
+      try {
+        return String(value)
+      } catch {
+        return '[unserializable]'
+      }
+    }
   }
 
   function headersToList(headers) {
@@ -129,6 +155,59 @@
     }, '*')
   }
 
+  function postPageLog(level, args, extra = {}) {
+    const parts = Array.isArray(args) ? args.map(serializeLogArg).filter(Boolean) : []
+    const messageInfo = truncateLogText(parts.join(' ') || String(extra.fallbackMessage || ''))
+    if (!messageInfo.value) return
+    postToBridge('pageLog', {
+      level,
+      message: messageInfo.value,
+      truncated: messageInfo.truncated,
+      url: String(extra.url || window.location.href || ''),
+      source: extra.source || 'console',
+      lineNumber: extra.lineNumber || null,
+      columnNumber: extra.columnNumber || null,
+      stack: extra.stack || ''
+    })
+  }
+
+  function installPageLogCapture() {
+    const consoleObj = window.console
+    if (consoleObj && !consoleObj.__INTERCEPTPILOT_COMPAT_LOGS_INSTALLED__) {
+      Object.defineProperty(consoleObj, '__INTERCEPTPILOT_COMPAT_LOGS_INSTALLED__', {
+        value: true,
+        configurable: true
+      })
+
+      for (const method of ['debug', 'log', 'info', 'warn', 'error']) {
+        const original = typeof consoleObj[method] === 'function' ? consoleObj[method].bind(consoleObj) : null
+        consoleObj[method] = (...args) => {
+          postPageLog(method === 'error' ? 'error' : method === 'warn' ? 'warn' : 'info', args)
+          if (original) return original(...args)
+          return undefined
+        }
+      }
+    }
+
+    window.addEventListener('error', event => {
+      const error = event.error
+      postPageLog('error', [error?.stack || event.message || 'Uncaught error'], {
+        url: event.filename || window.location.href,
+        source: 'error',
+        lineNumber: event.lineno || null,
+        columnNumber: event.colno || null,
+        stack: error?.stack || ''
+      })
+    })
+
+    window.addEventListener('unhandledrejection', event => {
+      postPageLog('error', [event.reason || 'Unhandled promise rejection'], {
+        source: 'unhandledrejection',
+        stack: event.reason?.stack || ''
+      })
+    })
+  }
+
   function requestDecision(payload) {
     return new Promise(resolve => {
       const timeout = setTimeout(() => {
@@ -208,6 +287,8 @@
     pending.delete(message.compatRequestId)
     item.resolve(normalizeDecision(message.payload))
   })
+
+  installPageLogCapture()
 
   window.fetch = async function interceptpilotCompatFetch(input, init) {
     const compatRequestId = nextId()
