@@ -6,11 +6,14 @@ export function renderTabs(currentTab) {
     network: t('navigation.network'),
     logs: t('navigation.logs')
   }
+  const tabs = ['rules', 'network', 'logs'].map(tab => {
+    const active = currentTab === tab
+    return `<button class="tab ${active ? 'active' : ''}" type="button" role="tab" aria-selected="${active ? 'true' : 'false'}" data-tab="${tab}">${labels[tab]}</button>`
+  }).join('')
+
   return `
-    <div class="tabs">
-      ${['rules', 'network', 'logs'].map(tab => `
-        <button class="tab ${currentTab === tab ? 'active' : ''}" data-tab="${tab}">${labels[tab]}</button>
-      `).join('')}
+    <div class="tabs" role="tablist" aria-label="${t('navigation.dashboard')}">
+      ${tabs}
     </div>
   `
 }

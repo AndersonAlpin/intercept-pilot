@@ -961,6 +961,34 @@ async function handleImportTemplateAction(action) {
   }
 }
 
+function bindImportTemplateMenuEvents() {
+  const menu = $('#full-import-templates-menu')
+  if (!menu) return
+
+  const closeMenu = event => {
+    const target = event.target instanceof Node ? event.target : null
+    if (target && menu.contains(target)) return
+    menu.open = false
+    document.removeEventListener('click', closeMenu, true)
+  }
+
+  document.querySelectorAll('[data-import-template-action]').forEach(button => {
+    button.addEventListener('click', () => {
+      menu.open = false
+      document.removeEventListener('click', closeMenu, true)
+      handleImportTemplateAction(button.dataset.importTemplateAction)
+    })
+  })
+
+  menu.addEventListener('toggle', () => {
+    if (menu.open) {
+      requestAnimationFrame(() => document.addEventListener('click', closeMenu, true))
+      return
+    }
+    document.removeEventListener('click', closeMenu, true)
+  })
+}
+
 function bindCreateRuleFromRequestEvents() {
   const table = $('#full-network-table')
   if (!table || table.dataset.boundRows === 'true') return
@@ -1421,12 +1449,7 @@ function bindEvents() {
     }
   })
 
-  document.querySelectorAll('[data-import-template-action]').forEach(button => {
-    button.addEventListener('click', () => {
-      button.closest('details')?.removeAttribute('open')
-      handleImportTemplateAction(button.dataset.importTemplateAction)
-    })
-  })
+  bindImportTemplateMenuEvents()
 
   // Network Inspector modal binds
   document.querySelector('[data-inspector-backdrop]')?.addEventListener('click', event => {
