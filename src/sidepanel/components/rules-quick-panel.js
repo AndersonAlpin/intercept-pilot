@@ -103,7 +103,7 @@ export function renderRulesQuickPanel(state) {
               <button class="icon-btn ghost" type="button" data-rule-copy="${rule.id}" ${renderTooltipAttrs(t('common.copyJson'))} aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
               <button class="icon-btn ghost" type="button" data-rule-export="${rule.id}" ${renderTooltipAttrs(t('common.exportJson'))} aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
               <button class="icon-btn danger" type="button" data-rule-delete="${rule.id}" ${renderTooltipAttrs(t('common.delete'))} aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>
-              <button class="btn info" data-rule-advanced="${rule.id}" ${renderTooltipAttrs(t('common.advanced'))}>${t('common.advanced')} ${icon('external', 12)}</button>
+              <button class="btn info" data-rule-advanced="${rule.id}">${t('common.advanced')} ${icon('external', 12)}</button>
             </div>
           </div>
           `
