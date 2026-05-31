@@ -226,6 +226,7 @@ const en = {
     createRule: 'Create rule',
     appliedRule: 'Applied rule',
     result: 'Result',
+    failed: 'Failed',
     noRule: 'No rule',
     resultPassThrough: 'Passed through',
     resultMock200: 'Mock {status}',

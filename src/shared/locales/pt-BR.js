@@ -124,6 +124,7 @@ const ptBR = {
     createRule: 'Criar regra',
     appliedRule: 'Regra aplicada',
     result: 'Resultado',
+    failed: 'Falha',
     noRule: 'Sem regra',
     resultPassThrough: 'Passou direto',
     resultMock200: 'Mock {status}',

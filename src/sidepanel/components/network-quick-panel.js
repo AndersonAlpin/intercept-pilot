@@ -19,9 +19,10 @@ function getNetworkMethodOptions() {
 function statusBadge(status) {
   if (status == null || status === '') return renderBadge({ label: '—' })
   const code = Number(status)
-  if (code >= 400 || code === 0) return renderBadge({ label: status, variant: 'danger' })
-  if (code >= 300) return renderBadge({ label: status, variant: 'warning' })
-  return renderBadge({ label: status, variant: 'success' })
+  const label = code === 0 ? t('network.failed') : String(status)
+  if (code >= 400 || code === 0) return renderBadge({ label, variant: 'danger' })
+  if (code >= 300) return renderBadge({ label, variant: 'warning' })
+  return renderBadge({ label, variant: 'success' })
 }
 
 function getAppliedRuleLabel(entry) {
@@ -126,9 +127,9 @@ export function renderNetworkQuickPanel(state) {
           </div>
         </div>
         <div class="column">
-          <input class="input" id="network-filter-text" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilters.text)}" />
+          <input class="input" id="network-filter-text" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilters.text)}" spellcheck="false" autocomplete="off" />
           ${renderSelect({ id: 'network-filter-method', value: state.networkFilters.method, options: getNetworkMethodOptions() })}
-          <input class="input" id="network-filter-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilters.status)}" />
+          <input class="input" id="network-filter-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilters.status)}" spellcheck="false" autocomplete="off" />
           ${renderSwitch({ id: 'network-filter-intercepted', checked: state.networkFilters.interceptedOnly, label: t('network.interceptedOnly') })}
             <div class="network-quick-meta" id="network-quick-meta">
               <span class="small network-results-count" id="network-results-count">${escapeHtml(countText)}</span>

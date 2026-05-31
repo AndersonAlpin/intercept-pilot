@@ -37,6 +37,11 @@ function getResultLabel(entry) {
   return t('network.resultPassThrough')
 }
 
+function getStatusLabel(status) {
+  if (status == null || status === '') return '—'
+  return Number(status) === 0 ? t('network.failed') : String(status)
+}
+
 function getNetworkPaginationSummary(state) {
   const total = (state.visibleNetworkEntries || []).filter(isRenderableNetworkEntry).length
   const filtered = state.filteredNetworkEntries?.length ?? total
@@ -92,7 +97,7 @@ export function renderNetworkRows(state) {
          ${state.selectedNetworkEntryId === entry.id ? 'data-selected="true"' : ''}>
       <div>${escapeHtml(entry.method || '—')}</div>
       <div class="cell-network-url" title="${escapeHtml(entry.url)}">${escapeHtml(entry.url)}</div>
-      <div>${escapeHtml(String(entry.status ?? '—'))}</div>
+      <div>${escapeHtml(getStatusLabel(entry.status))}</div>
       <div>${escapeHtml(entry.resourceType || '')}</div>
       <div>${escapeHtml(getAppliedRuleLabel(entry))}</div>
       <div>${escapeHtml(getResultLabel(entry))}</div>
@@ -148,9 +153,9 @@ export function renderNetworkFooter(state) {
 export function renderNetworkPage(state) {
   const filtersHtml = `
     <div class="filters-row">
-      <input class="input filter-grow" id="full-network-url" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilter.url || '')}" />
+      <input class="input filter-grow" id="full-network-url" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilter.url || '')}" spellcheck="false" autocomplete="off" />
       ${renderSelect({ id: 'full-network-method', value: state.networkFilter.method, options: getNetworkMethodOptions(), className: 'filter-small' })}
-      <input class="input filter-small" id="full-network-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilter.status || '')}" />
+      <input class="input filter-small" id="full-network-status" placeholder="${t('network.filterStatus')}" value="${escapeHtml(state.networkFilter.status || '')}" spellcheck="false" autocomplete="off" />
       ${renderSwitch({ id: 'full-network-intercepted', checked: state.networkFilter.interceptedOnly, label: t('network.interceptedOnly'), className: 'filter-toggle' })}
     </div>
   `

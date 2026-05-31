@@ -124,6 +124,7 @@ const es = {
     createRule: 'Crear regla',
     appliedRule: 'Regla aplicada',
     result: 'Resultado',
+    failed: 'Falló',
     noRule: 'Sin regla',
     resultPassThrough: 'Pasó directo',
     resultMock200: 'Mock {status}',

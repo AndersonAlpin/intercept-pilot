@@ -22,13 +22,19 @@ function getHandlingLabel(entry) {
 }
 
 function getStatusClass(status) {
+  if (status == null || status === '') return 'unknown'
   const s = Number(status)
-  if (!s) return 'unknown'
+  if (s === 0) return 'error'
   if (s >= 500) return 'error'
   if (s >= 400) return 'warning'
   if (s >= 300) return 'redirect'
   if (s >= 200) return 'success'
   return 'info'
+}
+
+function getStatusLabel(status) {
+  if (status == null || status === '') return '—'
+  return Number(status) === 0 ? t('network.failed') : String(status)
 }
 
 function renderHeadersTable(headers, copyAllAction) {
@@ -96,7 +102,7 @@ function renderOverviewTab(entry) {
     <dl class="inspector-grid">
       <dt>${escapeHtml(t('network.inspector.method'))}</dt><dd>${escapeHtml(entry.method || '—')}</dd>
       <dt>${escapeHtml(t('network.inspector.url'))}</dt><dd><code class="url">${escapeHtml(entry.url || '')}</code></dd>
-      <dt>${escapeHtml(t('network.inspector.status'))}</dt><dd>${escapeHtml(String(entry.status ?? '—'))} ${escapeHtml(entry.statusText || '')}</dd>
+      <dt>${escapeHtml(t('network.inspector.status'))}</dt><dd>${escapeHtml(getStatusLabel(entry.status))} ${escapeHtml(entry.statusText || '')}</dd>
       <dt>${escapeHtml(t('network.inspector.duration'))}</dt><dd>${entry.durationMs != null ? `${entry.durationMs}ms` : '—'}</dd>
       <dt>${escapeHtml(t('network.inspector.resourceType'))}</dt><dd>${escapeHtml(entry.resourceType || '—')}</dd>
       <dt>${escapeHtml(t('network.inspector.source'))}</dt><dd>${escapeHtml(captureSourceLabel)}</dd>
@@ -206,7 +212,7 @@ function renderErrorTab(entry) {
     <dl class="inspector-grid">
       <dt>${escapeHtml(t('network.inspector.errorType'))}</dt><dd>${escapeHtml(entry.errorType || '—')}</dd>
       <dt>${escapeHtml(t('network.inspector.errorMessage'))}</dt><dd>${escapeHtml(entry.errorText || '—')}</dd>
-      <dt>${escapeHtml(t('network.inspector.status'))}</dt><dd>${escapeHtml(String(entry.status ?? '—'))}</dd>
+      <dt>${escapeHtml(t('network.inspector.status'))}</dt><dd>${escapeHtml(getStatusLabel(entry.status))}</dd>
     </dl>
   `
 }
@@ -240,7 +246,7 @@ export function renderNetworkInspectorModal(state) {
         <header class="modal-header">
           <div class="inspector-summary">
             <span class="method-badge" data-method="${escapeHtml(entry.method || '')}">${escapeHtml(entry.method || '—')}</span>
-            <span class="status-badge" data-status-class="${statusClass}">${escapeHtml(String(entry.status ?? '—'))}</span>
+            <span class="status-badge" data-status-class="${statusClass}">${escapeHtml(getStatusLabel(entry.status))}</span>
             <code class="inspector-url">${escapeHtml(entry.url || '')}</code>
           </div>
           <button class="modal-close" id="inspector-close-x" type="button" aria-label="${escapeHtml(t('common.close'))}">${icon('close', 16)}</button>
