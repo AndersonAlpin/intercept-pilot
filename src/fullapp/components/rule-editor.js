@@ -1,6 +1,7 @@
 import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { renderModalShell } from '../../shared/ui/modal-shell.js'
+import { renderSelect } from '../../shared/ui/select.js'
 import { renderSwitch } from '../../shared/ui/toggle.js'
 import { renderPresetPicker } from './preset-picker.js'
 
@@ -18,13 +19,13 @@ export function renderRuleEditor(state) {
   if (!rule) return ''
 
   const methodOptions = ['ANY','GET','POST','PUT','PATCH','DELETE','OPTIONS']
-    .map(method => `<option value="${method}" ${rule.match.method === method ? 'selected' : ''}>${method === 'ANY' ? escapeHtml(t('common.all')) : method}</option>`).join('')
+    .map(method => ({ value: method, label: method === 'ANY' ? t('common.all') : method }))
   const matchTypeOptions = ['contains','equals','regex','glob']
-    .map(type => `<option value="${type}" ${rule.match.matchType === type ? 'selected' : ''}>${type}</option>`).join('')
+    .map(type => ({ value: type, label: type }))
   const resourceOptions = ['ANY','XHR','Fetch','Document','Script','Image','Stylesheet','Other']
-    .map(type => `<option value="${type}" ${rule.match.resourceType === type ? 'selected' : ''}>${type === 'ANY' ? escapeHtml(t('common.all')) : type}</option>`).join('')
+    .map(type => ({ value: type, label: type === 'ANY' ? t('common.all') : type }))
   const actionTypeOptions = ['mockResponse','failRequest','delayOnly','passThrough']
-    .map(type => `<option value="${type}" ${rule.action.type === type ? 'selected' : ''}>${type}</option>`).join('')
+    .map(type => ({ value: type, label: type }))
 
   const bodyHtml = `
     ${renderPresetPicker()}
@@ -46,17 +47,17 @@ export function renderRuleEditor(state) {
       ${field({
         id: 'editor-method',
         label: t('rules.fields.method'),
-        control: `<select class="select" id="editor-method">${methodOptions}</select>`
+        control: renderSelect({ id: 'editor-method', value: rule.match.method, options: methodOptions })
       })}
       ${field({
         id: 'editor-match-type',
         label: t('rules.fields.matchType'),
-        control: `<select class="select" id="editor-match-type">${matchTypeOptions}</select>`
+        control: renderSelect({ id: 'editor-match-type', value: rule.match.matchType, options: matchTypeOptions })
       })}
       ${field({
         id: 'editor-resource',
         label: t('rules.fields.resourceType'),
-        control: `<select class="select" id="editor-resource">${resourceOptions}</select>`
+        control: renderSelect({ id: 'editor-resource', value: rule.match.resourceType, options: resourceOptions })
       })}
     </div>
 
@@ -70,7 +71,7 @@ export function renderRuleEditor(state) {
       ${field({
         id: 'editor-action-type',
         label: t('rules.fields.actionType'),
-        control: `<select class="select" id="editor-action-type">${actionTypeOptions}</select>`
+        control: renderSelect({ id: 'editor-action-type', value: rule.action.type, options: actionTypeOptions })
       })}
       ${field({
         id: 'editor-status-code',

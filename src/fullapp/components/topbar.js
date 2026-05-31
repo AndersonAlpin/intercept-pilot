@@ -1,6 +1,7 @@
 import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { getCapturedTab, getCaptureNewTabCandidate, getContextTab, getStartCandidateTab } from '../../shared/capture-tabs.js'
+import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 
 export function renderTopbar(state) {
   const attachedTab = state.attachedTab || null
@@ -32,12 +33,12 @@ export function renderTopbar(state) {
               type="button"
               class="capture-mode-badge"
               id="full-capture-mode-settings"
-              title="${escapeHtml(t('status.lightCaptureTooltip'))}"
+              ${renderTooltipAttrs(t('status.lightCaptureTooltip'))}
             >${escapeHtml(t('status.lightCaptureName'))}</button>
           ` : ''}
         </div>
         ${canFocusTab
-          ? `<button class="tab-focus-link" id="full-focus-tab-btn" title="${escapeHtml(primaryUrl)}">${escapeHtml(truncate(primaryTitle, 80))}</button>`
+          ? `<button class="tab-focus-link" id="full-focus-tab-btn" ${renderTooltipAttrs(primaryUrl)}>${escapeHtml(truncate(primaryTitle, 80))}</button>`
           : `<div class="muted">${escapeHtml(primaryTitle)}</div>`
         }
         ${autoAttachEnabled ? `<button class="auto-attach-link" id="full-open-auto-attach-settings" title="${escapeHtml(t('status.openAutoAttachSettings'))}" aria-label="${escapeHtml(t('status.openAutoAttachSettings'))}">${t('status.autoAttachActive')}</button>` : ''}

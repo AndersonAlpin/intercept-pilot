@@ -1,6 +1,7 @@
 import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { getCapturedTab, getCaptureNewTabCandidate, getContextTab, getStartCandidateTab } from '../../shared/capture-tabs.js'
+import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 
 export function renderConnectionHeader(state) {
   const attachedTab = state.attachedTab || null
@@ -32,7 +33,7 @@ export function renderConnectionHeader(state) {
       <div class="capture-context">
         <p class="attach-status ${statusClass}">${escapeHtml(statusText)}</p>
         ${contextTab
-          ? `<button class="tab-focus-link" id="side-focus-tab-btn" title="${escapeHtml(titleUrl)}">${escapeHtml(truncate(title, 58))}</button>`
+          ? `<button class="tab-focus-link" id="side-focus-tab-btn" ${renderTooltipAttrs(titleUrl)}>${escapeHtml(truncate(title, 58))}</button>`
           : `<p class="tab-context-empty">${escapeHtml(title)}</p>`
         }
         ${lightCaptureActive ? `
@@ -40,7 +41,7 @@ export function renderConnectionHeader(state) {
             type="button"
             class="capture-mode-line"
             id="side-capture-mode-settings"
-            title="${escapeHtml(t('status.lightCaptureTooltip'))}"
+            ${renderTooltipAttrs(t('status.lightCaptureTooltip'))}
           >${escapeHtml(t('status.lightCaptureFetchOnly'))}</button>
         ` : ''}
       </div>

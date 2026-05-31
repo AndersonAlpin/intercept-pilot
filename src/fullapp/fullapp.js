@@ -26,6 +26,7 @@ import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import { entryToCurl, entryToFetch } from '../shared/network-format.js'
 import { delegate, patchHtml } from '../shared/ui/dom.js'
 import { renderDataPanel } from '../shared/ui/data-panel.js'
+import { bindSelectMenus, renderSelect } from '../shared/ui/select.js'
 import { renderSwitch } from '../shared/ui/toggle.js'
 import { renderAppShell } from './components/app-shell.js'
 import { renderSidebar } from './components/sidebar.js'
@@ -303,47 +304,6 @@ function removeNetworkIgnorePattern(pattern) {
   refreshNetworkIgnoreChips()
 }
 
-function captureModeLabels() {
-  return {
-    auto: {
-      label: t('fullapp.captureModeAuto'),
-      description: t('fullapp.captureModeAutoDescription')
-    },
-    cdp: {
-      label: t('fullapp.captureModeFull'),
-      description: t('fullapp.captureModeFullDescription')
-    },
-    compat: {
-      label: t('fullapp.captureModeLight'),
-      description: t('fullapp.captureModeLightDescription')
-    }
-  }
-}
-
-function setCaptureModeOptionText(select, expanded) {
-  if (!select) return
-  const labels = captureModeLabels()
-  Array.from(select.options).forEach(option => {
-    const item = labels[option.value]
-    if (!item) return
-    option.textContent = expanded ? `${item.label} — ${item.description}` : item.label
-  })
-}
-
-function bindCaptureModeSelect() {
-  const select = $('#settings-capture-mode')
-  if (!select) return
-  setCaptureModeOptionText(select, false)
-  const expand = () => setCaptureModeOptionText(select, true)
-  const compact = () => setTimeout(() => setCaptureModeOptionText(select, false), 0)
-  select.addEventListener('pointerdown', expand)
-  select.addEventListener('keydown', event => {
-    if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) expand()
-  })
-  select.addEventListener('change', compact)
-  select.addEventListener('blur', compact)
-}
-
 function normalizeSettingsNumber(value, fallback) {
   const number = Number(value)
   return Number.isFinite(number) ? number : fallback
@@ -413,33 +373,35 @@ function updateImportJsonButtonState() {
 function renderSettingsPage() {
   const lang = normalizeLocale(state.settings.language) || 'en'
   const captureMode = state.settings.captureMode || 'auto'
+  const languageOptions = [
+    { value: 'en', label: t('language.english') },
+    { value: 'pt-BR', label: t('language.portuguese') },
+    { value: 'es', label: t('language.spanish') }
+  ]
+  const captureModeOptions = [
+    { value: 'auto', label: t('fullapp.captureModeAuto'), description: t('fullapp.captureModeAutoDescription') },
+    { value: 'cdp', label: t('fullapp.captureModeFull'), description: t('fullapp.captureModeFullDescription') },
+    { value: 'compat', label: t('fullapp.captureModeLight'), description: t('fullapp.captureModeLightDescription') }
+  ]
   const bodyHtml = `
       <div class="grid two">
-        <div>
+        <div class="settings-field">
           <div class="muted">${t('language.title')}</div>
-          <select class="select" id="settings-language">
-            <option value="en" ${lang === 'en' ? 'selected' : ''}>${t('language.english')}</option>
-            <option value="pt-BR" ${lang === 'pt-BR' ? 'selected' : ''}>${t('language.portuguese')}</option>
-            <option value="es" ${lang === 'es' ? 'selected' : ''}>${t('language.spanish')}</option>
-          </select>
+          ${renderSelect({ id: 'settings-language', value: lang, options: languageOptions })}
         </div>
-        <div>
+        <div class="settings-field">
           <div class="muted">${t('fullapp.captureMode')}</div>
-          <select class="select" id="settings-capture-mode">
-            <option value="auto" ${captureMode === 'auto' ? 'selected' : ''}>${t('fullapp.captureModeAuto')}</option>
-            <option value="cdp" ${captureMode === 'cdp' ? 'selected' : ''}>${t('fullapp.captureModeFull')}</option>
-            <option value="compat" ${captureMode === 'compat' ? 'selected' : ''}>${t('fullapp.captureModeLight')}</option>
-          </select>
+          ${renderSelect({ id: 'settings-capture-mode', value: captureMode, options: captureModeOptions })}
         </div>
-        <div>
+        <div class="settings-field">
           <div class="muted">${t('fullapp.maxNetworkEntries')}</div>
           <input class="input" id="settings-max-network" type="number" value="${state.settings.maxNetworkEntries || 300}" />
         </div>
-        <div>
+        <div class="settings-field">
           <div class="muted">${t('fullapp.maxLogs')}</div>
           <input class="input" id="settings-max-logs" type="number" value="${state.settings.maxLogs || 300}" />
         </div>
-        <div class="settings-wide">
+        <div class="settings-field settings-wide">
           <div class="muted">${t('fullapp.networkIgnorePatterns')}</div>
           <div class="tag-input" id="settings-network-ignore-tags">
             <div class="tag-chip-list" id="settings-network-ignore-chip-list">${renderNetworkIgnoreChips()}</div>
@@ -485,6 +447,7 @@ function render() {
     contentClass: isSplitScrollPage ? 'app-content-split' : ''
   }) + renderNetworkInspectorModal(state) + renderLogDetailModal({ log: selectedLog, prefix: 'full' })
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
+  bindSelectMenus()
   bindEvents()
   restoreFocusSnapshot(focusSnapshot)
   updateDataPanelScrollStateSoon()
@@ -771,7 +734,7 @@ async function importRuleBundle(bundle) {
     toastError(t('toasts.ruleImportError'))
     return
   }
-  const activeCollectionId = state.settings.activeCollectionId || state.collections[0]?.id
+  const activeCollectionId = activeEditableCollectionId()
   const existingNames = state.rules
     .filter(rule => rule.collectionId === activeCollectionId)
     .map(rule => rule.name)
@@ -1147,12 +1110,19 @@ function openFullPage(page) {
   setCurrentPage(page)
 }
 
+function activeEditableCollectionId() {
+  const selectableCollections = state.collections.filter(collection => collection.enabled !== false)
+  const preferredCollectionId = state.settings?.activeCollectionId
+  if (selectableCollections.some(collection => collection.id === preferredCollectionId)) return preferredCollectionId
+  return selectableCollections[0]?.id || ''
+}
+
 function bindEvents() {
   document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => openFullPage(button.dataset.page)))
   bindTopbarEvents()
-  bindCaptureModeSelect()
 
   $('#full-rules-collection')?.addEventListener('change', async event => {
+    if (!event.target.value) return
     await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { activeCollectionId: event.target.value } })
     await refreshState()
   })
@@ -1168,7 +1138,8 @@ function bindEvents() {
   })
 
   $('#full-new-rule-btn')?.addEventListener('click', () => {
-    state.editingRule = makeRule({ collectionId: state.settings.activeCollectionId }, state.settings.activeCollectionId)
+    const collectionId = activeEditableCollectionId()
+    state.editingRule = makeRule({ collectionId }, collectionId)
     state.editorMode = 'create'
     state.editorPristine = true
     render()

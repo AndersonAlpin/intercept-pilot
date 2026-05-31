@@ -38,13 +38,15 @@ const es = {
     importExport: 'Importar', diagnostics: 'Diagnóstico', settings: 'Configuración'
   },
   collections: {
-    title: 'Colección', activeCollection: 'Colección activa', noCollections: 'Sin colecciones.',
+    title: 'Colección', activeCollection: 'Colección principal', noCollections: 'Sin colecciones.',
+    status: 'Estado',
     defaultName: 'Predeterminada',
-    active: 'Activa',
+    active: 'Principal',
+    primary: 'Principal',
     newCollection: 'Nueva colección', newCollectionTitle: 'Nueva colección', newCollectionPlaceholder: 'Nombre de la colección',
-    setActive: 'Definir activa', rename: 'Renombrar', renameTitle: 'Renombrar colección', renamePlaceholder: 'Nuevo nombre',
+    setActive: 'Definir principal', setPrimary: 'Definir principal', rename: 'Renombrar', renameTitle: 'Renombrar colección', renamePlaceholder: 'Nuevo nombre',
     deleteConfirm: '¿Deseas eliminar esta colección con todas sus reglas?',
-    deleteTitle: 'Eliminar colección', rulesCount: 'regla(s)', entityOne: 'colección', entityMany: 'colecciones'
+    deleteTitle: 'Eliminar colección', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
   },
   rules: {
     title: 'Reglas', entityOne: 'regla', entityMany: 'reglas', newRule: '+ Regla', searchPlaceholder: 'Buscar reglas', noRules: 'No hay reglas en esta colección.',
@@ -169,10 +171,10 @@ const es = {
   },
   dashboard: {
     attached: 'Captura activa', enabledRules: 'Reglas habilitadas', matchedRecently: 'Matches recientes', errors: 'Errores',
-    currentContext: 'Contexto actual', activeCollection: 'Colección activa', recentNetwork: 'Entradas de red recientes', recentLogs: 'Logs recientes'
+    currentContext: 'Contexto actual', activeCollection: 'Colección principal', recentNetwork: 'Entradas de red recientes', recentLogs: 'Logs recientes'
   },
   diagnostics: {
-    activeCollectionId: 'ID de colección activa',
+    activeCollectionId: 'ID de colección principal',
     eventOne: 'evento',
     eventMany: 'eventos',
     extensionEvents: 'Eventos de la extensión (recientes)',

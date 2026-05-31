@@ -3,6 +3,7 @@ import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
+import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
@@ -11,7 +12,11 @@ function displayCollectionName(collection) {
 
 export function renderCollectionsPage(state) {
   const counts = new Map()
-  for (const rule of state.rules) counts.set(rule.collectionId, (counts.get(rule.collectionId) || 0) + 1)
+  const enabledCounts = new Map()
+  for (const rule of state.rules) {
+    counts.set(rule.collectionId, (counts.get(rule.collectionId) || 0) + 1)
+    if (rule.enabled) enabledCounts.set(rule.collectionId, (enabledCounts.get(rule.collectionId) || 0) + 1)
+  }
   const search = String(state.collectionsSearch || '').trim().toLowerCase()
   const collections = state.collections.filter(collection => {
     if (!search) return true
@@ -22,9 +27,9 @@ export function renderCollectionsPage(state) {
   const header = `
     <div class="table-row row-collection rules-header" role="row">
       <div role="columnheader">${escapeHtml(t('collections.title'))}</div>
-      <div role="columnheader">${escapeHtml(t('rules.columns.status'))}</div>
-      <div role="columnheader">${escapeHtml(t('collections.active'))}</div>
-      <div role="columnheader">RULES</div>
+      <div role="columnheader">${escapeHtml(t('collections.status'))}</div>
+      <div role="columnheader">${escapeHtml(t('collections.primary'))}</div>
+      <div role="columnheader">${escapeHtml(t('collections.enabledRules'))}</div>
       <div role="columnheader" class="col-actions data-panel__actions-cell">${escapeHtml(t('rules.columns.actions'))}</div>
     </div>
   `
@@ -51,16 +56,16 @@ export function renderCollectionsPage(state) {
               </div>
               <div>
                 <label class="status-toggle">
-                  <input type="checkbox" data-full-collection-set-active="${collection.id}" ${state.settings?.activeCollectionId === collection.id ? 'checked' : ''} aria-label="${escapeHtml(t('collections.setActive'))}" />
+                  <input type="checkbox" data-full-collection-set-active="${collection.id}" ${state.settings?.activeCollectionId === collection.id ? 'checked' : ''} aria-label="${escapeHtml(t('collections.setPrimary'))}" />
                   <span class="status-toggle-track" aria-hidden="true"></span>
                 </label>
               </div>
-              <div>${counts.get(collection.id) || 0}</div>
+              <div>${enabledCounts.get(collection.id) || 0}/${counts.get(collection.id) || 0}</div>
               <div class="row-actions col-actions data-panel__actions-cell">
-                <button class="icon-btn" type="button" data-full-collection-rename="${collection.id}" title="${escapeHtml(t('collections.rename'))}" aria-label="${escapeHtml(t('collections.rename'))}">${icon('edit')}</button>
-                <button class="icon-btn" type="button" data-full-collection-copy="${collection.id}" title="${escapeHtml(t('common.copyJson'))}" aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
-                <button class="icon-btn" type="button" data-full-collection-export="${collection.id}" title="${escapeHtml(t('common.exportJson'))}" aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
-                ${collection.id === 'collection-default' ? '' : `<button class="icon-btn danger" type="button" data-full-collection-delete="${collection.id}" title="${escapeHtml(t('common.delete'))}" aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>`}
+                ${collection.id === 'collection-default' ? '' : `<button class="icon-btn" type="button" data-full-collection-rename="${collection.id}" ${renderTooltipAttrs(t('collections.rename'))} aria-label="${escapeHtml(t('collections.rename'))}">${icon('edit')}</button>`}
+                <button class="icon-btn" type="button" data-full-collection-copy="${collection.id}" ${renderTooltipAttrs(t('common.copyJson'))} aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
+                <button class="icon-btn" type="button" data-full-collection-export="${collection.id}" ${renderTooltipAttrs(t('common.exportJson'))} aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
+                ${collection.id === 'collection-default' ? '' : `<button class="icon-btn danger" type="button" data-full-collection-delete="${collection.id}" ${renderTooltipAttrs(t('common.delete'))} aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>`}
               </div>
             </div>
           `).join('') : `<div class="empty">${escapeHtml(t('collections.noCollections'))}</div>`}

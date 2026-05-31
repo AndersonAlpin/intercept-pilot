@@ -2,6 +2,7 @@ import { RULE_PRESETS } from '../../shared/presets.js'
 import { t } from '../../shared/i18n.js'
 import { escapeHtml } from '../../shared/utils.js'
 import { icon } from '../../shared/icons.js'
+import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 
 export function renderPresetPicker(options = {}) {
   const compact = options.compact === true
@@ -13,7 +14,7 @@ export function renderPresetPicker(options = {}) {
           type="button"
           class="preset-chip"
           data-preset-apply="${preset.id}"
-          title="${escapeHtml(t(preset.labelKey))}"
+          ${compact ? renderTooltipAttrs(t(preset.labelKey)) : ''}
           aria-label="${escapeHtml(t(preset.labelKey))}">
           ${icon(preset.icon, 14)}
           ${compact ? '' : `<span>${escapeHtml(t(preset.labelKey))}</span>`}

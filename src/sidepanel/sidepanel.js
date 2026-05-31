@@ -17,6 +17,7 @@ import {
 import { toastSuccess, toastError } from '../shared/toast.js'
 import { confirmDialog } from '../shared/dialogs.js'
 import { delegate, patchHtml } from '../shared/ui/dom.js'
+import { bindSelectMenus } from '../shared/ui/select.js'
 import { renderConnectionHeader } from './components/connection-header.js'
 import { renderTabs } from './components/tabs.js'
 import { renderRulesQuickPanel, renderQuickRuleEditor } from './components/rules-quick-panel.js'
@@ -106,7 +107,10 @@ function restoreFocusSnapshot(snapshot) {
 }
 
 function activeCollectionId() {
-  return appState.settings?.activeCollectionId || appState.collections[0]?.id || ''
+  const selectableCollections = appState.collections.filter(collection => collection.enabled !== false)
+  const preferredCollectionId = appState.settings?.activeCollectionId
+  if (selectableCollections.some(collection => collection.id === preferredCollectionId)) return preferredCollectionId
+  return selectableCollections[0]?.id || ''
 }
 
 function isRenderableNetworkEntry(entry) {
@@ -319,6 +323,7 @@ function render() {
   root.innerHTML = `<div class="sidepanel-top">${header}${tabs}</div><section class="content">${body}</section>${renderLogDetailModal({ log: selectedLog, prefix: 'side', dialogClassName: 'side-log-detail-modal' })}`
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   updateHeaderOffset()
+  bindSelectMenus()
   bindEvents()
   restoreFocusSnapshot(focusSnapshot)
 }
@@ -465,7 +470,7 @@ async function refreshState() {
   Object.assign(appState, next)
   setLocale(appState.settings?.language)
   if (!appState.settings?.activeCollectionId) {
-    appState.settings = { ...(appState.settings || {}), activeCollectionId: appState.collections[0]?.id || '' }
+    appState.settings = { ...(appState.settings || {}), activeCollectionId: activeCollectionId() }
   }
   if (!appState.networkFiltersHydrated) {
     appState.networkFilters = {

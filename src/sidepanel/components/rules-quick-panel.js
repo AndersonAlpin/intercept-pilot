@@ -36,14 +36,25 @@ function methodOptionLabel(method) {
   return method === 'ANY' ? t('common.all') : method
 }
 
+function makeOptions(values, selectedLabel) {
+  return values.map(value => ({
+    value,
+    label: typeof selectedLabel === 'function' ? selectedLabel(value) : value
+  }))
+}
+
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
   return collection?.name || ''
 }
 
 export function renderRulesQuickPanel(state) {
-  const activeCollectionId = state.settings?.activeCollectionId || state.collections[0]?.id || ''
-  const collectionOptions = state.collections.map(collection => ({ value: collection.id, label: displayCollectionName(collection) }))
+  const selectableCollections = state.collections.filter(collection => collection.enabled !== false)
+  const preferredCollectionId = state.settings?.activeCollectionId
+  const activeCollectionId = selectableCollections.some(collection => collection.id === preferredCollectionId)
+    ? preferredCollectionId
+    : selectableCollections[0]?.id || ''
+  const collectionOptions = selectableCollections.map(collection => ({ value: collection.id, label: displayCollectionName(collection) }))
   const rules = state.rules.filter(rule => rule.collectionId === activeCollectionId)
   const text = state.rulesFilter?.toLowerCase() || ''
   const filtered = rules.filter(rule => {
@@ -120,15 +131,18 @@ export function renderRulesQuickPanel(state) {
 export function renderQuickRuleEditor(state) {
   if (!state.quickRuleEditorOpen) return ''
   const form = state.quickRuleForm
+  const methodOptions = makeOptions(['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], methodOptionLabel)
+  const matchTypeOptions = makeOptions(['contains', 'equals'])
+  const actionTypeOptions = makeOptions(['mockResponse', 'failRequest', 'delayOnly', 'passThrough'])
   const bodyHtml = `
     ${renderPresetPicker({ compact: true })}
     <div class="column">
       <label class="switch"><input type="checkbox" id="quick-enabled" ${form.enabled ? 'checked' : ''}/> ${t('common.enabled')}</label>
       <input class="input" id="quick-name" placeholder="${t('rules.ruleName')}" value="${escapeHtml(form.name)}" />
-      <select class="select" id="quick-method">${['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map(method => `<option value="${method}" ${form.match.method === method ? 'selected' : ''}>${escapeHtml(methodOptionLabel(method))}</option>`).join('')}</select>
-      <select class="select" id="quick-match-type">${['contains', 'equals'].map(type => `<option value="${type}" ${form.match.matchType === type ? 'selected' : ''}>${type}</option>`).join('')}</select>
+      ${renderSelect({ id: 'quick-method', value: form.match.method, options: methodOptions })}
+      ${renderSelect({ id: 'quick-match-type', value: form.match.matchType, options: matchTypeOptions })}
       <input class="input" id="quick-url" placeholder="/api/user" value="${escapeHtml(form.match.urlPattern)}" />
-      <select class="select" id="quick-action-type">${['mockResponse', 'failRequest', 'delayOnly', 'passThrough'].map(type => `<option value="${type}" ${form.action.type === type ? 'selected' : ''}>${type}</option>`).join('')}</select>
+      ${renderSelect({ id: 'quick-action-type', value: form.action.type, options: actionTypeOptions })}
       <input class="input" id="quick-status" type="number" placeholder="${t('rules.statusCode')}" value="${escapeHtml(form.action.statusCode)}" />
       <input class="input" id="quick-delay" type="number" placeholder="${t('rules.delayMs')}" value="${escapeHtml(form.action.delayMs)}" />
       <textarea class="textarea" id="quick-body">${escapeHtml(form.action.responseBody)}</textarea>

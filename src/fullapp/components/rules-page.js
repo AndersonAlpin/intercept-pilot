@@ -6,6 +6,7 @@ import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderRuleActionBadge, renderRuleStateBadge } from '../../shared/ui/rule-status.js'
 import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
+import { renderSelect } from '../../shared/ui/select.js'
 
 const LABEL_TOOLTIP_DELAY_MS = 700
 
@@ -65,16 +66,22 @@ function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {
 }
 
 export function renderRulesPage(state) {
-  const activeCollectionId = state.settings?.activeCollectionId
+  const selectableCollections = state.collections.filter(collection => collection.enabled !== false)
+  const preferredCollectionId = state.settings?.activeCollectionId
+  const activeCollectionId = selectableCollections.some(collection => collection.id === preferredCollectionId)
+    ? preferredCollectionId
+    : selectableCollections[0]?.id || ''
   const search = String(state.rulesSearch || '').trim().toLowerCase()
-  const collectionRules = state.rules.filter(rule => !activeCollectionId || rule.collectionId === activeCollectionId)
+  const collectionRules = activeCollectionId
+    ? state.rules.filter(rule => rule.collectionId === activeCollectionId)
+    : []
   const rules = collectionRules.filter(rule => {
     if (activeCollectionId && rule.collectionId !== activeCollectionId) return false
     if (!search) return true
     const hay = `${rule.name || ''} ${rule.match?.urlPattern || ''} ${rule.match?.method || ''}`.toLowerCase()
     return hay.includes(search)
   })
-  const options = state.collections.map(collection => `<option value="${collection.id}" ${collection.id === activeCollectionId ? 'selected' : ''}>${escapeHtml(displayCollectionName(collection))}</option>`).join('')
+  const options = selectableCollections.map(collection => ({ value: collection.id, label: displayCollectionName(collection) }))
 
   const header = `
     <div class="table-row row-rule rules-header" role="row">
@@ -90,7 +97,7 @@ export function renderRulesPage(state) {
 
   const filtersHtml = `
     <div class="toolbar">
-      <select class="select filter-medium" id="full-rules-collection">${options}</select>
+      ${renderSelect({ id: 'full-rules-collection', value: activeCollectionId, options, className: 'filter-medium' })}
       <input class="input filter-grow" id="full-rules-search" placeholder="${escapeHtml(t('rules.searchPlaceholder'))}" value="${escapeHtml(state.rulesSearch || '')}" />
     </div>
   `

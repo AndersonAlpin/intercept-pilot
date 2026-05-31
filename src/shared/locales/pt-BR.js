@@ -38,13 +38,15 @@ const ptBR = {
     importExport: 'Importar', diagnostics: 'Diagnóstico', settings: 'Configurações'
   },
   collections: {
-    title: 'Coleção', activeCollection: 'Coleção ativa', noCollections: 'Sem coleções.',
+    title: 'Coleção', activeCollection: 'Coleção principal', noCollections: 'Sem coleções.',
+    status: 'Status',
     defaultName: 'Padrão',
-    active: 'Ativa',
+    active: 'Principal',
+    primary: 'Principal',
     newCollection: 'Nova coleção', newCollectionTitle: 'Nova coleção', newCollectionPlaceholder: 'Nome da coleção',
-    setActive: 'Definir ativa', rename: 'Renomear', renameTitle: 'Renomear coleção', renamePlaceholder: 'Novo nome',
+    setActive: 'Definir principal', setPrimary: 'Definir principal', rename: 'Renomear', renameTitle: 'Renomear coleção', renamePlaceholder: 'Novo nome',
     deleteConfirm: 'Deseja excluir esta coleção com todas as suas regras?',
-    deleteTitle: 'Excluir coleção', rulesCount: 'regra(s)', entityOne: 'coleção', entityMany: 'coleções'
+    deleteTitle: 'Excluir coleção', rulesCount: 'regra(s)', enabledRules: 'Ativas', entityOne: 'coleção', entityMany: 'coleções'
   },
   rules: {
     title: 'Regras', entityOne: 'regra', entityMany: 'regras', newRule: '+ Regra', searchPlaceholder: 'Buscar regras', noRules: 'Sem regras nesta coleção.',
@@ -169,10 +171,10 @@ const ptBR = {
   },
   dashboard: {
     attached: 'Captura ativa', enabledRules: 'Regras ativas', matchedRecently: 'Matches recentes', errors: 'Erros',
-    currentContext: 'Contexto atual', activeCollection: 'Coleção ativa', recentNetwork: 'Entradas de rede recentes', recentLogs: 'Logs recentes'
+    currentContext: 'Contexto atual', activeCollection: 'Coleção principal', recentNetwork: 'Entradas de rede recentes', recentLogs: 'Logs recentes'
   },
   diagnostics: {
-    activeCollectionId: 'ID da coleção ativa',
+    activeCollectionId: 'ID da coleção principal',
     eventOne: 'evento',
     eventMany: 'eventos',
     extensionEvents: 'Eventos da extensão (recentes)',

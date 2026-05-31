@@ -15,6 +15,8 @@ test('rules quick panel keeps collection selector as a filter without collection
   })
 
   assert.match(html, /id="active-collection-select"/)
+  assert.match(html, /value="collection-api"/)
+  assert.doesNotMatch(html, /value="collection-auth"/)
   assert.match(html, /id="manage-collections-btn"/)
   assert.match(html, /class="[^"]*\bdropdown-menu\b/)
   assert.match(html, /class="[^"]*\bdropdown-menu__item\b/)
