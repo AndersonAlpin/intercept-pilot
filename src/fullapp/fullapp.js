@@ -6,6 +6,7 @@ import { normalizeLocale, setLocale, t } from '../shared/i18n.js'
 import { DEFAULT_NETWORK_FILTER_FULL } from '../shared/constants.js'
 import { getVisibleLogsForCapture, getVisibleNetworkEntriesForCapture, normalizeLogScope } from '../shared/capture-context.js'
 import { mergeConnectionState } from '../shared/connection-state.js'
+import { matchesStatusFilter } from '../shared/network-display.js'
 import {
   createRuleBundle,
   createCollectionBundle,
@@ -212,7 +213,7 @@ function applyLocalFilters() {
     if (!isRenderableNetworkEntry(entry)) return false
     const f = state.networkFilter
     if (f.method !== 'ANY' && entry.method !== f.method) return false
-    if (f.status && String(entry.status || '') !== f.status) return false
+    if (!matchesStatusFilter(entry.status, f.status)) return false
     if (f.interceptedOnly && !entry.intercepted) return false
     if (matchesNetworkIgnorePatterns(entry.url, state.settings?.networkIgnorePatterns || [])) return false
     const text = f.url.trim().toLowerCase()

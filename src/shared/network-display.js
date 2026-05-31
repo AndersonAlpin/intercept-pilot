@@ -32,3 +32,9 @@ export function formatNetworkDisplayUrl(url, options = {}) {
     return truncateMiddle(withoutQuery, maxLength)
   }
 }
+
+export function matchesStatusFilter(status, filter) {
+  const needle = String(filter || '').trim()
+  if (!needle) return true
+  return String(status ?? '').startsWith(needle)
+}

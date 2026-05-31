@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { renderNetworkPage } from '../src/fullapp/components/network-page.js'
+import { matchesStatusFilter } from '../src/shared/network-display.js'
 import { renderNetworkQuickPanel } from '../src/sidepanel/components/network-quick-panel.js'
 
 const failedEntry = {
@@ -55,4 +56,12 @@ test('full network page disables browser spellcheck for filters and labels faile
   assert.match(html, /id="full-network-status"[^>]*spellcheck="false"[^>]*autocomplete="off"/)
   assert.match(html, />Falha</)
   assert.doesNotMatch(html, />0</)
+})
+
+test('network status filter matches status prefixes', () => {
+  assert.equal(matchesStatusFilter(200, '2'), true)
+  assert.equal(matchesStatusFilter(204, '2'), true)
+  assert.equal(matchesStatusFilter(404, '2'), false)
+  assert.equal(matchesStatusFilter(0, '0'), true)
+  assert.equal(matchesStatusFilter(200, ''), true)
 })

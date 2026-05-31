@@ -5,6 +5,7 @@ import { setLocale, t } from '../shared/i18n.js'
 import { DEFAULT_NETWORK_FILTER_SIDE } from '../shared/constants.js'
 import { getVisibleLogsForCapture, getVisibleNetworkEntriesForCapture } from '../shared/capture-context.js'
 import { debounce, isHitOnlyDiff, isOnlyNetworkFiltersDiff, matchesNetworkIgnorePatterns } from '../shared/utils.js'
+import { matchesStatusFilter } from '../shared/network-display.js'
 import { mergeConnectionState } from '../shared/connection-state.js'
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import {
@@ -126,7 +127,7 @@ function filteredNetworkEntries() {
     if (!isRenderableNetworkEntry(entry)) return false
     const filter = appState.networkFilters
     if (filter.method !== 'ANY' && entry.method !== filter.method) return false
-    if (filter.status && String(entry.status || '') !== filter.status) return false
+    if (!matchesStatusFilter(entry.status, filter.status)) return false
     if (filter.interceptedOnly && !entry.intercepted) return false
     if (matchesNetworkIgnorePatterns(entry.url, appState.settings?.networkIgnorePatterns || [])) return false
     const text = filter.text.trim().toLowerCase()

@@ -1018,21 +1018,23 @@ body.modal-open { overflow: hidden; }
   right: 22px;
   padding: 4px;
   border-radius: 6px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--text-muted);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 140ms ease, color 140ms ease, background-color 140ms ease;
+  transition: opacity 140ms ease, color 140ms ease, background-color 140ms ease, border-color 140ms ease;
   z-index: 1;
 }
 .code-wrap:hover .code-copy-btn,
 .code-wrap .code-copy-btn:focus-visible {
   opacity: 1;
 }
-.code-wrap .code-copy-btn:hover {
+.code-wrap .code-copy-btn:hover,
+.code-wrap .code-copy-btn:focus-visible {
   color: var(--text);
   background: var(--surface-3);
+  border-color: var(--border);
 }
 
 .inspector-footer {
