@@ -15,36 +15,6 @@
   --warning: #f59e0b;
   --danger: #ff5c66;
   --info: #38bdf8;
-  --scrollbar-track: rgba(15, 23, 39, .62);
-  --scrollbar-thumb: rgba(122, 162, 255, .54);
-  --scrollbar-thumb-hover: rgba(168, 194, 255, .8);
-}
-* { box-sizing: border-box; }
-html,
-body,
-* {
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-  scrollbar-width: thin;
-}
-*::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-*::-webkit-scrollbar-track {
-  border-radius: 999px;
-  background: var(--scrollbar-track);
-}
-*::-webkit-scrollbar-thumb {
-  min-height: 42px;
-  border: 2px solid var(--scrollbar-track);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(122, 162, 255, .72), rgba(56, 189, 248, .38));
-}
-*::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--scrollbar-thumb-hover), rgba(56, 189, 248, .58));
-}
-*::-webkit-scrollbar-corner {
-  background: transparent;
 }
 body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 Inter, Segoe UI, Arial, sans-serif; }
 button,input,select,textarea { font: inherit; color: inherit; }
