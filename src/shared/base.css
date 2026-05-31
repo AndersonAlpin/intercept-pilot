@@ -34,3 +34,7 @@
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+textarea {
+  resize: vertical;
+}

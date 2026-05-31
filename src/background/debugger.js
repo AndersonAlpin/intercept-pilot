@@ -71,6 +71,7 @@ export async function sendAttachedCommand(method, params = {}) {
 
 async function enableAttachedDomains() {
   await sendAttachedCommand('Network.enable')
+  await sendAttachedCommand('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => {})
   await sendAttachedCommand('Runtime.enable')
   await sendAttachedCommand('Log.enable').catch(async error => {
     await pushLog({ level: 'warn', scope: 'debugger', message: `Log domain could not be enabled: ${error?.message || String(error)}` })
@@ -262,6 +263,7 @@ export async function attachToTab(tabId) {
 export async function detachCurrentTab() {
   if (!runtimeState.attachedTabId) return { attachedTabId: null }
   const debuggee = getAttachedDebuggee() || { tabId: runtimeState.attachedTabId }
+  await chrome.debugger.sendCommand(debuggee, 'Network.setCacheDisabled', { cacheDisabled: false }).catch(() => {})
   await chrome.debugger.detach(debuggee).catch(() => {})
   runtimeState.attachedTabId = null
   runtimeState.attachedDebuggee = null
