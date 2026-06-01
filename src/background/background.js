@@ -7,6 +7,7 @@ import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureAtt
 import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule, getExecutableRules } from './rule-engine.js'
+import { resolveNetworkEntryResponseBody } from './network-entry-body.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
@@ -1577,17 +1578,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const entry = runtimeState.networkEntries.find(item => item.id === message.entryId)
         if (!entry) throw new Error('Network entry not found')
 
-        let responseBody = ''
-        if (entry.source === 'compat') {
-          responseBody = typeof entry.responseBody === 'string' ? entry.responseBody : ''
-        } else {
-          try {
-            const bodyResult = await sendAttachedCommand('Network.getResponseBody', { requestId: entry.networkId || entry.requestId })
-            responseBody = bodyResult?.base64Encoded ? atob(bodyResult.body || '') : (bodyResult?.body || '')
-          } catch {
-            responseBody = '{\n  "ok": true\n}'
-          }
-        }
+        const bodyResult = await resolveNetworkEntryResponseBody(entry, {
+          fetchBody: requestId => sendAttachedCommand('Network.getResponseBody', { requestId })
+        })
+        const responseBody = bodyResult.body
         const prettyResponseBody = tryPrettyJson(responseBody).pretty || '{\n  "ok": true\n}'
 
         const state = await getState()
