@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { BUNDLE_TYPE_COLLECTION, BUNDLE_TYPE_RULE, SCHEMA_VERSION } from '../src/shared/export.js'
+import { FAIL_REASONS } from '../src/shared/constants.js'
 import { parseImportBundle } from '../src/shared/import-bundles.js'
 import { setLocale, t } from '../src/shared/i18n.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../src/shared/import-template.js'
@@ -13,6 +14,7 @@ function tt(key, vars = {}) {
       'Use {schemaVersion}.',
       'Collection type: {collectionType}.',
       'Rule type: {ruleType}.',
+      'Fail reasons: {failReasons}.',
       'Name rules clearly for the test scenario.',
       'Collection JSON example: {collectionExample}',
       'Rule JSON example: {ruleExample}'
@@ -60,6 +62,7 @@ test('AI prompt explains both import formats and asks for JSON only', () => {
   assert.match(prompt, new RegExp(BUNDLE_TYPE_COLLECTION.replace('.', '\\.')))
   assert.match(prompt, new RegExp(BUNDLE_TYPE_RULE.replace('.', '\\.')))
   assert.match(prompt, /Name rules clearly/)
+  assert.match(prompt, new RegExp(FAIL_REASONS.join(', ')))
   assert.match(prompt, /schemaVersion/)
   assert.doesNotMatch(prompt, /```/)
 })

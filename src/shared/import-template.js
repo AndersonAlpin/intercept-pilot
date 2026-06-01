@@ -1,4 +1,5 @@
 import { BUNDLE_TYPE_COLLECTION, BUNDLE_TYPE_RULE, SCHEMA_VERSION, createCollectionBundle, createRuleBundle } from './export.js'
+import { FAIL_REASONS, METHODS } from './constants.js'
 import { makeCollection, makeRule } from './models.js'
 
 const TEMPLATE_COLLECTION_ID = 'collection-template-api-scenarios'
@@ -127,6 +128,8 @@ export function getImportInstructions(t) {
 export function getAiPrompt(t) {
   const collectionExample = JSON.stringify(buildCollectionTemplate(t), null, 2)
   const ruleExample = JSON.stringify(buildRuleTemplate(t), null, 2)
+  const methods = METHODS.join(', ')
+  const failReasons = FAIL_REASONS.join(', ')
   return localize(t, 'importTemplate.aiPrompt', [
     'You will generate an importable InterceptPilot JSON bundle.',
     'The goal is to intercept application requests to test scenarios by simulating responses, failures, latency or pass-through behavior.',
@@ -146,11 +149,11 @@ export function getAiPrompt(t) {
     '- Avoid generic names like "Rule 1", "Test", "Mock API" or "Endpoint".',
     '',
     'Allowed match.matchType values: "contains", "equals", "regex".',
-    'Allowed match.method values: "ANY", "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD".',
+    `Allowed match.method values: ${methods}.`,
     'Allowed action.type values: "mockResponse", "failRequest", "delayOnly", "passThrough".',
     '',
     'For mockResponse, include statusCode, statusText, contentType and responseBody.',
-    'For failRequest, include failReason when useful.',
+    `For failRequest, include failReason when useful. Allowed failReason values: ${failReasons}.`,
     'For delayOnly, include delayMs.',
     '',
     'Collection bundle example:',
@@ -165,6 +168,8 @@ export function getAiPrompt(t) {
     schemaVersion: SCHEMA_VERSION,
     collectionType: BUNDLE_TYPE_COLLECTION,
     ruleType: BUNDLE_TYPE_RULE,
+    methods,
+    failReasons,
     collectionExample,
     ruleExample
   })
