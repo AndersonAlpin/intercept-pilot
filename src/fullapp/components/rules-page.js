@@ -1,6 +1,7 @@
 import { escapeHtml, truncate, relativeTime } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
+import { hasActiveCaptureContext } from '../../shared/capture-context.js'
 import { getRuleState } from '../../shared/rule-state.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
@@ -33,8 +34,8 @@ function actionBadge(rule) {
   return renderRuleActionBadge({ actionType: type, label: t('rules.actionLabels.pass') })
 }
 
-function stateBadge(rule) {
-  const state = getRuleState(rule)
+function stateBadge(rule, captureActive) {
+  const state = getRuleState(rule, { captureActive })
   const label = t(`rules.states.${state}`)
   return renderRuleStateBadge({
     state,
@@ -66,6 +67,7 @@ function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {
 }
 
 export function renderRulesPage(state) {
+  const captureActive = hasActiveCaptureContext(state)
   const selectableCollections = state.collections.filter(collection => collection.enabled !== false)
   const preferredCollectionId = state.settings?.activeCollectionId
   const activeCollectionId = selectableCollections.some(collection => collection.id === preferredCollectionId)
@@ -126,7 +128,7 @@ export function renderRulesPage(state) {
               </div>
               <div class="cell-method">${escapeHtml(displayMethod(rule.match?.method || 'ANY'))}</div>
               <div>${actionBadge(rule)}</div>
-              <div>${stateBadge(rule)}</div>
+              <div>${stateBadge(rule, captureActive)}</div>
               <div class="col-hits">${hitsCell(rule)}</div>
               <div class="row-actions col-actions data-panel__actions-cell">
                 ${iconBtn({ icon: 'edit', label: t('common.edit'), action: 'edit', ruleId: rule.id })}

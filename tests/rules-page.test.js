@@ -41,3 +41,21 @@ test('rules page renders bulk selection controls', () => {
   assert.match(html, /data-full-rule-select="rule-b"/)
   assert.match(html, /id="full-delete-selected-rules-btn"[^>]*disabled/)
 })
+
+test('rules page does not show stale matched state while capture is inactive', () => {
+  const html = renderRulesPage({
+    attachedTabId: null,
+    compatActiveTabId: null,
+    settings: { activeCollectionId: 'collection-enabled' },
+    collections: [
+      { id: 'collection-enabled', name: 'Enabled scenarios', enabled: true }
+    ],
+    rules: [
+      { id: 'rule-a', name: 'Rule A', collectionId: 'collection-enabled', enabled: true, match: { method: 'GET', urlPattern: '/a' }, action: { type: 'mockResponse', statusCode: 200 }, diagnostics: { lastMatchedAt: '2026-06-01T10:00:00.000Z' } }
+    ],
+    rulesSearch: ''
+  })
+
+  assert.doesNotMatch(html, /data-state="matched"/)
+  assert.match(html, /data-state="ready"/)
+})
