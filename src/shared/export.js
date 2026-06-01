@@ -4,17 +4,30 @@ export const SCHEMA_VERSION = 1
 export const BUNDLE_TYPE_RULE = 'interceptpilot.rule'
 export const BUNDLE_TYPE_COLLECTION = 'interceptpilot.collection'
 
+function stripRuntimeHitDiagnostics(rule) {
+  const next = {
+    ...(rule || {}),
+    diagnostics: { ...(rule?.diagnostics || {}) }
+  }
+  delete next.diagnostics.matchCount
+  delete next.diagnostics.lastMatchedAt
+  if (!Object.keys(next.diagnostics).length) delete next.diagnostics
+  return next
+}
+
 export function createRuleBundle(rule) {
   return {
     schemaVersion: SCHEMA_VERSION,
     type: BUNDLE_TYPE_RULE,
     exportedAt: nowIso(),
-    rule
+    rule: stripRuntimeHitDiagnostics(rule)
   }
 }
 
 export function createCollectionBundle(collection, allRules) {
-  const rules = (allRules || []).filter(rule => rule.collectionId === collection.id)
+  const rules = (allRules || [])
+    .filter(rule => rule.collectionId === collection.id)
+    .map(rule => stripRuntimeHitDiagnostics(rule))
   return {
     schemaVersion: SCHEMA_VERSION,
     type: BUNDLE_TYPE_COLLECTION,
