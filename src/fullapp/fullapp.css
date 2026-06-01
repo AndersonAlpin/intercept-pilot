@@ -515,10 +515,10 @@ button,input,select,textarea { font: inherit; color: inherit; }
 }
 .table { display: flex; flex-direction: column; gap: 8px; }
 .table-wide .table-row { display: grid; gap: 10px; align-items: center; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
-.row-rule { grid-template-columns: minmax(220px, 1fr) 54px 64px minmax(86px, .9fr) minmax(80px, .8fr) 50px 180px; }
+.row-rule { grid-template-columns: 28px minmax(220px, 1fr) 54px 64px minmax(86px, .9fr) minmax(80px, .8fr) 50px 180px; }
 .row-network { grid-template-columns: 64px minmax(180px, 1fr) 62px 82px minmax(92px, .8fr) minmax(92px, .8fr) 118px; }
 .row-logs { grid-template-columns: minmax(220px, 1.4fr) 78px 170px minmax(220px, 1fr); }
-.row-collection { grid-template-columns: minmax(170px, 1fr) 70px 70px 60px 230px; }
+.row-collection { grid-template-columns: 28px minmax(170px, 1fr) 70px 70px 60px 230px; }
 .row-rule { min-width: 980px; }
 .row-network { min-width: 940px; }
 .row-logs { min-width: 760px; }
@@ -542,6 +542,8 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .rules-header { border-color: transparent !important; padding: 4px 12px 4px 12px !important; background: transparent; }
 .rules-header > * { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 .rules-header .col-hits, .rules-header .col-actions { text-align: right; }
+.col-select { display: flex; align-items: center; justify-content: center; }
+.col-select input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 .row-collection .col-actions { justify-self: end; }
 .row-collection .row-actions { justify-content: flex-end; overflow: visible; max-width: none; }
 .row-network .footer-actions { justify-content: flex-end; width: 100%; margin-top: 0; }
@@ -708,7 +710,7 @@ body.modal-open { overflow: hidden; }
 .toast-info { border-color: rgba(91,130,255,.45); background: linear-gradient(180deg, rgba(91,130,255,.12), var(--surface-1)); }
 @media (max-width: 1200px) {
   .grid.cards4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .row-rule { grid-template-columns: minmax(180px, 1fr) 48px 54px 96px 78px 44px 168px; }
+  .row-rule { grid-template-columns: 28px minmax(180px, 1fr) 48px 54px 96px 78px 44px 168px; }
 }
 @media (max-width: 760px) {
   .log-detail-grid { grid-template-columns: 1fr; }

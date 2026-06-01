@@ -26,3 +26,20 @@ test('collections page hides default rename and uses custom action tooltips', ()
   assert.match(html, />1\/2</)
   assert.doesNotMatch(html, /Status da coleção/)
 })
+
+test('collections page renders bulk selection controls without allowing default deletion', () => {
+  const html = renderCollectionsPage({
+    settings: { activeCollectionId: 'collection-default' },
+    collections: [
+      { id: 'collection-default', name: 'Default', enabled: true },
+      { id: 'collection-custom', name: 'Custom', enabled: true }
+    ],
+    rules: [],
+    collectionsSearch: ''
+  })
+
+  assert.match(html, /id="full-collections-select-all"/)
+  assert.match(html, /data-full-collection-select="collection-custom"/)
+  assert.match(html, /data-full-collection-select="collection-default" disabled/)
+  assert.match(html, /id="full-delete-selected-collections-btn"[^>]*disabled/)
+})

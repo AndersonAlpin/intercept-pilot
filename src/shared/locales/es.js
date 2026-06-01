@@ -5,7 +5,7 @@ const es = {
     cancel: 'Cancelar', save: 'Guardar', clear: 'Limpiar', refresh: 'Actualizar', create: 'Crear',
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Estado',
     method: 'Método', level: 'Nivel', settings: 'Configuración', close: 'Cerrar', yes: 'Sí', no: 'No',
-    all: 'Todos',
+    all: 'Todos', selectAll: 'Seleccionar todo',
     showingCount: 'Mostrando {shown} de {total} {entity}',
     showingRange: 'Mostrando {start}–{end} de {total} {entity}',
     copy: 'Copiar', copyJson: 'Copiar JSON', exportJson: 'Exportar JSON', downloadJson: 'Descargar JSON',
@@ -46,7 +46,7 @@ const es = {
     newCollection: 'Nueva colección', newCollectionTitle: 'Nueva colección', newCollectionPlaceholder: 'Nombre de la colección',
     setActive: 'Definir principal', setPrimary: 'Definir principal', rename: 'Renombrar', renameTitle: 'Renombrar colección', renamePlaceholder: 'Nuevo nombre',
     deleteConfirm: '¿Deseas eliminar esta colección con todas sus reglas?',
-    deleteTitle: 'Eliminar colección', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
+    deleteTitle: 'Eliminar colección', deleteSelected: 'Eliminar seleccionadas', selectCollection: 'Seleccionar colección', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
   },
   rules: {
     title: 'Reglas', entityOne: 'regla', entityMany: 'reglas', newRule: '+ Regla', searchPlaceholder: 'Buscar reglas', noRules: 'No hay reglas en esta colección.',
@@ -56,7 +56,7 @@ const es = {
     createEnabledRule: 'Crear regla habilitada', saveQuickEdit: 'Guardar edición rápida', mockThis: 'Crear regla', inspect: 'Inspeccionar ↗',
     noRequests: 'Sin requests todavía.', activateCaptureToSeeRequests: 'Activa la captura para ver requests.', passThrough: 'passThrough', noMatch: 'Sin match',
     saveSuccess: 'Regla guardada.', saveError: 'Error al guardar regla.', deleteConfirm: '¿Eliminar esta regla?',
-    deleteTitle: 'Eliminar regla', deleteSuccess: 'Regla eliminada.',
+    deleteTitle: 'Eliminar regla', deleteSelected: 'Eliminar seleccionadas', selectRule: 'Seleccionar regla', deleteSuccess: 'Regla eliminada.',
     createFromRequestError: 'Error al crear regla desde request.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON de la regla copiado.',
     lastMatched: 'Última aplicación {relative}',

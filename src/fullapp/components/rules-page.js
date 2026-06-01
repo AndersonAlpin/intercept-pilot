@@ -85,6 +85,9 @@ export function renderRulesPage(state) {
 
   const header = `
     <div class="table-row row-rule rules-header" role="row">
+      <div role="columnheader" class="col-select">
+        <input type="checkbox" id="full-rules-select-all" data-full-rules-select-all aria-label="${escapeHtml(t('common.selectAll'))}" />
+      </div>
       <div role="columnheader">${escapeHtml(t('rules.columns.rule'))}</div>
       <div role="columnheader">${escapeHtml(t('rules.columns.status'))}</div>
       <div role="columnheader">${escapeHtml(t('rules.columns.method'))}</div>
@@ -108,6 +111,9 @@ export function renderRulesPage(state) {
           const urlPattern = rule.match?.urlPattern || ''
           return `
             <div class="table-row row-rule ${rule.diagnostics?.lastError ? 'row-error' : ''}" role="row">
+              <div class="col-select">
+                <input type="checkbox" data-full-rule-select="${rule.id}" aria-label="${escapeHtml(t('rules.selectRule'))}" />
+              </div>
               <div class="cell-rule">
                 <strong ${renderTruncatedTooltipAttrs(rule.name, 60)}>${escapeHtml(truncate(rule.name, 60))}</strong>
                 ${urlPattern ? `<span class="cell-rule-url" ${renderTruncatedTooltipAttrs(urlPattern, 80)}>${escapeHtml(truncate(urlPattern, 80))}</span>` : ''}
@@ -148,6 +154,7 @@ export function renderRulesPage(state) {
       ${renderDataPanel({
         title: t('rules.title'),
         actionsHtml: `
+          <button class="btn danger" id="full-delete-selected-rules-btn" disabled>${escapeHtml(t('rules.deleteSelected'))}</button>
           <button class="btn primary" id="full-new-rule-btn">${escapeHtml(t('fullapp.newRule'))}</button>
         `,
         filtersHtml,

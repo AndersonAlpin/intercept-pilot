@@ -26,6 +26,9 @@ export function renderCollectionsPage(state) {
 
   const header = `
     <div class="table-row row-collection rules-header" role="row">
+      <div role="columnheader" class="col-select">
+        <input type="checkbox" id="full-collections-select-all" data-full-collections-select-all aria-label="${escapeHtml(t('common.selectAll'))}" />
+      </div>
       <div role="columnheader">${escapeHtml(t('collections.title'))}</div>
       <div role="columnheader">${escapeHtml(t('collections.status'))}</div>
       <div role="columnheader">${escapeHtml(t('collections.primary'))}</div>
@@ -44,6 +47,9 @@ export function renderCollectionsPage(state) {
           ${collections.length ? header : ''}
           ${collections.length ? collections.map(collection => `
             <div class="table-row row-collection">
+              <div class="col-select">
+                <input type="checkbox" data-full-collection-select="${collection.id}" ${collection.id === 'collection-default' ? 'disabled' : ''} aria-label="${escapeHtml(t('collections.selectCollection'))}" />
+              </div>
               <div class="cell-rule">
                 <strong>${escapeHtml(displayCollectionName(collection))}</strong>
                 <span class="cell-rule-url">${counts.get(collection.id) || 0} ${t('collections.rulesCount')}</span>
@@ -82,7 +88,10 @@ export function renderCollectionsPage(state) {
     <section class="split-page collections-page">
       ${renderDataPanel({
         title: t('collections.title'),
-        actionsHtml: `<button class="btn primary" id="full-new-collection-btn">${t('collections.newCollection')}</button>`,
+        actionsHtml: `
+          <button class="btn danger" id="full-delete-selected-collections-btn" disabled>${escapeHtml(t('collections.deleteSelected'))}</button>
+          <button class="btn primary" id="full-new-collection-btn">${t('collections.newCollection')}</button>
+        `,
         filtersHtml,
         bodyHtml,
         footerHtml: `<span class="data-panel__count">${escapeHtml(footerCount)}</span>`,

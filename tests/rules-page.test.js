@@ -22,3 +22,22 @@ test('rules page filters out disabled collections from the collection selector',
   assert.match(html, /Enabled rule/)
   assert.doesNotMatch(html, /Disabled rule/)
 })
+
+test('rules page renders bulk selection controls', () => {
+  const html = renderRulesPage({
+    settings: { activeCollectionId: 'collection-enabled' },
+    collections: [
+      { id: 'collection-enabled', name: 'Enabled scenarios', enabled: true }
+    ],
+    rules: [
+      { id: 'rule-a', name: 'Rule A', collectionId: 'collection-enabled', enabled: true, match: { method: 'GET', urlPattern: '/a' }, action: { type: 'mockResponse', statusCode: 200 }, diagnostics: {} },
+      { id: 'rule-b', name: 'Rule B', collectionId: 'collection-enabled', enabled: true, match: { method: 'GET', urlPattern: '/b' }, action: { type: 'mockResponse', statusCode: 200 }, diagnostics: {} }
+    ],
+    rulesSearch: ''
+  })
+
+  assert.match(html, /id="full-rules-select-all"/)
+  assert.match(html, /data-full-rule-select="rule-a"/)
+  assert.match(html, /data-full-rule-select="rule-b"/)
+  assert.match(html, /id="full-delete-selected-rules-btn"[^>]*disabled/)
+})

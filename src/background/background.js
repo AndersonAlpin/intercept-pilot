@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
-import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, saveRule, deleteRule, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
+import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, deleteCollections, saveRule, deleteRule, deleteRules, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, tryPrettyJson, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
@@ -1537,6 +1537,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ collections: await deleteCollection(message.collectionId) })
         return
       }
+      case 'collections:deleteMany': {
+        sendResponse({ collections: await deleteCollections(message.collectionIds || []) })
+        return
+      }
       case 'rules:create': {
         const rule = makeRule(message.payload || {}, (await getState()).settings.activeCollectionId)
         const errors = validateRule(rule)
@@ -1559,6 +1563,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       case 'rules:delete':
         sendResponse({ rules: await deleteRule(message.ruleId) })
+        await maybeAutoReloadAfterRuleChange()
+        return
+      case 'rules:deleteMany':
+        sendResponse({ rules: await deleteRules(message.ruleIds || []) })
         await maybeAutoReloadAfterRuleChange()
         return
       case 'rules:duplicate': {

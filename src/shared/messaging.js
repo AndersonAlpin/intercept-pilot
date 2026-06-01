@@ -11,10 +11,12 @@ export const MSG = {
   COLLECTIONS_UPDATE: 'collections:update',
   COLLECTIONS_REPLACE_CONTENTS: 'collections:replaceContents',
   COLLECTIONS_DELETE: 'collections:delete',
+  COLLECTIONS_DELETE_MANY: 'collections:deleteMany',
 
   RULES_CREATE: 'rules:create',
   RULES_UPDATE: 'rules:update',
   RULES_DELETE: 'rules:delete',
+  RULES_DELETE_MANY: 'rules:deleteMany',
   RULES_DUPLICATE: 'rules:duplicate',
   RULES_TOGGLE: 'rules:toggle',
 
