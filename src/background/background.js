@@ -8,6 +8,7 @@ import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule, getExecutableRules } from './rule-engine.js'
 import { resolveNetworkEntryResponseBody } from './network-entry-body.js'
+import { normalizePerformanceEntries } from './performance-entries.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
@@ -40,6 +41,7 @@ async function enableCompatForTab(tabId) {
   runtimeState.compatFallbackTabIds.add(Number(tabId))
   startCaptureSession(Number(tabId), 'compat')
   await chrome.tabs.sendMessage(tabId, { type: 'compat:modeChanged', captureMode: 'compat' }).catch(() => {})
+  await seedExistingNetworkEntries(tabId).catch(() => {})
 }
 
 async function disableCompatForTab(tabId) {
@@ -434,6 +436,58 @@ async function broadcastConnectionState() {
   })
 }
 
+function ensureSeedNetworkCycle(tabId) {
+  if (!tabId) return
+  runtimeState.networkTabId = tabId
+  if (!runtimeState.currentNetworkCycleId) {
+    runtimeState.networkCycleSeq += 1
+    runtimeState.currentNetworkCycleId = `seed:${tabId}:${Date.now()}:${runtimeState.networkCycleSeq}`
+    runtimeState.currentNavigationStartedAt = new Date().toISOString()
+  }
+}
+
+async function seedExistingNetworkEntries(tabId) {
+  if (!tabId || !chrome.scripting?.executeScript) return []
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    world: 'MAIN',
+    func: () => ({
+      timeOrigin: performance.timeOrigin,
+      documentUrl: location.href,
+      entries: performance.getEntriesByType('resource').map(entry => ({
+        name: entry.name,
+        initiatorType: entry.initiatorType,
+        startTime: entry.startTime,
+        duration: entry.duration,
+        transferSize: entry.transferSize,
+        responseStatus: entry.responseStatus || 0
+      }))
+    })
+  }).catch(() => [])
+
+  const payload = result?.result
+  const entries = normalizePerformanceEntries(payload?.entries || [], {
+    tabId,
+    now: Date.now(),
+    timeOrigin: payload?.timeOrigin,
+    documentUrl: payload?.documentUrl,
+    captureSessionId: runtimeState.currentCaptureSessionId,
+    networkCycleId: runtimeState.currentNetworkCycleId
+  })
+  if (!entries.length) return []
+
+  ensureSeedNetworkCycle(tabId)
+  for (const entry of entries.reverse()) {
+    upsertNetworkEntry(entry.id, {
+      ...entry,
+      captureSessionId: runtimeState.currentCaptureSessionId,
+      networkCycleId: runtimeState.currentNetworkCycleId
+    })
+  }
+  scheduleNetworkPublish()
+  return entries
+}
+
 async function resolveAttachTargetTab(message, sender) {
   const explicitId = Number(message?.tabId || 0)
   if (explicitId) {
@@ -529,6 +583,7 @@ async function maybeAutoAttach() {
   try {
     const previousAttachedTabId = runtimeState.attachedTabId
     const result = await attachToTab(targetId)
+    await seedExistingNetworkEntries(targetId).catch(() => {})
     if (previousAttachedTabId !== targetId) {
       await resetMatchedStateForNewPageCycle(targetId)
     }
@@ -1458,6 +1513,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           throw error
         }
+        await seedExistingNetworkEntries(tabId).catch(() => {})
         // Reattach manual sempre inicia novo ciclo de validacao visual de "Acionada".
         if (previousAttachedTabId !== tabId) {
           await resetMatchedStateForNewPageCycle(tabId)
