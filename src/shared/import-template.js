@@ -1,5 +1,5 @@
 import { BUNDLE_TYPE_COLLECTION, BUNDLE_TYPE_RULE, SCHEMA_VERSION, createCollectionBundle, createRuleBundle } from './export.js'
-import { FAIL_REASONS, METHODS } from './constants.js'
+import { FAIL_REASONS, MATCH_TYPES, METHODS, RESOURCE_TYPES } from './constants.js'
 import { makeCollection, makeRule } from './models.js'
 
 const TEMPLATE_COLLECTION_ID = 'collection-template-api-scenarios'
@@ -129,10 +129,12 @@ export function getAiPrompt(t) {
   const collectionExample = JSON.stringify(buildCollectionTemplate(t), null, 2)
   const ruleExample = JSON.stringify(buildRuleTemplate(t), null, 2)
   const methods = METHODS.join(', ')
+  const matchTypes = MATCH_TYPES.join(', ')
+  const resourceTypes = RESOURCE_TYPES.join(', ')
   const failReasons = FAIL_REASONS.join(', ')
   return localize(t, 'importTemplate.aiPrompt', [
     'You will generate an importable InterceptPilot JSON bundle.',
-    'The goal is to intercept application requests to test scenarios by simulating responses, failures, latency or pass-through behavior.',
+    'InterceptPilot tests API scenarios in the browser using mock responses, HTTP errors, network failures, latency, redirects or pass-through behavior.',
     '',
     'Return ONLY valid JSON. Do not use Markdown. Do not add comments. Do not explain anything outside the JSON.',
     '',
@@ -148,13 +150,21 @@ export function getAiPrompt(t) {
     '- Good examples: "Mock lives list - empty 200", "Fail live stream key - fetch error", "Delay user limit request - 1500ms".',
     '- Avoid generic names like "Rule 1", "Test", "Mock API" or "Endpoint".',
     '',
-    'Allowed match.matchType values: "contains", "equals", "regex".',
+    `Allowed match.matchType values: ${matchTypes}.`,
     `Allowed match.method values: ${methods}.`,
+    `Allowed match.resourceType values: ${resourceTypes}.`,
     'Allowed action.type values: "mockResponse", "failRequest", "delayOnly", "passThrough".',
     '',
-    'For mockResponse, include statusCode, statusText, contentType and responseBody.',
-    `For failRequest, include failReason when useful. Allowed failReason values: ${failReasons}.`,
-    'For delayOnly, include delayMs.',
+    'Use mockResponse to simulate any HTTP response status code from 100 to 599, including redirects, client errors and server errors.',
+    'For mockResponse, include statusCode, statusText, contentType and responseBody. Examples: 200 OK, 301 Moved Permanently, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Too Many Requests, 500 Internal Server Error.',
+    'For redirects such as 301 or 302, include a Location response header when useful.',
+    `Use failRequest only for network-level failures where no HTTP response should exist, such as timeout, DNS failure, connection refused or offline. For failRequest, include failReason when useful. Allowed failReason values: ${failReasons}.`,
+    'Fields by action.type:',
+    '- mockResponse: use statusCode, statusText, contentType, responseBody and responseHeaders when useful.',
+    '- failRequest: use failReason and optional delayMs. Do not use statusCode for network failures.',
+    '- delayOnly: use delayMs. Do not change status, headers or body.',
+    '- passThrough: do not change the response.',
+    'responseBody must be a string. If it contains JSON, escape it correctly.',
     '',
     'Collection bundle example:',
     collectionExample,
@@ -169,6 +179,8 @@ export function getAiPrompt(t) {
     collectionType: BUNDLE_TYPE_COLLECTION,
     ruleType: BUNDLE_TYPE_RULE,
     methods,
+    matchTypes,
+    resourceTypes,
     failReasons,
     collectionExample,
     ruleExample
