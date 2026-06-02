@@ -64,3 +64,22 @@ test('rules page does not show stale matched state while capture is inactive', (
   assert.doesNotMatch(html, /data-state="matched"/)
   assert.match(html, /data-state="ready"/)
 })
+
+test('rules page state badges do not duplicate visible labels as tooltips', () => {
+  const html = renderRulesPage({
+    attachedTabId: null,
+    compatActiveTabId: null,
+    settings: { activeCollectionId: 'collection-enabled' },
+    collections: [
+      { id: 'collection-enabled', name: 'Enabled scenarios', enabled: true }
+    ],
+    rules: [
+      { id: 'rule-a', name: 'Rule A', collectionId: 'collection-enabled', enabled: false, match: { method: 'GET', urlPattern: '/a' }, action: { type: 'mockResponse', statusCode: 200 }, diagnostics: {} }
+    ],
+    rulesSearch: ''
+  })
+
+  assert.match(html, /<span[^>]*class="rule-state-badge badge"[^>]*data-state="disabled"/)
+  assert.match(html, />Desativada</)
+  assert.doesNotMatch(html, /data-tooltip="Desativada"/)
+})
