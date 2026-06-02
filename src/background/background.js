@@ -36,10 +36,24 @@ function isCompatActiveForTab(tabId, settings) {
   return Boolean(id && getCompatActiveTabId(settings, id) === id)
 }
 
+async function injectCompatScripts(tabId) {
+  if (!tabId || !chrome.scripting?.executeScript) return
+  await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    files: ['src/content/compat-bridge.js']
+  }).catch(() => {})
+  await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    world: 'MAIN',
+    files: ['src/content/compat-main.js']
+  }).catch(() => {})
+}
+
 async function enableCompatForTab(tabId) {
   if (!tabId) return
   runtimeState.compatFallbackTabIds.add(Number(tabId))
   startCaptureSession(Number(tabId), 'compat')
+  await injectCompatScripts(tabId)
   await chrome.tabs.sendMessage(tabId, { type: 'compat:modeChanged', captureMode: 'compat' }).catch(() => {})
   await seedExistingNetworkEntries(tabId).catch(() => {})
 }

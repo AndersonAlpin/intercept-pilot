@@ -85,3 +85,59 @@ test('compat bridge forwards page log events to the background', async () => {
     payload: { level: 'error', message: 'Boom', url: 'https://example.test/app' }
   })
 })
+
+test('compat bridge can be reinjected without duplicate forwarding', async () => {
+  const runtimeMessages = []
+  const listeners = []
+  const fakeWindow = {
+    location: { protocol: 'https:' },
+    addEventListener: (type, listener) => {
+      if (type === 'message') listeners.push(listener)
+    },
+    postMessage: () => {}
+  }
+  const fakeDocument = {
+    createElement: () => ({ dataset: {}, remove: () => {} }),
+    documentElement: { appendChild: () => {} },
+    head: null,
+    body: null,
+    addEventListener: () => {}
+  }
+  const fakeChrome = {
+    runtime: {
+      getURL: path => `chrome-extension://test/${path}`,
+      sendMessage: async message => {
+        runtimeMessages.push(message)
+        return message.type === 'compat:getMode' ? { captureMode: 'cdp' } : { ok: true }
+      },
+      onMessage: { addListener: () => {} }
+    }
+  }
+  const globals = {
+    window: fakeWindow,
+    document: fakeDocument,
+    location: fakeWindow.location,
+    chrome: fakeChrome
+  }
+
+  runBrowserScript('src/content/compat-bridge.js', globals)
+  runBrowserScript('src/content/compat-bridge.js', globals)
+
+  assert.equal(listeners.length, 1)
+
+  await listeners[0]({
+    source: fakeWindow,
+    data: {
+      source: 'interceptpilot-compat-main',
+      type: 'interceptpilot:compat:pageLog',
+      payload: { level: 'warn', message: 'Once', url: 'https://example.test/app' }
+    }
+  })
+
+  const forwarded = runtimeMessages.filter(message => message.type === 'compat:pageLog')
+  assert.equal(forwarded.length, 1)
+  assert.deepEqual(JSON.parse(JSON.stringify(forwarded[0])), {
+    type: 'compat:pageLog',
+    payload: { level: 'warn', message: 'Once', url: 'https://example.test/app' }
+  })
+})
