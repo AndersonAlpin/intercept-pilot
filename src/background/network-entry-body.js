@@ -9,42 +9,57 @@ function decodeBase64(text) {
   return Buffer.from(String(text || ''), 'base64').toString('utf8')
 }
 
-async function waitForFinishedEntry(entry, { waitMs, intervalMs, sleep }) {
-  if (entry?.endedAt || entry?.errorText || entry?.responseBodyLoaded === 'loaded') return
+async function waitForFinishedEntry(entry, { waitMs, intervalMs, sleep, getEntry }) {
+  const currentEntry = () => (typeof getEntry === 'function' ? getEntry() : null) || entry
+  let current = currentEntry()
+  if (current?.endedAt || current?.errorText || current?.responseBodyLoaded === 'loaded') return current
   const startedAt = Date.now()
-  while (!entry.endedAt && !entry.errorText && Date.now() - startedAt < waitMs) {
+  while (!current?.endedAt && !current?.errorText && current?.responseBodyLoaded !== 'loaded' && Date.now() - startedAt < waitMs) {
     await sleep(intervalMs)
+    current = currentEntry()
   }
+  return current
 }
 
 export async function resolveNetworkEntryResponseBody(entry, options = {}) {
   const {
     fetchBody,
+    getEntry,
     waitMs = 1200,
     intervalMs = 50,
     sleep = delay
   } = options
 
-  if (entry?.responseBodyLoaded === 'loaded') {
+  let current = (typeof getEntry === 'function' ? getEntry() : null) || entry
+
+  if (current?.responseBodyLoaded === 'loaded') {
     return {
-      body: String(entry.responseBody || ''),
-      base64Encoded: Boolean(entry.responseBodyBase64Encoded),
+      body: String(current.responseBody || ''),
+      base64Encoded: Boolean(current.responseBodyBase64Encoded),
       source: 'entry'
     }
   }
 
-  if (entry?.source === 'compat') {
+  if (current?.source === 'compat') {
+    current = await waitForFinishedEntry(current, { waitMs, intervalMs, sleep, getEntry })
+    if (current?.responseBodyLoaded === 'loaded') {
+      return {
+        body: String(current.responseBody || ''),
+        base64Encoded: false,
+        source: 'compat'
+      }
+    }
     return {
-      body: typeof entry.responseBody === 'string' ? entry.responseBody : '',
+      body: typeof current?.responseBody === 'string' ? current.responseBody : '',
       base64Encoded: false,
       source: 'compat'
     }
   }
 
-  await waitForFinishedEntry(entry, { waitMs, intervalMs, sleep })
+  current = await waitForFinishedEntry(current, { waitMs, intervalMs, sleep, getEntry })
 
   try {
-    const requestId = entry?.networkId || entry?.requestId
+    const requestId = current?.networkId || current?.requestId
     if (!requestId || typeof fetchBody !== 'function') throw new Error('body_unavailable')
     const result = await fetchBody(requestId)
     const rawBody = String(result?.body || '')
@@ -54,8 +69,8 @@ export async function resolveNetworkEntryResponseBody(entry, options = {}) {
       source: 'cdp'
     }
   } catch {
-    if (typeof entry?.responseBody === 'string') {
-      return { body: entry.responseBody, base64Encoded: false, source: 'entry-fallback' }
+    if (typeof current?.responseBody === 'string') {
+      return { body: current.responseBody, base64Encoded: false, source: 'entry-fallback' }
     }
     return { body: DEFAULT_BODY, base64Encoded: false, source: 'fallback' }
   }

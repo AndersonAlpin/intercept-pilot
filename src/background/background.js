@@ -1643,6 +1643,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!entry) throw new Error('Network entry not found')
 
         const bodyResult = await resolveNetworkEntryResponseBody(entry, {
+          getEntry: () => runtimeState.networkEntries.find(item => item.id === message.entryId),
           fetchBody: requestId => sendAttachedCommand('Network.getResponseBody', { requestId })
         })
         const responseBody = bodyResult.body
