@@ -694,8 +694,7 @@ function clearRuleError(rule) {
   scheduleHitFlush()
 }
 
-async function resetMatchedStateForNewPageCycle(tabId) {
-  if (!runtimeState.attachedTabId || runtimeState.attachedTabId !== tabId) return
+async function resetMatchedState() {
   const state = await getState()
   let changed = false
   let liveChanged = false
@@ -724,6 +723,11 @@ async function resetMatchedStateForNewPageCycle(tabId) {
   if (changed) await setState({ ...state, rules: nextRules })
   if (liveChanged) scheduleHitFlush()
   broadcast({ type: 'state:hit-reset' })
+}
+
+async function resetMatchedStateForNewPageCycle(tabId) {
+  if (!runtimeState.attachedTabId || runtimeState.attachedTabId !== tabId) return
+  await resetMatchedState()
 }
 
 async function applyRule(params, rule) {
@@ -1459,6 +1463,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             await notifyCompatModeChanged('cdp')
             await pushLog({ level: 'info', scope: 'runtime', message: `Capture mode changed to ${settings.captureMode}` })
           }
+          if (previous.activeCollectionId !== settings.activeCollectionId) {
+            await resetMatchedState()
+          }
         }
         await syncNetworkSettingsFromState()
         await maybeAutoAttach()
@@ -1518,22 +1525,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (previousAttachedTabId !== tabId) {
           await resetMatchedStateForNewPageCycle(tabId)
         } else {
-          const state = await getState()
-          const hasMatched = state.rules.some(rule => rule.diagnostics?.lastMatchedAt)
-          if (hasMatched) {
-            const nextRules = state.rules.map(rule => ({
-              ...rule,
-              diagnostics: {
-                ...(rule.diagnostics || {}),
-                lastMatchedAt: null
-              }
-            }))
-            for (const counter of runtimeState.hitCounters.values()) {
-              counter.lastMatchedAt = null
-            }
-            await setState({ ...state, rules: nextRules })
-            broadcast({ type: 'state:hit-reset' })
-          }
+          await resetMatchedState()
         }
         const attachedRef = toTabRef(targetTab)
         if (attachedRef) {
