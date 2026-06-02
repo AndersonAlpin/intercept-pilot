@@ -23,22 +23,36 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .header { background: transparent; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .header-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
 .brand-logo { height: 40px; width: auto; display: block; }
-.capture-context { min-width: 0; }
-.attach-status { margin: 2px 0 0; display: inline-flex; align-items: center; gap: 6px; color: var(--text-soft); }
+.capture-context { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.capture-status-row { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; flex-wrap: wrap; }
+.attach-status { margin: 0; display: flex; align-items: center; gap: 6px; color: var(--text-soft); }
 .attach-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
 .attach-status.is-attached::before { background: var(--success); }
 .attach-status.is-detached::before { background: var(--danger); }
 .attach-status.is-busy::before { background: var(--warning); }
-.tab-focus-link { margin: 4px 0 0; border: 0; background: transparent; color: var(--text-muted); font: inherit; font-size: 12px; line-height: 1.35; text-align: left; padding: 0; cursor: pointer; overflow-wrap: anywhere; }
+.tab-focus-link { margin: 0; border: 0; background: transparent; color: var(--text-muted); font: inherit; font-size: 12px; line-height: 1.35; text-align: left; padding: 0; cursor: pointer; overflow-wrap: anywhere; }
 .tab-focus-link:hover { color: #c9d9ff; text-decoration: underline; }
 .tab-focus-link:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .22); }
 .auto-attach-link { margin: 2px 0 0; border: 0; background: transparent; color: var(--accent-strong); font: inherit; font-size: 12px; line-height: 1.35; text-align: left; padding: 0; cursor: pointer; }
 .auto-attach-link:hover { color: #c9d9ff; text-decoration: underline; }
 .auto-attach-link:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .22); }
-.tab-context-empty { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
-.capture-mode-line { margin: 4px 0 0; border: 0; background: transparent; color: var(--text-muted); font: inherit; font-size: 12px; line-height: 1.35; text-align: left; padding: 0; cursor: pointer; }
-.capture-mode-line:hover { color: #c9d9ff; text-decoration: underline; }
-.capture-mode-line:focus-visible { outline: none; border-radius: 6px; box-shadow: 0 0 0 3px rgba(91, 130, 255, .22); }
+.tab-context-empty { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+.capture-mode-badge {
+  min-height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(31, 41, 55, .72);
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+.capture-mode-badge:hover { color: #c9d9ff; border-color: var(--border-strong); background: var(--surface-2); }
+.capture-mode-badge:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91, 130, 255, .22); }
 .capture-actions { display: flex; flex-direction: column; gap: 8px; }
 .capture-actions-main { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .capture-actions .btn { width: 100%; min-width: 0; }
