@@ -1435,15 +1435,17 @@ function bindEvents() {
 
   document.querySelectorAll('[data-full-collection-delete]').forEach(button => {
     button.addEventListener('click', async () => {
+      const collectionId = button.dataset.fullCollectionDelete
+      const collection = state.collections.find(item => item.id === collectionId)
       const ok = await confirmDialog({
         title: t('collections.deleteTitle'),
-        message: t('collections.deleteConfirm'),
+        message: t('collections.deleteConfirm', { name: collection?.name || t('collections.defaultName') }),
         confirmLabel: t('common.delete'),
         cancelLabel: t('common.cancel'),
         danger: true
       })
       if (!ok) return
-      await sendMessage({ type: MSG.COLLECTIONS_DELETE, collectionId: button.dataset.fullCollectionDelete })
+      await sendMessage({ type: MSG.COLLECTIONS_DELETE, collectionId })
       await refreshState()
     })
   })
