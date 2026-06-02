@@ -37,9 +37,14 @@ test('rules page renders bulk selection controls', () => {
   })
 
   assert.match(html, /id="full-rules-select-all"/)
+  assert.match(html, /class="ui-checkbox/)
   assert.match(html, /data-full-rule-select="rule-a"/)
   assert.match(html, /data-full-rule-select="rule-b"/)
-  assert.match(html, /id="full-delete-selected-rules-btn"[^>]*disabled/)
+  assert.doesNotMatch(html, /<button class="btn danger" id="full-delete-selected-rules-btn"/)
+  assert.match(html, /id="full-rules-selection-bar"/)
+  assert.match(html, /data-floating-selection-bar/)
+  assert.match(html, /id="full-clear-selected-rules-btn"/)
+  assert.match(html, /id="full-delete-selected-rules-btn"/)
 })
 
 test('rules page does not show stale matched state while capture is inactive', () => {

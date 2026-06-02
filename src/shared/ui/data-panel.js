@@ -7,6 +7,7 @@ export function renderDataPanel({
   actionsHtml = '',
   filtersHtml = '',
   bodyHtml = '',
+  overlayHtml = '',
   footerHtml = '',
   className,
   headerClassName,
@@ -50,6 +51,7 @@ export function renderDataPanel({
       <div ${renderAttrs({ ...(bodyAttrs || {}), class: joinClasses('data-panel__body', bodyClassName, bodyAttrs?.class) })}>
         <div ${renderAttrs({ ...(scrollAttrs || {}), class: joinClasses('data-panel__scroll', scrollClassName, scrollAttrs?.class) })}>${bodyHtml}</div>
       </div>
+      ${overlayHtml}
       ${footer}
     </section>
   `

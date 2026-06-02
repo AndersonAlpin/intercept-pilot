@@ -8,6 +8,8 @@ import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderRuleActionBadge, renderRuleStateBadge } from '../../shared/ui/rule-status.js'
 import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 import { renderSelect } from '../../shared/ui/select.js'
+import { renderCheckbox } from '../../shared/ui/checkbox.js'
+import { renderFloatingSelectionBar } from '../../shared/ui/floating-selection-bar.js'
 
 const LABEL_TOOLTIP_DELAY_MS = 700
 
@@ -88,7 +90,7 @@ export function renderRulesPage(state) {
   const header = `
     <div class="table-row row-rule rules-header" role="row">
       <div role="columnheader" class="col-select">
-        <input type="checkbox" id="full-rules-select-all" data-full-rules-select-all aria-label="${escapeHtml(t('common.selectAll'))}" />
+        ${renderCheckbox({ id: 'full-rules-select-all', data: { 'full-rules-select-all': true }, ariaLabel: t('common.selectAll') })}
       </div>
       <div role="columnheader">${escapeHtml(t('rules.columns.rule'))}</div>
       <div role="columnheader">${escapeHtml(t('rules.columns.status'))}</div>
@@ -114,7 +116,7 @@ export function renderRulesPage(state) {
           return `
             <div class="table-row row-rule ${rule.diagnostics?.lastError ? 'row-error' : ''}" role="row">
               <div class="col-select">
-                <input type="checkbox" data-full-rule-select="${rule.id}" aria-label="${escapeHtml(t('rules.selectRule'))}" />
+                ${renderCheckbox({ data: { 'full-rule-select': rule.id }, ariaLabel: t('rules.selectRule') })}
               </div>
               <div class="cell-rule">
                 <strong ${renderTruncatedTooltipAttrs(rule.name, 60)}>${escapeHtml(truncate(rule.name, 60))}</strong>
@@ -156,11 +158,18 @@ export function renderRulesPage(state) {
       ${renderDataPanel({
         title: t('rules.title'),
         actionsHtml: `
-          <button class="btn danger" id="full-delete-selected-rules-btn" disabled>${escapeHtml(t('rules.deleteSelected'))}</button>
           <button class="btn primary" id="full-new-rule-btn">${escapeHtml(t('fullapp.newRule'))}</button>
         `,
         filtersHtml,
         bodyHtml,
+        overlayHtml: renderFloatingSelectionBar({
+          id: 'full-rules-selection-bar',
+          label: `0 ${t('rules.entityMany')} ${t('common.selectedMany')}`,
+          clearLabel: t('common.clear'),
+          deleteLabel: t('common.delete'),
+          clearId: 'full-clear-selected-rules-btn',
+          deleteId: 'full-delete-selected-rules-btn'
+        }),
         footerHtml: footerCount ? `<span class="data-panel__count">${escapeHtml(footerCount)}</span>` : '',
         className: 'rules-data-panel'
       })}

@@ -44,6 +44,7 @@ import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from 
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
+import { getBulkDeleteDialogCopy } from '../shared/bulk-delete-dialog.js'
 
 const PAGE_IDS = ['dashboard', 'rules', 'collections', 'network', 'logs', 'import-export', 'diagnostics', 'settings']
 const PAGE_URL_ALIASES = {
@@ -1122,36 +1123,69 @@ function bindEvents() {
   document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => openFullPage(button.dataset.page)))
   bindTopbarEvents()
 
-  const updateRulesBulkDelete = () => {
-    const selected = [...document.querySelectorAll('[data-full-rule-select]:checked')]
-    const button = $('#full-delete-selected-rules-btn')
-    if (button) {
-      button.disabled = selected.length === 0
-      button.textContent = selected.length ? `${t('rules.deleteSelected')} (${selected.length})` : t('rules.deleteSelected')
+  function formatSelectionLabel(count, entityOne, entityMany) {
+    const entity = count === 1 ? entityOne : entityMany
+    const selectedWord = count === 1 ? t('common.selectedOne') : t('common.selectedMany')
+    return `${count} ${entity} ${selectedWord}`
+  }
+
+  function updateSelectionBar({
+    itemSelector,
+    allSelector,
+    barSelector,
+    deleteButtonSelector,
+    entityOne,
+    entityMany
+  }) {
+    const inputs = [...document.querySelectorAll(itemSelector)]
+    const selected = inputs.filter(input => input.checked)
+    const bar = $(barSelector)
+    const deleteButton = $(deleteButtonSelector)
+    const label = bar?.querySelector('[data-floating-selection-label]')
+    const hasSelection = selected.length > 0
+
+    inputs.forEach(input => {
+      input.closest('.table-row')?.classList.toggle('is-selected', input.checked)
+    })
+
+    if (bar) {
+      bar.hidden = !hasSelection
+      bar.classList.toggle('is-visible', hasSelection)
+      bar.closest('.data-panel')?.classList.toggle('has-selection', hasSelection)
     }
-    const all = $('#full-rules-select-all')
-    const candidates = [...document.querySelectorAll('[data-full-rule-select]')]
+    if (label) label.textContent = formatSelectionLabel(selected.length, entityOne, entityMany)
+    if (deleteButton) deleteButton.disabled = !hasSelection
+    if (bar) {
+      bar.querySelectorAll('.floating-selection-bar__button').forEach(button => {
+        button.disabled = !hasSelection
+      })
+    }
+
+    const all = $(allSelector)
     if (all) {
-      all.checked = candidates.length > 0 && selected.length === candidates.length
-      all.indeterminate = selected.length > 0 && selected.length < candidates.length
+      all.checked = inputs.length > 0 && selected.length === inputs.length
+      all.indeterminate = selected.length > 0 && selected.length < inputs.length
+      all.disabled = inputs.length === 0
     }
   }
 
-  const updateCollectionsBulkDelete = () => {
-    const selected = [...document.querySelectorAll('[data-full-collection-select]:checked')]
-    const button = $('#full-delete-selected-collections-btn')
-    if (button) {
-      button.disabled = selected.length === 0
-      button.textContent = selected.length ? `${t('collections.deleteSelected')} (${selected.length})` : t('collections.deleteSelected')
-    }
-    const all = $('#full-collections-select-all')
-    const candidates = [...document.querySelectorAll('[data-full-collection-select]:not(:disabled)')]
-    if (all) {
-      all.checked = candidates.length > 0 && selected.length === candidates.length
-      all.indeterminate = selected.length > 0 && selected.length < candidates.length
-      all.disabled = candidates.length === 0
-    }
-  }
+  const updateRulesBulkDelete = () => updateSelectionBar({
+    itemSelector: '[data-full-rule-select]',
+    allSelector: '#full-rules-select-all',
+    barSelector: '#full-rules-selection-bar',
+    deleteButtonSelector: '#full-delete-selected-rules-btn',
+    entityOne: t('rules.entityOne'),
+    entityMany: t('rules.entityMany')
+  })
+
+  const updateCollectionsBulkDelete = () => updateSelectionBar({
+    itemSelector: '[data-full-collection-select]:not(:disabled)',
+    allSelector: '#full-collections-select-all',
+    barSelector: '#full-collections-selection-bar',
+    deleteButtonSelector: '#full-delete-selected-collections-btn',
+    entityOne: t('collections.entityOne'),
+    entityMany: t('collections.entityMany')
+  })
 
   $('#full-rules-select-all')?.addEventListener('change', event => {
     document.querySelectorAll('[data-full-rule-select]').forEach(input => {
@@ -1164,15 +1198,23 @@ function bindEvents() {
     input.addEventListener('change', updateRulesBulkDelete)
   })
 
+  $('#full-clear-selected-rules-btn')?.addEventListener('click', () => {
+    document.querySelectorAll('[data-full-rule-select]').forEach(input => {
+      input.checked = false
+    })
+    updateRulesBulkDelete()
+  })
+
   $('#full-delete-selected-rules-btn')?.addEventListener('click', async () => {
     const ruleIds = [...document.querySelectorAll('[data-full-rule-select]:checked')]
       .map(input => input.dataset.fullRuleSelect)
       .filter(Boolean)
     if (!ruleIds.length) return
+    const copy = getBulkDeleteDialogCopy('rules', ruleIds.length)
     const ok = await confirmDialog({
-      title: t('rules.deleteTitle'),
-      message: t('rules.deleteConfirm'),
-      confirmLabel: t('common.delete'),
+      title: copy.title,
+      message: copy.message,
+      confirmLabel: copy.confirmLabel,
       cancelLabel: t('common.cancel'),
       danger: true
     })
@@ -1194,15 +1236,23 @@ function bindEvents() {
     input.addEventListener('change', updateCollectionsBulkDelete)
   })
 
+  $('#full-clear-selected-collections-btn')?.addEventListener('click', () => {
+    document.querySelectorAll('[data-full-collection-select]:not(:disabled)').forEach(input => {
+      input.checked = false
+    })
+    updateCollectionsBulkDelete()
+  })
+
   $('#full-delete-selected-collections-btn')?.addEventListener('click', async () => {
     const collectionIds = [...document.querySelectorAll('[data-full-collection-select]:checked')]
       .map(input => input.dataset.fullCollectionSelect)
       .filter(Boolean)
     if (!collectionIds.length) return
+    const copy = getBulkDeleteDialogCopy('collections', collectionIds.length)
     const ok = await confirmDialog({
-      title: t('collections.deleteTitle'),
-      message: t('collections.deleteConfirm'),
-      confirmLabel: t('common.delete'),
+      title: copy.title,
+      message: copy.message,
+      confirmLabel: copy.confirmLabel,
       cancelLabel: t('common.cancel'),
       danger: true
     })
@@ -1210,6 +1260,9 @@ function bindEvents() {
     await sendMessage({ type: MSG.COLLECTIONS_DELETE_MANY, collectionIds })
     await refreshState()
   })
+
+  updateRulesBulkDelete()
+  updateCollectionsBulkDelete()
 
   $('#full-rules-collection')?.addEventListener('change', async event => {
     if (!event.target.value) return

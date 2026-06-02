@@ -4,6 +4,8 @@ import { icon } from '../../shared/icons.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
 import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
+import { renderCheckbox } from '../../shared/ui/checkbox.js'
+import { renderFloatingSelectionBar } from '../../shared/ui/floating-selection-bar.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
@@ -27,7 +29,7 @@ export function renderCollectionsPage(state) {
   const header = `
     <div class="table-row row-collection rules-header" role="row">
       <div role="columnheader" class="col-select">
-        <input type="checkbox" id="full-collections-select-all" data-full-collections-select-all aria-label="${escapeHtml(t('common.selectAll'))}" />
+        ${renderCheckbox({ id: 'full-collections-select-all', data: { 'full-collections-select-all': true }, ariaLabel: t('common.selectAll') })}
       </div>
       <div role="columnheader">${escapeHtml(t('collections.title'))}</div>
       <div role="columnheader">${escapeHtml(t('collections.status'))}</div>
@@ -48,7 +50,7 @@ export function renderCollectionsPage(state) {
           ${collections.length ? collections.map(collection => `
             <div class="table-row row-collection">
               <div class="col-select">
-                <input type="checkbox" data-full-collection-select="${collection.id}" ${collection.id === 'collection-default' ? 'disabled' : ''} aria-label="${escapeHtml(t('collections.selectCollection'))}" />
+                ${renderCheckbox({ data: { 'full-collection-select': collection.id }, disabled: collection.id === 'collection-default', ariaLabel: t('collections.selectCollection') })}
               </div>
               <div class="cell-rule">
                 <strong>${escapeHtml(displayCollectionName(collection))}</strong>
@@ -89,11 +91,18 @@ export function renderCollectionsPage(state) {
       ${renderDataPanel({
         title: t('collections.title'),
         actionsHtml: `
-          <button class="btn danger" id="full-delete-selected-collections-btn" disabled>${escapeHtml(t('collections.deleteSelected'))}</button>
           <button class="btn primary" id="full-new-collection-btn">${t('collections.newCollection')}</button>
         `,
         filtersHtml,
         bodyHtml,
+        overlayHtml: renderFloatingSelectionBar({
+          id: 'full-collections-selection-bar',
+          label: `0 ${t('collections.entityMany')} ${t('common.selectedMany')}`,
+          clearLabel: t('common.clear'),
+          deleteLabel: t('common.delete'),
+          clearId: 'full-clear-selected-collections-btn',
+          deleteId: 'full-delete-selected-collections-btn'
+        }),
         footerHtml: `<span class="data-panel__count">${escapeHtml(footerCount)}</span>`,
         className: 'collections-data-panel'
       })}
