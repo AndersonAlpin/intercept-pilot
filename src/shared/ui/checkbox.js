@@ -7,6 +7,7 @@ export function renderCheckbox({
   ariaLabel,
   className,
   attrs,
+  wrapperAttrs,
   data
 } = {}) {
   const inputAttrs = {
@@ -20,8 +21,12 @@ export function renderCheckbox({
   if (ariaLabel != null) inputAttrs['aria-label'] = ariaLabel
 
   const inputHtml = `<input ${joinClasses(renderAttrs({ ...inputAttrs, ...(attrs || {}) }), dataAttrs)} />`
+  const labelAttrs = renderAttrs({
+    ...(wrapperAttrs || {}),
+    class: joinClasses('ui-checkbox', className)
+  })
   return `
-    <label class="${joinClasses('ui-checkbox', className)}">
+    <label ${labelAttrs}>
       ${inputHtml}
       <span class="ui-checkbox__box" aria-hidden="true"></span>
     </label>

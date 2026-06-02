@@ -3,7 +3,7 @@ import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
-import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
+import { getTooltipAttrs, renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 import { renderCheckbox } from '../../shared/ui/checkbox.js'
 import { renderFloatingSelectionBar } from '../../shared/ui/floating-selection-bar.js'
 
@@ -50,7 +50,12 @@ export function renderCollectionsPage(state) {
           ${collections.length ? collections.map(collection => `
             <div class="table-row row-collection">
               <div class="col-select">
-                ${renderCheckbox({ data: { 'full-collection-select': collection.id }, disabled: collection.id === 'collection-default', ariaLabel: t('collections.selectCollection') })}
+                ${renderCheckbox({
+                  data: { 'full-collection-select': collection.id },
+                  disabled: collection.id === 'collection-default',
+                  ariaLabel: t('collections.selectCollection'),
+                  wrapperAttrs: collection.id === 'collection-default' ? getTooltipAttrs(t('collections.defaultCannotDelete')) : null
+                })}
               </div>
               <div class="cell-rule">
                 <strong>${escapeHtml(displayCollectionName(collection))}</strong>

@@ -52,7 +52,7 @@ const ptBR = {
     deleteSelectedConfirmMany: 'As {count} coleções selecionadas e todas as regras dentro delas serão removidas.\nEssa ação não pode ser desfeita.',
     deleteSelectedSuccessOne: 'Coleção selecionada excluída.',
     deleteSelectedSuccessMany: '{count} coleções selecionadas excluídas.',
-    selectCollection: 'Selecionar coleção', rulesCount: 'regra(s)', enabledRules: 'Ativas', entityOne: 'coleção', entityMany: 'coleções'
+    selectCollection: 'Selecionar coleção', defaultCannotDelete: 'A coleção padrão não pode ser removida.', rulesCount: 'regra(s)', enabledRules: 'Ativas', entityOne: 'coleção', entityMany: 'coleções'
   },
   rules: {
     title: 'Regras', entityOne: 'regra', entityMany: 'regras', newRule: '+ Regra', searchPlaceholder: 'Buscar regras', noRules: 'Sem regras nesta coleção.',

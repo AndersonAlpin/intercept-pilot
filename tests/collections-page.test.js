@@ -42,6 +42,7 @@ test('collections page renders bulk selection controls without allowing default 
   assert.match(html, /class="ui-checkbox/)
   assert.match(html, /data-full-collection-select="collection-custom"/)
   assert.match(html, /<input[^>]*disabled[^>]*data-full-collection-select="collection-default"/)
+  assert.match(html, /data-tooltip="A coleção padrão não pode ser removida\."/)
   assert.doesNotMatch(html, /<button class="btn danger" id="full-delete-selected-collections-btn"/)
   assert.match(html, /id="full-collections-selection-bar"/)
   assert.match(html, /data-floating-selection-bar/)

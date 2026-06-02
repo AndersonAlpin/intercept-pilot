@@ -115,6 +115,7 @@ const en = {
     deleteSelectedSuccessOne: 'Selected collection deleted.',
     deleteSelectedSuccessMany: '{count} selected collections deleted.',
     selectCollection: 'Select collection',
+    defaultCannotDelete: 'The default collection cannot be removed.',
     rulesCount: 'rule(s)',
     enabledRules: 'Enabled',
     entityOne: 'collection',

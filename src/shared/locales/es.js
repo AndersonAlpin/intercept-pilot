@@ -52,7 +52,7 @@ const es = {
     deleteSelectedConfirmMany: 'Las {count} colecciones seleccionadas y todas las reglas dentro de ellas se eliminarán.\nEsta acción no se puede deshacer.',
     deleteSelectedSuccessOne: 'Colección seleccionada eliminada.',
     deleteSelectedSuccessMany: '{count} colecciones seleccionadas eliminadas.',
-    selectCollection: 'Seleccionar colección', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
+    selectCollection: 'Seleccionar colección', defaultCannotDelete: 'La colección predeterminada no se puede eliminar.', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
   },
   rules: {
     title: 'Reglas', entityOne: 'regla', entityMany: 'reglas', newRule: '+ Regla', searchPlaceholder: 'Buscar reglas', noRules: 'No hay reglas en esta colección.',
