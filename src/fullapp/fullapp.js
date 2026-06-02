@@ -44,7 +44,7 @@ import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from 
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
-import { getBulkDeleteDialogCopy } from '../shared/bulk-delete-dialog.js'
+import { getBulkDeleteDialogCopy, getBulkDeleteSuccessMessage } from '../shared/bulk-delete-dialog.js'
 
 const PAGE_IDS = ['dashboard', 'rules', 'collections', 'network', 'logs', 'import-export', 'diagnostics', 'settings']
 const PAGE_URL_ALIASES = {
@@ -1221,7 +1221,7 @@ function bindEvents() {
     if (!ok) return
     await sendMessage({ type: MSG.RULES_DELETE_MANY, ruleIds })
     if (state.editingRule && ruleIds.includes(state.editingRule.id)) state.editingRule = null
-    toastSuccess(t('rules.deleteSuccess'))
+    toastSuccess(getBulkDeleteSuccessMessage('rules', ruleIds.length))
     await refreshState()
   })
 
@@ -1258,6 +1258,7 @@ function bindEvents() {
     })
     if (!ok) return
     await sendMessage({ type: MSG.COLLECTIONS_DELETE_MANY, collectionIds })
+    toastSuccess(getBulkDeleteSuccessMessage('collections', collectionIds.length))
     await refreshState()
   })
 

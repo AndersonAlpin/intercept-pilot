@@ -50,6 +50,8 @@ const ptBR = {
     deleteSelectedTitleOne: 'Excluir coleção selecionada', deleteSelectedTitleMany: 'Excluir coleções selecionadas',
     deleteSelectedConfirmOne: 'Excluir 1 coleção selecionada? As regras dessa coleção também serão removidas.',
     deleteSelectedConfirmMany: 'Excluir {count} coleções selecionadas? As regras dessas coleções também serão removidas.',
+    deleteSelectedSuccessOne: 'Coleção selecionada excluída.',
+    deleteSelectedSuccessMany: '{count} coleções selecionadas excluídas.',
     selectCollection: 'Selecionar coleção', rulesCount: 'regra(s)', enabledRules: 'Ativas', entityOne: 'coleção', entityMany: 'coleções'
   },
   rules: {
@@ -63,6 +65,8 @@ const ptBR = {
     deleteTitle: 'Excluir regra', deleteSelected: 'Excluir selecionadas',
     deleteSelectedTitleOne: 'Excluir regra selecionada', deleteSelectedTitleMany: 'Excluir regras selecionadas',
     deleteSelectedConfirmOne: 'Excluir 1 regra selecionada?', deleteSelectedConfirmMany: 'Excluir {count} regras selecionadas?',
+    deleteSelectedSuccessOne: 'Regra selecionada excluída.',
+    deleteSelectedSuccessMany: '{count} regras selecionadas excluídas.',
     selectRule: 'Selecionar regra', deleteSuccess: 'Regra excluída.',
     createFromRequestError: 'Falha ao criar regra da requisição.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON da regra copiado.',

@@ -9,3 +9,9 @@ export function getBulkDeleteDialogCopy(scope, count = 0) {
     confirmLabel: t('common.delete')
   }
 }
+
+export function getBulkDeleteSuccessMessage(scope, count = 0) {
+  const namespace = scope === 'collections' ? 'collections' : 'rules'
+  const suffix = Number(count) === 1 ? 'One' : 'Many'
+  return t(`${namespace}.deleteSelectedSuccess${suffix}`, { count })
+}

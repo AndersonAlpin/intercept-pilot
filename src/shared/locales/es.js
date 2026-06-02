@@ -50,6 +50,8 @@ const es = {
     deleteSelectedTitleOne: 'Eliminar colección seleccionada', deleteSelectedTitleMany: 'Eliminar colecciones seleccionadas',
     deleteSelectedConfirmOne: '¿Eliminar 1 colección seleccionada? También se eliminarán sus reglas.',
     deleteSelectedConfirmMany: '¿Eliminar {count} colecciones seleccionadas? También se eliminarán las reglas de esas colecciones.',
+    deleteSelectedSuccessOne: 'Colección seleccionada eliminada.',
+    deleteSelectedSuccessMany: '{count} colecciones seleccionadas eliminadas.',
     selectCollection: 'Seleccionar colección', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
   },
   rules: {
@@ -63,6 +65,8 @@ const es = {
     deleteTitle: 'Eliminar regla', deleteSelected: 'Eliminar seleccionadas',
     deleteSelectedTitleOne: 'Eliminar regla seleccionada', deleteSelectedTitleMany: 'Eliminar reglas seleccionadas',
     deleteSelectedConfirmOne: '¿Eliminar 1 regla seleccionada?', deleteSelectedConfirmMany: '¿Eliminar {count} reglas seleccionadas?',
+    deleteSelectedSuccessOne: 'Regla seleccionada eliminada.',
+    deleteSelectedSuccessMany: '{count} reglas seleccionadas eliminadas.',
     selectRule: 'Seleccionar regla', deleteSuccess: 'Regla eliminada.',
     createFromRequestError: 'Error al crear regla desde request.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON de la regla copiado.',
