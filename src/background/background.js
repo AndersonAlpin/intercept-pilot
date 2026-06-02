@@ -1416,6 +1416,7 @@ chrome.debugger.onDetach.addListener(async (source, reason) => {
     runtimeState.requestRuleMap.clear()
     await clearPersistedAttachedSession()
     await flushHits().catch(() => {})
+    await resetMatchedState()
     await pushLog({ level: 'warn', scope: 'debugger', message: `Detached: ${reason}` })
     await updateConnectionFromActiveTab()
     await broadcastConnectionState()
@@ -1498,6 +1499,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             runtimeState.candidateTab = tabRef
           }
           await enableCompatForTab(tabId)
+          await resetMatchedState()
           await updateConnectionFromActiveTab()
           await pushLog({ level: 'info', scope: 'runtime', message: `Light capture enabled for tab ${tabId}` })
           await broadcastConnectionState()
@@ -1518,6 +1520,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               runtimeState.candidateTab = tabRef
             }
             await enableCompatForTab(tabId)
+            await resetMatchedState()
             await updateConnectionFromActiveTab()
             await pushLog({
               level: 'warn',
@@ -1559,6 +1562,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const compatTabId = explicitTabId || getCompatActiveTabId(state.settings, runtimeState.candidateTab?.id || runtimeState.activeTab?.id || null)
           if (!runtimeState.attachedTabId && compatTabId) {
             await disableCompatForTab(compatTabId)
+            await resetMatchedState()
             await updateConnectionFromActiveTab()
             await broadcastConnectionState()
             await pushLog({ level: 'info', scope: 'runtime', message: `Light capture stopped for tab ${compatTabId}` })
@@ -1567,6 +1571,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
         }
         await detachCurrentTab()
+        await resetMatchedState()
         await updateConnectionFromActiveTab()
         await broadcastConnectionState()
         sendResponse({ attachedTabId: null })

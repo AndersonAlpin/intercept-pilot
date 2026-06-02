@@ -65,6 +65,25 @@ test('rules page does not show stale matched state while capture is inactive', (
   assert.match(html, /data-state="ready"/)
 })
 
+test('rules page keeps reset hit counts ready while capture is active', () => {
+  const html = renderRulesPage({
+    attachedTabId: null,
+    compatActiveTabId: 123,
+    settings: { activeCollectionId: 'collection-enabled' },
+    collections: [
+      { id: 'collection-enabled', name: 'Enabled scenarios', enabled: true }
+    ],
+    rules: [
+      { id: 'rule-a', name: 'Rule A', collectionId: 'collection-enabled', enabled: true, match: { method: 'GET', urlPattern: '/a' }, action: { type: 'mockResponse', statusCode: 200 }, diagnostics: { matchCount: 5, lastMatchedAt: null } }
+    ],
+    rulesSearch: ''
+  })
+
+  assert.match(html, />5</)
+  assert.doesNotMatch(html, /data-state="matched"/)
+  assert.match(html, /data-state="ready"/)
+})
+
 test('rules page state badges do not duplicate visible labels as tooltips', () => {
   const html = renderRulesPage({
     attachedTabId: null,
