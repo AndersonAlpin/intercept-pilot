@@ -37,6 +37,7 @@ export function renderLogsPage(state) {
   const logs = state.filteredLogs || state.logs.filter(isWebLog)
   const pagedLogs = state.pagedLogs || logs
   const total = (state.visibleLogs || []).filter(isWebLog).length
+  const canClearLogs = total > 0
   const pageSize = Number(state.logsPagination?.pageSize || 100)
   const page = Number(state.logsPagination?.page || 1)
   const start = logs.length ? ((page - 1) * pageSize) + 1 : 0
@@ -93,7 +94,13 @@ export function renderLogsPage(state) {
     <section class="split-page logs-page">
       ${renderDataPanel({
         title: t('logs.title'),
-        actionsHtml: renderButton({ id: 'full-clear-logs', label: t('logs.clearLogs'), variant: 'warning' }),
+        actionsHtml: renderButton({
+          id: 'full-clear-logs',
+          label: t('logs.clearLogs'),
+          variant: 'warning',
+          disabled: !canClearLogs,
+          tooltip: !canClearLogs ? t('logs.clearDisabled') : ''
+        }),
         filtersHtml,
         bodyHtml,
         footerHtml: renderPagination({

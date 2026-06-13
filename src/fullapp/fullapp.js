@@ -26,6 +26,7 @@ import { findCollectionConflictById, parseImportBundle } from '../shared/import-
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import { entryToCurl, entryToFetch } from '../shared/network-format.js'
 import { delegate, patchHtml } from '../shared/ui/dom.js'
+import { renderButton } from '../shared/ui/button.js'
 import { renderDataPanel } from '../shared/ui/data-panel.js'
 import { bindSelectMenus, renderSelect } from '../shared/ui/select.js'
 import { renderSwitch } from '../shared/ui/toggle.js'
@@ -353,7 +354,18 @@ function settingsSnapshotsEqual(a, b) {
 
 function setSettingsSaveEnabled(enabled) {
   const button = $('#settings-save-btn')
-  if (button) button.disabled = !enabled
+  if (!button) return
+  button.disabled = !enabled
+  const wrapper = button.closest('.btn-tooltip-wrapper')
+  if (!wrapper) return
+  if (enabled) {
+    wrapper.removeAttribute('data-tooltip')
+    wrapper.removeAttribute('data-tooltip-delay')
+    wrapper.removeAttribute('tabindex')
+    return
+  }
+  wrapper.setAttribute('data-tooltip', t('fullapp.saveSettingsDisabled'))
+  wrapper.setAttribute('tabindex', '0')
 }
 
 function hasValidImportJson() {
@@ -418,7 +430,13 @@ function renderSettingsPage() {
 
   return renderDataPanel({
     title: t('common.settings'),
-    actionsHtml: `<button class="btn primary" id="settings-save-btn" disabled>${t('fullapp.saveSettings')}</button>`,
+    actionsHtml: renderButton({
+      id: 'settings-save-btn',
+      label: t('fullapp.saveSettings'),
+      variant: 'primary',
+      disabled: true,
+      tooltip: t('fullapp.saveSettingsDisabled')
+    }),
     bodyHtml,
     className: 'settings-panel'
   })

@@ -80,6 +80,8 @@ test('rules page keeps reset hit counts ready while capture is active', () => {
   })
 
   assert.match(html, />5</)
+  assert.match(html, /class="rule-hits-cell"[^>]*data-rule-hit="rule-a"[^>]*>5</)
+  assert.doesNotMatch(html, /class="rule-hits-cell"[^>]*data-tooltip=/)
   assert.doesNotMatch(html, /data-state="matched"/)
   assert.match(html, /data-state="ready"/)
 })

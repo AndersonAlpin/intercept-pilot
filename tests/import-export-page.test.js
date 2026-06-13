@@ -21,3 +21,13 @@ test('import page puts templates menu beside JSON file action and removes templa
   assert.ok(fileIndex > -1)
   assert.ok(templatesIndex < fileIndex)
 })
+
+test('import page disabled JSON import button explains why it is inactive', () => {
+  setLocale('pt-BR')
+  const html = renderImportExportPage({ lastImportExportMessage: '' })
+
+  assert.match(html, /class="btn-tooltip-wrapper"/)
+  assert.match(html, /tabindex="0"/)
+  assert.match(html, /data-tooltip="Cole um JSON válido para importar"/)
+  assert.match(html, /<button[^>]*id="full-import-json-btn"[^>]*disabled/)
+})

@@ -151,6 +151,7 @@ export function renderNetworkFooter(state) {
 }
 
 export function renderNetworkPage(state) {
+  const canClearNetwork = (state.visibleNetworkEntries || []).some(isRenderableNetworkEntry)
   const filtersHtml = `
     <div class="filters-row">
       <input class="input filter-grow" id="full-network-url" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilter.url || '')}" spellcheck="false" autocomplete="off" />
@@ -169,7 +170,13 @@ export function renderNetworkPage(state) {
     <section class="split-page network-page">
       ${renderDataPanel({
         title: t('network.title'),
-        actionsHtml: renderButton({ id: 'full-network-clear', label: t('network.clearNetwork'), variant: 'warning' }),
+        actionsHtml: renderButton({
+          id: 'full-network-clear',
+          label: t('network.clearNetwork'),
+          variant: 'warning',
+          disabled: !canClearNetwork,
+          tooltip: !canClearNetwork ? t('network.clearDisabled') : ''
+        }),
         filtersHtml,
         bodyHtml,
         footerHtml: renderNetworkFooter(state),

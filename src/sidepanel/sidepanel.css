@@ -56,6 +56,7 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .capture-actions { display: flex; flex-direction: column; gap: 8px; }
 .capture-actions-main { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .capture-actions .btn { width: 100%; min-width: 0; }
+.capture-actions .btn-tooltip-wrapper { width: 100%; }
 .capture-start-btn,
 .capture-new-tab-btn { width: 100%; }
 .actions-menu { position: relative; }
@@ -331,6 +332,18 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
 .btn.ghost:hover:not(:disabled) { background: rgba(255, 255, 255, .04); border-color: var(--border-strong); color: var(--text); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-tooltip-wrapper {
+  display: inline-flex;
+  max-width: 100%;
+}
+.btn-tooltip-wrapper:focus-visible {
+  outline: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px rgba(91, 130, 255, .22);
+}
+.btn-tooltip-wrapper > .btn:disabled {
+  pointer-events: none;
+}
 .btn svg {
   display: block;
   flex-shrink: 0;

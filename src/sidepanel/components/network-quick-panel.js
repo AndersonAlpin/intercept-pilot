@@ -116,6 +116,7 @@ export function renderNetworkQuickRows(state) {
 export function renderNetworkQuickPanel(state) {
   const countText = renderNetworkQuickCount(state)
   const paginationHtml = renderNetworkQuickPagination(state)
+  const canClearNetwork = (state.visibleNetworkEntries || []).some(isRenderableNetworkEntry)
 
   return `
     <div class="card compact-card sticky-filters">
@@ -123,7 +124,13 @@ export function renderNetworkQuickPanel(state) {
         <div class="row space-between">
           <h2>${t('network.title')}</h2>
           <div class="footer-actions">
-            ${renderButton({ id: 'network-clear-btn', label: t('network.clearNetwork'), variant: 'warning' })}
+            ${renderButton({
+              id: 'network-clear-btn',
+              label: t('network.clearNetwork'),
+              variant: 'warning',
+              disabled: !canClearNetwork,
+              tooltip: !canClearNetwork ? t('network.clearDisabled') : ''
+            })}
           </div>
         </div>
         <div class="column">

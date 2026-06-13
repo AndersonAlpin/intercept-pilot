@@ -1,4 +1,4 @@
-import { escapeHtml, truncate, relativeTime } from '../../shared/utils.js'
+import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { hasActiveCaptureContext } from '../../shared/capture-context.js'
@@ -48,19 +48,7 @@ function stateBadge(rule, captureActive) {
 
 function hitsCell(rule) {
   const count = Number(rule.diagnostics?.matchCount || 0)
-  const last = rule.diagnostics?.lastMatchedAt
-  let tooltip = ''
-  if (last) {
-    const rel = relativeTime(last)
-    if (rel) {
-      tooltip = t('rules.lastMatched', {
-        relative: t(rel.key, { value: rel.value ?? 0 })
-      })
-    }
-  } else {
-    tooltip = t('rules.lastMatchedNever')
-  }
-  return `<span class="rule-hits-cell" data-rule-hit="${rule.id}" ${renderTooltipAttrs(tooltip)}>${count}</span>`
+  return `<span class="rule-hits-cell" data-rule-hit="${rule.id}">${count}</span>`
 }
 
 function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {

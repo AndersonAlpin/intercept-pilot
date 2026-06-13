@@ -32,6 +32,7 @@ export function renderLogsQuickPanel(state) {
   const sourceLogs = state.filteredLogs || (state.logs || []).filter(isWebLog)
   const logs = state.pagedLogs || sourceLogs
   const total = (state.visibleLogs || []).filter(isWebLog).length
+  const canClearLogs = total > 0
   const pageSize = Number(state.logsPagination?.pageSize || 20)
   const page = Number(state.logsPagination?.page || 1)
   const start = sourceLogs.length ? ((page - 1) * pageSize) + 1 : 0
@@ -56,7 +57,13 @@ export function renderLogsQuickPanel(state) {
       <div class="sticky-bar logs-sticky-bar">
         <div class="logs-head">
           <h2>${t('logs.title')}</h2>
-          ${renderButton({ id: 'logs-clear-btn', label: t('logs.clearLogs'), variant: 'warning' })}
+          ${renderButton({
+            id: 'logs-clear-btn',
+            label: t('logs.clearLogs'),
+            variant: 'warning',
+            disabled: !canClearLogs,
+            tooltip: !canClearLogs ? t('logs.clearDisabled') : ''
+          })}
         </div>
         <div class="logs-filter-stack">
           ${renderSelect({ id: 'logs-filter-level', value: state.logsFilter?.level || 'ANY', options: getLogLevelOptions() })}

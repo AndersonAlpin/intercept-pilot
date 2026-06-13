@@ -1,6 +1,7 @@
 import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { getCapturedTab, getCaptureNewTabCandidate, getContextTab, getStartCandidateTab } from '../../shared/capture-tabs.js'
+import { renderButton } from '../../shared/ui/button.js'
 import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 
 export function renderConnectionHeader(state) {
@@ -59,7 +60,15 @@ export function renderConnectionHeader(state) {
             <button class="btn secondary capture-new-tab-btn" id="attach-new-tab-btn" data-tab-id="${escapeHtml(String(newCandidate.id || ''))}" title="${escapeHtml(t('status.captureNewTab'))}" aria-label="${escapeHtml(t('status.captureNewTab'))}" ${state.attachBusy ? 'disabled' : ''}>${t('status.captureNewTab')}</button>
           ` : ''}
         ` : `
-          <button class="btn primary capture-start-btn" id="attach-btn" data-tab-id="${escapeHtml(String(candidateTab?.id || ''))}" ${(!canStart || state.attachBusy) ? 'disabled' : ''}>${state.attachBusy ? t('status.connecting') : t('status.startCapture')}</button>
+          ${renderButton({
+            id: 'attach-btn',
+            label: state.attachBusy ? t('status.connecting') : t('status.startCapture'),
+            variant: 'primary',
+            className: 'capture-start-btn',
+            data: { 'tab-id': candidateTab?.id || '' },
+            disabled: !canStart || state.attachBusy,
+            tooltip: !canStart ? t('status.noCapturableTab') : ''
+          })}
         `}
       </div>
     </header>

@@ -1,6 +1,7 @@
 import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { getCapturedTab, getCaptureNewTabCandidate, getContextTab, getStartCandidateTab } from '../../shared/capture-tabs.js'
+import { renderButton } from '../../shared/ui/button.js'
 import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
 
 export function renderTopbar(state) {
@@ -52,7 +53,14 @@ export function renderTopbar(state) {
             ${newCandidate ? `<button class="btn secondary" id="full-attach-new-tab-btn" data-tab-id="${escapeHtml(String(newCandidate.id || ''))}">${t('status.captureNewTab')}</button>` : ''}
           `
           : `
-            <button class="btn primary" id="full-attach-btn" data-tab-id="${escapeHtml(String(currentTab?.id || ''))}" ${canStart ? '' : 'disabled'}>${t('status.startCapture')}</button>
+            ${renderButton({
+              id: 'full-attach-btn',
+              label: t('status.startCapture'),
+              variant: 'primary',
+              data: { 'tab-id': currentTab?.id || '' },
+              disabled: !canStart,
+              tooltip: !canStart ? t('status.noCapturableTab') : ''
+            })}
           `}
       </div>
     </header>

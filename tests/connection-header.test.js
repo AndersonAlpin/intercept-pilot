@@ -43,3 +43,96 @@ test('sidepanel header uses compact capture mode badge with custom tooltip', () 
   assert.doesNotMatch(html, /id="side-focus-tab-btn"[^>]*title=/)
   assert.doesNotMatch(html, /id="side-capture-mode-settings"[^>]*title=/)
 })
+
+test('full app disabled start capture button explains why it is inactive', () => {
+  const html = renderTopbar({
+    attachedTab: null,
+    compatActiveTab: null,
+    candidateTab: null,
+    lastAttachableTab: null,
+    settings: {}
+  })
+
+  assert.match(html, /class="btn-tooltip-wrapper"/)
+  assert.match(html, /tabindex="0"/)
+  assert.match(html, /data-tooltip="Nenhuma aba capturável"/)
+  assert.match(html, /<button[^>]*id="full-attach-btn"[^>]*disabled/)
+})
+
+test('sidepanel disabled start capture button explains why it is inactive', () => {
+  const html = renderConnectionHeader({
+    attachedTab: null,
+    compatActiveTab: null,
+    candidateTab: null,
+    lastAttachableTab: null,
+    attachBusy: false,
+    settings: {}
+  })
+
+  assert.match(html, /class="btn-tooltip-wrapper"/)
+  assert.match(html, /tabindex="0"/)
+  assert.match(html, /data-tooltip="Nenhuma aba capturável"/)
+  assert.match(html, /<button[^>]*id="attach-btn"[^>]*disabled/)
+})
+
+test('full app header keeps capture active when attached tab details are temporarily missing', () => {
+  const html = renderTopbar({
+    attachedTabId: 42,
+    attachedTab: null,
+    compatActiveTab: null,
+    candidateTab: null,
+    lastAttachableTab: null,
+    settings: {}
+  })
+
+  assert.match(html, /Captura ativa na aba \?/)
+  assert.match(html, /id="full-detach-btn"[^>]*data-tab-id="42"/)
+  assert.doesNotMatch(html, /id="full-attach-btn"[^>]*disabled[^>]*>.*Start capture/s)
+})
+
+test('sidepanel header keeps capture active when attached tab details are temporarily missing', () => {
+  const html = renderConnectionHeader({
+    attachedTabId: 42,
+    attachedTab: null,
+    compatActiveTab: null,
+    candidateTab: null,
+    lastAttachableTab: null,
+    attachBusy: false,
+    settings: {}
+  })
+
+  assert.match(html, /Captura ativa na aba \?/)
+  assert.match(html, /id="detach-btn"[^>]*data-tab-id="42"/)
+  assert.doesNotMatch(html, /id="attach-btn"[^>]*disabled[^>]*>Start capture/)
+})
+
+test('full app header keeps light capture active when compat tab details are temporarily missing', () => {
+  const html = renderTopbar({
+    attachedTab: null,
+    compatActiveTabId: 43,
+    compatActiveTab: null,
+    candidateTab: null,
+    lastAttachableTab: null,
+    settings: { captureMode: 'compat' }
+  })
+
+  assert.match(html, /Captura ativa na aba \?/)
+  assert.match(html, /id="full-detach-btn"[^>]*data-tab-id="43"/)
+  assert.doesNotMatch(html, /id="full-attach-btn"[^>]*disabled[^>]*>.*Start capture/s)
+})
+
+test('sidepanel header keeps light capture active when compat tab details are temporarily missing', () => {
+  const html = renderConnectionHeader({
+    attachedTab: null,
+    compatActiveTabId: 43,
+    compatActiveTab: null,
+    candidateTab: null,
+    lastAttachableTab: null,
+    attachBusy: false,
+    settings: { captureMode: 'compat' }
+  })
+
+  assert.match(html, /Captura ativa na aba \?/)
+  assert.match(html, /id="detach-btn"[^>]*data-tab-id="43"/)
+  assert.doesNotMatch(html, /id="attach-btn"[^>]*disabled[^>]*>Start capture/)
+})
