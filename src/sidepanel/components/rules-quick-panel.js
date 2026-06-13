@@ -1,6 +1,7 @@
 import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
+import { hasActiveCaptureContext } from '../../shared/capture-context.js'
 import { getRuleState } from '../../shared/rule-state.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderImportTemplateMenu } from '../../shared/ui/import-template-menu.js'
@@ -49,6 +50,7 @@ function displayCollectionName(collection) {
 }
 
 export function renderRulesQuickPanel(state) {
+  const captureActive = hasActiveCaptureContext(state)
   const selectableCollections = state.collections.filter(collection => collection.enabled !== false)
   const preferredCollectionId = state.settings?.activeCollectionId
   const activeCollectionId = selectableCollections.some(collection => collection.id === preferredCollectionId)
@@ -90,7 +92,7 @@ export function renderRulesQuickPanel(state) {
       </div>
       <div class="list">
         ${filtered.length ? filtered.map(rule => {
-          const state = getRuleState(rule)
+          const state = getRuleState(rule, { captureActive })
           const stateLabel = t(`rules.states.${state}`)
           const ruleName = rule.name || ''
           const ruleMethod = methodOptionLabel(rule.match?.method || 'ANY')

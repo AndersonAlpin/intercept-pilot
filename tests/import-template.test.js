@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { BUNDLE_TYPE_COLLECTION, BUNDLE_TYPE_RULE, SCHEMA_VERSION } from '../src/shared/export.js'
+import { FAIL_REASONS, MATCH_TYPES, RESOURCE_TYPES } from '../src/shared/constants.js'
 import { parseImportBundle } from '../src/shared/import-bundles.js'
 import { setLocale, t } from '../src/shared/i18n.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../src/shared/import-template.js'
@@ -13,6 +14,7 @@ function tt(key, vars = {}) {
       'Use {schemaVersion}.',
       'Collection type: {collectionType}.',
       'Rule type: {ruleType}.',
+      'Fail reasons: {failReasons}.',
       'Name rules clearly for the test scenario.',
       'Collection JSON example: {collectionExample}',
       'Rule JSON example: {ruleExample}'
@@ -60,14 +62,33 @@ test('AI prompt explains both import formats and asks for JSON only', () => {
   assert.match(prompt, new RegExp(BUNDLE_TYPE_COLLECTION.replace('.', '\\.')))
   assert.match(prompt, new RegExp(BUNDLE_TYPE_RULE.replace('.', '\\.')))
   assert.match(prompt, /Name rules clearly/)
+  assert.match(prompt, new RegExp(FAIL_REASONS.join(', ')))
   assert.match(prompt, /schemaVersion/)
   assert.doesNotMatch(prompt, /```/)
+})
+
+test('AI prompt distinguishes HTTP status mocks from network failures', () => {
+  const prompt = getAiPrompt()
+
+  assert.match(prompt, /mockResponse to simulate any HTTP response status code from 100 to 599/)
+  assert.match(prompt, /301 Moved Permanently/)
+  assert.match(prompt, /401 Unauthorized/)
+  assert.match(prompt, /500 Internal Server Error/)
+  assert.match(prompt, /Location response header/)
+  assert.match(prompt, /failRequest only for network-level failures where no HTTP response should exist/)
+  assert.match(prompt, new RegExp(MATCH_TYPES.join(', ')))
+  assert.match(prompt, new RegExp(RESOURCE_TYPES.join(', ')))
+  assert.match(prompt, /Fields by action\.type:/)
+  assert.match(prompt, /Do not use statusCode for network failures/)
+  assert.match(prompt, /responseBody must be a string/)
+  assert.match(prompt, /Allowed failReason values:/)
 })
 
 test('localized AI prompt states that bundles intercept requests to test scenarios', () => {
   setLocale('pt-BR')
   const prompt = getAiPrompt(t)
 
-  assert.match(prompt, /interceptar requests/i)
-  assert.match(prompt, /testar cen[aá]rios/i)
+  assert.match(prompt, /cen[aá]rios de API/i)
+  assert.match(prompt, /erros HTTP/i)
+  assert.match(prompt, /falhas de rede/i)
 })

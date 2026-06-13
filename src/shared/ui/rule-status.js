@@ -49,7 +49,6 @@ export function renderRuleStateBadge({ state, label, compact = false, className,
     class: joinClasses('rule-state-badge', 'badge', compact ? 'compact' : '', className, attrs?.class),
     'aria-label': label
   }
-  Object.assign(resolvedAttrs, getTooltipAttrs(label))
   const dataAttrs = renderDataAttrs({
     state: stateValue,
     ...(data || {})

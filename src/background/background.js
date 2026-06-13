@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
-import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, saveRule, deleteRule, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
+import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, deleteCollections, saveRule, deleteRule, deleteRules, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, tryPrettyJson, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
@@ -7,6 +7,8 @@ import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureAtt
 import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule, getExecutableRules } from './rule-engine.js'
+import { resolveNetworkEntryResponseBody } from './network-entry-body.js'
+import { normalizePerformanceEntries } from './performance-entries.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
@@ -34,11 +36,26 @@ function isCompatActiveForTab(tabId, settings) {
   return Boolean(id && getCompatActiveTabId(settings, id) === id)
 }
 
+async function injectCompatScripts(tabId) {
+  if (!tabId || !chrome.scripting?.executeScript) return
+  await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    files: ['src/content/compat-bridge.js']
+  }).catch(() => {})
+  await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    world: 'MAIN',
+    files: ['src/content/compat-main.js']
+  }).catch(() => {})
+}
+
 async function enableCompatForTab(tabId) {
   if (!tabId) return
   runtimeState.compatFallbackTabIds.add(Number(tabId))
   startCaptureSession(Number(tabId), 'compat')
+  await injectCompatScripts(tabId)
   await chrome.tabs.sendMessage(tabId, { type: 'compat:modeChanged', captureMode: 'compat' }).catch(() => {})
+  await seedExistingNetworkEntries(tabId).catch(() => {})
 }
 
 async function disableCompatForTab(tabId) {
@@ -433,6 +450,58 @@ async function broadcastConnectionState() {
   })
 }
 
+function ensureSeedNetworkCycle(tabId) {
+  if (!tabId) return
+  runtimeState.networkTabId = tabId
+  if (!runtimeState.currentNetworkCycleId) {
+    runtimeState.networkCycleSeq += 1
+    runtimeState.currentNetworkCycleId = `seed:${tabId}:${Date.now()}:${runtimeState.networkCycleSeq}`
+    runtimeState.currentNavigationStartedAt = new Date().toISOString()
+  }
+}
+
+async function seedExistingNetworkEntries(tabId) {
+  if (!tabId || !chrome.scripting?.executeScript) return []
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    world: 'MAIN',
+    func: () => ({
+      timeOrigin: performance.timeOrigin,
+      documentUrl: location.href,
+      entries: performance.getEntriesByType('resource').map(entry => ({
+        name: entry.name,
+        initiatorType: entry.initiatorType,
+        startTime: entry.startTime,
+        duration: entry.duration,
+        transferSize: entry.transferSize,
+        responseStatus: entry.responseStatus || 0
+      }))
+    })
+  }).catch(() => [])
+
+  const payload = result?.result
+  const entries = normalizePerformanceEntries(payload?.entries || [], {
+    tabId,
+    now: Date.now(),
+    timeOrigin: payload?.timeOrigin,
+    documentUrl: payload?.documentUrl,
+    captureSessionId: runtimeState.currentCaptureSessionId,
+    networkCycleId: runtimeState.currentNetworkCycleId
+  })
+  if (!entries.length) return []
+
+  ensureSeedNetworkCycle(tabId)
+  for (const entry of entries.reverse()) {
+    upsertNetworkEntry(entry.id, {
+      ...entry,
+      captureSessionId: runtimeState.currentCaptureSessionId,
+      networkCycleId: runtimeState.currentNetworkCycleId
+    })
+  }
+  scheduleNetworkPublish()
+  return entries
+}
+
 async function resolveAttachTargetTab(message, sender) {
   const explicitId = Number(message?.tabId || 0)
   if (explicitId) {
@@ -528,6 +597,7 @@ async function maybeAutoAttach() {
   try {
     const previousAttachedTabId = runtimeState.attachedTabId
     const result = await attachToTab(targetId)
+    await seedExistingNetworkEntries(targetId).catch(() => {})
     if (previousAttachedTabId !== targetId) {
       await resetMatchedStateForNewPageCycle(targetId)
     }
@@ -638,8 +708,7 @@ function clearRuleError(rule) {
   scheduleHitFlush()
 }
 
-async function resetMatchedStateForNewPageCycle(tabId) {
-  if (!runtimeState.attachedTabId || runtimeState.attachedTabId !== tabId) return
+async function resetMatchedState() {
   const state = await getState()
   let changed = false
   let liveChanged = false
@@ -668,6 +737,11 @@ async function resetMatchedStateForNewPageCycle(tabId) {
   if (changed) await setState({ ...state, rules: nextRules })
   if (liveChanged) scheduleHitFlush()
   broadcast({ type: 'state:hit-reset' })
+}
+
+async function resetMatchedStateForNewPageCycle(tabId) {
+  if (!runtimeState.attachedTabId || runtimeState.attachedTabId !== tabId) return
+  await resetMatchedState()
 }
 
 async function applyRule(params, rule) {
@@ -1342,6 +1416,7 @@ chrome.debugger.onDetach.addListener(async (source, reason) => {
     runtimeState.requestRuleMap.clear()
     await clearPersistedAttachedSession()
     await flushHits().catch(() => {})
+    await resetMatchedState()
     await pushLog({ level: 'warn', scope: 'debugger', message: `Detached: ${reason}` })
     await updateConnectionFromActiveTab()
     await broadcastConnectionState()
@@ -1403,6 +1478,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             await notifyCompatModeChanged('cdp')
             await pushLog({ level: 'info', scope: 'runtime', message: `Capture mode changed to ${settings.captureMode}` })
           }
+          if (previous.activeCollectionId !== settings.activeCollectionId) {
+            await resetMatchedState()
+          }
         }
         await syncNetworkSettingsFromState()
         await maybeAutoAttach()
@@ -1421,6 +1499,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             runtimeState.candidateTab = tabRef
           }
           await enableCompatForTab(tabId)
+          await resetMatchedState()
           await updateConnectionFromActiveTab()
           await pushLog({ level: 'info', scope: 'runtime', message: `Light capture enabled for tab ${tabId}` })
           await broadcastConnectionState()
@@ -1441,6 +1520,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               runtimeState.candidateTab = tabRef
             }
             await enableCompatForTab(tabId)
+            await resetMatchedState()
             await updateConnectionFromActiveTab()
             await pushLog({
               level: 'warn',
@@ -1457,26 +1537,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           throw error
         }
+        await seedExistingNetworkEntries(tabId).catch(() => {})
         // Reattach manual sempre inicia novo ciclo de validacao visual de "Acionada".
         if (previousAttachedTabId !== tabId) {
           await resetMatchedStateForNewPageCycle(tabId)
         } else {
-          const state = await getState()
-          const hasMatched = state.rules.some(rule => rule.diagnostics?.lastMatchedAt)
-          if (hasMatched) {
-            const nextRules = state.rules.map(rule => ({
-              ...rule,
-              diagnostics: {
-                ...(rule.diagnostics || {}),
-                lastMatchedAt: null
-              }
-            }))
-            for (const counter of runtimeState.hitCounters.values()) {
-              counter.lastMatchedAt = null
-            }
-            await setState({ ...state, rules: nextRules })
-            broadcast({ type: 'state:hit-reset' })
-          }
+          await resetMatchedState()
         }
         const attachedRef = toTabRef(targetTab)
         if (attachedRef) {
@@ -1496,6 +1562,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const compatTabId = explicitTabId || getCompatActiveTabId(state.settings, runtimeState.candidateTab?.id || runtimeState.activeTab?.id || null)
           if (!runtimeState.attachedTabId && compatTabId) {
             await disableCompatForTab(compatTabId)
+            await resetMatchedState()
             await updateConnectionFromActiveTab()
             await broadcastConnectionState()
             await pushLog({ level: 'info', scope: 'runtime', message: `Light capture stopped for tab ${compatTabId}` })
@@ -1504,6 +1571,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
         }
         await detachCurrentTab()
+        await resetMatchedState()
         await updateConnectionFromActiveTab()
         await broadcastConnectionState()
         sendResponse({ attachedTabId: null })
@@ -1536,6 +1604,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ collections: await deleteCollection(message.collectionId) })
         return
       }
+      case 'collections:deleteMany': {
+        sendResponse({ collections: await deleteCollections(message.collectionIds || []) })
+        return
+      }
       case 'rules:create': {
         const rule = makeRule(message.payload || {}, (await getState()).settings.activeCollectionId)
         const errors = validateRule(rule)
@@ -1560,6 +1632,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ rules: await deleteRule(message.ruleId) })
         await maybeAutoReloadAfterRuleChange()
         return
+      case 'rules:deleteMany':
+        sendResponse({ rules: await deleteRules(message.ruleIds || []) })
+        await maybeAutoReloadAfterRuleChange()
+        return
       case 'rules:duplicate': {
         const state = await getState()
         const current = state.rules.find(rule => rule.id === message.ruleId)
@@ -1577,17 +1653,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const entry = runtimeState.networkEntries.find(item => item.id === message.entryId)
         if (!entry) throw new Error('Network entry not found')
 
-        let responseBody = ''
-        if (entry.source === 'compat') {
-          responseBody = typeof entry.responseBody === 'string' ? entry.responseBody : ''
-        } else {
-          try {
-            const bodyResult = await sendAttachedCommand('Network.getResponseBody', { requestId: entry.networkId || entry.requestId })
-            responseBody = bodyResult?.base64Encoded ? atob(bodyResult.body || '') : (bodyResult?.body || '')
-          } catch {
-            responseBody = '{\n  "ok": true\n}'
-          }
-        }
+        const bodyResult = await resolveNetworkEntryResponseBody(entry, {
+          getEntry: () => runtimeState.networkEntries.find(item => item.id === message.entryId),
+          fetchBody: requestId => sendAttachedCommand('Network.getResponseBody', { requestId })
+        })
+        const responseBody = bodyResult.body
         const prettyResponseBody = tryPrettyJson(responseBody).pretty || '{\n  "ok": true\n}'
 
         const state = await getState()

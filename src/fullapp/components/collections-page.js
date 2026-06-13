@@ -3,7 +3,9 @@ import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { formatShowingCount } from '../../shared/ui/count.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
-import { renderTooltipAttrs } from '../../shared/ui/tooltip.js'
+import { getTooltipAttrs, renderTooltipAttrs } from '../../shared/ui/tooltip.js'
+import { renderCheckbox } from '../../shared/ui/checkbox.js'
+import { renderFloatingSelectionBar } from '../../shared/ui/floating-selection-bar.js'
 
 function displayCollectionName(collection) {
   if (collection?.id === 'collection-default') return t('collections.defaultName')
@@ -26,6 +28,9 @@ export function renderCollectionsPage(state) {
 
   const header = `
     <div class="table-row row-collection rules-header" role="row">
+      <div role="columnheader" class="col-select">
+        ${renderCheckbox({ id: 'full-collections-select-all', data: { 'full-collections-select-all': true }, ariaLabel: t('common.selectAll') })}
+      </div>
       <div role="columnheader">${escapeHtml(t('collections.title'))}</div>
       <div role="columnheader">${escapeHtml(t('collections.status'))}</div>
       <div role="columnheader">${escapeHtml(t('collections.primary'))}</div>
@@ -44,6 +49,14 @@ export function renderCollectionsPage(state) {
           ${collections.length ? header : ''}
           ${collections.length ? collections.map(collection => `
             <div class="table-row row-collection">
+              <div class="col-select">
+                ${renderCheckbox({
+                  data: { 'full-collection-select': collection.id },
+                  disabled: collection.id === 'collection-default',
+                  ariaLabel: t('collections.selectCollection'),
+                  wrapperAttrs: collection.id === 'collection-default' ? getTooltipAttrs(t('collections.defaultCannotDelete')) : null
+                })}
+              </div>
               <div class="cell-rule">
                 <strong>${escapeHtml(displayCollectionName(collection))}</strong>
                 <span class="cell-rule-url">${counts.get(collection.id) || 0} ${t('collections.rulesCount')}</span>
@@ -82,9 +95,19 @@ export function renderCollectionsPage(state) {
     <section class="split-page collections-page">
       ${renderDataPanel({
         title: t('collections.title'),
-        actionsHtml: `<button class="btn primary" id="full-new-collection-btn">${t('collections.newCollection')}</button>`,
+        actionsHtml: `
+          <button class="btn primary" id="full-new-collection-btn">${t('collections.newCollection')}</button>
+        `,
         filtersHtml,
         bodyHtml,
+        overlayHtml: renderFloatingSelectionBar({
+          id: 'full-collections-selection-bar',
+          label: `0 ${t('collections.entityMany')} ${t('common.selectedMany')}`,
+          clearLabel: t('common.clear'),
+          deleteLabel: t('common.delete'),
+          clearId: 'full-clear-selected-collections-btn',
+          deleteId: 'full-delete-selected-collections-btn'
+        }),
         footerHtml: `<span class="data-panel__count">${escapeHtml(footerCount)}</span>`,
         className: 'collections-data-panel'
       })}

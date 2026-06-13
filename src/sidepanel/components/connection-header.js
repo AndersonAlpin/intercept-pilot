@@ -31,19 +31,21 @@ export function renderConnectionHeader(state) {
       </div>
 
       <div class="capture-context">
-        <p class="attach-status ${statusClass}">${escapeHtml(statusText)}</p>
+        <div class="capture-status-row">
+          <p class="attach-status ${statusClass}">${escapeHtml(statusText)}</p>
+          ${lightCaptureActive ? `
+            <button
+              type="button"
+              class="capture-mode-badge"
+              id="side-capture-mode-settings"
+              ${renderTooltipAttrs(t('status.lightCaptureTooltip'))}
+            >${escapeHtml(t('status.lightCaptureName'))}</button>
+          ` : ''}
+        </div>
         ${contextTab
           ? `<button class="tab-focus-link" id="side-focus-tab-btn" ${renderTooltipAttrs(titleUrl)}>${escapeHtml(truncate(title, 58))}</button>`
           : `<p class="tab-context-empty">${escapeHtml(title)}</p>`
         }
-        ${lightCaptureActive ? `
-          <button
-            type="button"
-            class="capture-mode-line"
-            id="side-capture-mode-settings"
-            ${renderTooltipAttrs(t('status.lightCaptureTooltip'))}
-          >${escapeHtml(t('status.lightCaptureFetchOnly'))}</button>
-        ` : ''}
       </div>
 
       <div class="capture-actions">

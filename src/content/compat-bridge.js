@@ -1,4 +1,7 @@
 (() => {
+  if (window.__INTERCEPTPILOT_COMPAT_BRIDGE_INSTALLED__) return
+  window.__INTERCEPTPILOT_COMPAT_BRIDGE_INSTALLED__ = true
+
   const MESSAGE_PREFIX = 'interceptpilot:compat:'
   const MAIN_SCRIPT_URL = chrome.runtime.getURL('src/content/compat-main.js')
 

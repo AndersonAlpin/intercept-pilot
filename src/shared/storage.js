@@ -198,6 +198,23 @@ export async function deleteCollection(collectionId) {
   return state.collections
 }
 
+export async function deleteCollections(collectionIds = []) {
+  const state = await getState()
+  const ids = new Set((Array.isArray(collectionIds) ? collectionIds : [collectionIds])
+    .map(id => String(id || ''))
+    .filter(id => id && id !== DEFAULT_COLLECTION_ID))
+  if (!ids.size) return state.collections
+
+  state.collections = state.collections.filter(collection => !ids.has(collection.id))
+  if (!state.collections.length) state.collections = [makeDefaultCollection()]
+
+  const fallback = state.collections[0].id
+  state.rules = state.rules.filter(rule => !ids.has(rule.collectionId))
+  if (ids.has(state.settings.activeCollectionId)) state.settings.activeCollectionId = fallback
+  await setState(state)
+  return state.collections
+}
+
 export async function getRules() {
   return (await getState()).rules
 }
@@ -216,6 +233,18 @@ export async function saveRule(rule) {
 export async function deleteRule(ruleId) {
   const state = await getState()
   state.rules = state.rules.filter(rule => rule.id !== ruleId)
+  await setState(state)
+  return state.rules
+}
+
+export async function deleteRules(ruleIds = []) {
+  const state = await getState()
+  const ids = new Set((Array.isArray(ruleIds) ? ruleIds : [ruleIds])
+    .map(id => String(id || ''))
+    .filter(Boolean))
+  if (!ids.size) return state.rules
+
+  state.rules = state.rules.filter(rule => !ids.has(rule.id))
   await setState(state)
   return state.rules
 }
