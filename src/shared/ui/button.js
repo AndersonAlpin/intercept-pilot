@@ -1,6 +1,7 @@
 import { escapeHtml } from '../utils.js'
 import { icon } from '../icons.js'
 import { joinClasses, renderAttrs, renderDataAttrs } from './dom.js'
+import { getTooltipAttrs } from './tooltip.js'
 
 export function renderButton({
   id,
@@ -15,7 +16,8 @@ export function renderButton({
   type = 'button',
   iconName,
   iconHtml,
-  iconPosition = 'end'
+  iconPosition = 'end',
+  tooltip
 } = {}) {
   const resolvedAttrs = {
     ...(attrs || {}),
@@ -35,5 +37,13 @@ export function renderButton({
   const content = iconMarkup && iconPosition === 'start'
     ? `${iconMarkup}${labelMarkup}`
     : `${labelMarkup}${iconMarkup}`
-  return `<button ${joinClasses(attributes, dataAttrs)}>${content}</button>`
+  const buttonHtml = `<button ${joinClasses(attributes, dataAttrs)}>${content}</button>`
+  if (!disabled || !tooltip) return buttonHtml
+
+  const tooltipAttrs = renderAttrs({
+    class: 'btn-tooltip-wrapper',
+    tabindex: '0',
+    ...getTooltipAttrs(tooltip)
+  })
+  return `<span ${tooltipAttrs}>${buttonHtml}</span>`
 }

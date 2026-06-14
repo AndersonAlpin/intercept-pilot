@@ -1,6 +1,7 @@
 export const MSG = {
   STATE_GET: 'state:get',
   SETTINGS_UPDATE: 'settings:update',
+  RELEASE_NOTES_MARK_SEEN: 'releaseNotes:markSeen',
   APP_OPEN_FULL: 'app:openFullApp',
 
   DEBUG_ATTACH: 'debugger:attachActiveTab',
@@ -17,6 +18,7 @@ export const MSG = {
   RULES_UPDATE: 'rules:update',
   RULES_DELETE: 'rules:delete',
   RULES_DELETE_MANY: 'rules:deleteMany',
+  RULES_MOVE: 'rules:move',
   RULES_DUPLICATE: 'rules:duplicate',
   RULES_TOGGLE: 'rules:toggle',
 

@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils.js'
+import { icon } from '../icons.js'
 import { joinClasses, renderAttrs } from './dom.js'
 
 const TITLE_TAGS = new Set(['h2', 'h3', 'h4'])
@@ -14,7 +15,7 @@ export function renderModalShell({
   footerClassName,
   closeId,
   closeLabel,
-  closeHtml = '&times;',
+  closeHtml = icon('close', 16),
   closeAttrs,
   titleTag = 'h3',
   attrs,

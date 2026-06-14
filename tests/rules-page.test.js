@@ -44,7 +44,9 @@ test('rules page renders bulk selection controls', () => {
   assert.match(html, /id="full-rules-selection-bar"/)
   assert.match(html, /data-floating-selection-bar/)
   assert.match(html, /id="full-clear-selected-rules-btn"/)
+  assert.match(html, /id="full-move-selected-rules-btn"/)
   assert.match(html, /id="full-delete-selected-rules-btn"/)
+  assert.doesNotMatch(html, /data-full-rule-move=/)
 })
 
 test('rules page does not show stale matched state while capture is inactive', () => {
@@ -80,6 +82,8 @@ test('rules page keeps reset hit counts ready while capture is active', () => {
   })
 
   assert.match(html, />5</)
+  assert.match(html, /class="rule-hits-cell"[^>]*data-rule-hit="rule-a"[^>]*>5</)
+  assert.doesNotMatch(html, /class="rule-hits-cell"[^>]*data-tooltip=/)
   assert.doesNotMatch(html, /data-state="matched"/)
   assert.match(html, /data-state="ready"/)
 })

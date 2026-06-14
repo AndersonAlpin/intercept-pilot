@@ -9,7 +9,13 @@ export function isCapturableTabRef(tab) {
 }
 
 export function getCapturedTab(state) {
-  return state?.attachedTab || state?.compatActiveTab || null
+  if (state?.attachedTab) return state.attachedTab
+  if (state?.compatActiveTab) return state.compatActiveTab
+  const attachedTabId = Number(state?.attachedTabId || 0)
+  if (attachedTabId) return { id: attachedTabId }
+  const compatActiveTabId = Number(state?.compatActiveTabId || 0)
+  if (compatActiveTabId) return { id: compatActiveTabId }
+  return null
 }
 
 export function getStartCandidateTab(state) {

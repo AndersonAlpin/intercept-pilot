@@ -8,3 +8,12 @@ test('sidepanel capture context stacks status, tab title and capture mode', () =
   assert.match(css, /\.capture-context\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s)
   assert.match(css, /\.attach-status\s*\{[^}]*display:\s*flex;/s)
 })
+
+test('sidepanel keeps chrome fixed while only tab content lists scroll', () => {
+  assert.match(css, /html,\s*body\s*\{[^}]*height:\s*100%;[^}]*overflow:\s*hidden;/s)
+  assert.match(css, /#app\s*\{[^}]*height:\s*100vh;[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*overflow:\s*hidden;/s)
+  assert.match(css, /\.content\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;/s)
+  assert.doesNotMatch(css, /\.sidepanel-top\s*\{[^}]*position:\s*sticky;/s)
+  assert.doesNotMatch(css, /\.card\.sticky-filters \.sticky-bar\s*\{[^}]*position:\s*sticky;/s)
+  assert.match(css, /\.card\.sticky-filters > \.list,\s*\.card\.sticky-filters > \.table\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-height:\s*0;[^}]*overflow:\s*auto;/s)
+})

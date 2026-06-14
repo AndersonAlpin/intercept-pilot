@@ -35,7 +35,7 @@ const es = {
   },
   navigation: {
     rules: 'Reglas', network: 'Red', logs: 'Logs', dashboard: 'Dashboard', collections: 'Colecciones',
-    importExport: 'Importar', diagnostics: 'Diagnóstico', settings: 'Configuración'
+    importExport: 'Importar', diagnostics: 'Diagnóstico', settings: 'Configuración', releaseNotes: 'Actualizaciones'
   },
   collections: {
     title: 'Colección', activeCollection: 'Colección principal', noCollections: 'Sin colecciones.',
@@ -67,6 +67,14 @@ const es = {
     deleteSelectedConfirmOne: 'La regla seleccionada se eliminará de la colección.\nEsta acción no se puede deshacer.', deleteSelectedConfirmMany: 'Las {count} reglas seleccionadas se eliminarán de la colección.\nEsta acción no se puede deshacer.',
     deleteSelectedSuccessOne: 'Regla seleccionada eliminada.',
     deleteSelectedSuccessMany: '{count} reglas seleccionadas eliminadas.',
+    moveSelected: 'Mover',
+    moveSelectedTitle: 'Mover reglas seleccionadas',
+    moveSelectedMessage: 'Elige la colección de destino para {count} regla(s) seleccionada(s).',
+    moveTargetCollection: 'Colección de destino',
+    moveSelectedConfirm: 'Mover reglas',
+    moveNoDestination: 'Crea o habilita otra colección para mover reglas.',
+    moveSelectedSuccessOne: 'Regla movida a otra colección.',
+    moveSelectedSuccessMany: '{count} reglas movidas a otra colección.',
     selectRule: 'Seleccionar regla', deleteSuccess: 'Regla eliminada.',
     createFromRequestError: 'Error al crear regla desde request.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON de la regla copiado.',
@@ -106,6 +114,7 @@ const es = {
     scopeApp: 'App',
     scopeWeb: 'Web',
     clearLogs: 'Limpiar logs',
+    clearDisabled: 'No hay logs para limpiar',
     levels: { error: 'Error', warn: 'Aviso', info: 'Info' },
     detailsTitle: 'Detalles del log',
     openDetails: 'Abrir detalles del log',
@@ -122,6 +131,7 @@ const es = {
   network: {
     title: 'Red', entityOne: 'solicitud', entityMany: 'solicitudes', filterUrl: 'Filtrar URL', filterMethod: 'Método', filterStatus: 'Estado',
     clearNetwork: 'Limpiar red',
+    clearDisabled: 'No hay solicitudes para limpiar',
     matchedOnly: 'Solo matched', interceptedOnly: 'Solo interceptadas', noRequests: 'Sin requests capturadas.',
     activateCaptureToSeeRequests: 'Activa la captura para ver solicitudes.',
     lightCaptureHelper: 'Captura ligera captura requests fetch y logs básicos de la página.',
@@ -135,6 +145,7 @@ const es = {
     createRule: 'Crear regla',
     appliedRule: 'Regla aplicada',
     result: 'Resultado',
+    resourceTypeColumn: 'Tipo',
     failed: 'Falló',
     noRule: 'Sin regla',
     resultPassThrough: 'Pasó directo',
@@ -195,9 +206,9 @@ const es = {
   },
   fullapp: {
     noRuleSelected: 'Selecciona una regla para editar.', ruleEditor: 'Editor de reglas',
-    importPlaceholder: 'Pega el JSON de una regla o colección de InterceptPilot', importStrategy: 'Pega JSON manualmente o elige un archivo para importarlo al instante.',
+    importPlaceholder: 'Pega el JSON aquí o suelta un archivo .json', importStrategy: 'Pega JSON manualmente o elige un archivo para importarlo al instante.',
     noImportExportAction: 'Sin acciones de import/export todavía.', exportCurrentCollection: 'Exportar colección actual',
-    exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', importPickFile: 'Archivo JSON', saveSettings: 'Guardar configuración',
+    exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', importJsonDisabled: 'Pega un JSON válido para importar', importPickFile: 'Archivo JSON', saveSettings: 'Guardar configuración', saveSettingsDisabled: 'No hay cambios para guardar',
     autoAttach: 'Capturar pestaña activa automáticamente', autoReloadAfterRuleChange: 'Auto-recargar tras cambio de regla',
     captureMode: 'Modo de captura',
     captureModeAuto: 'Automático',
@@ -215,6 +226,26 @@ const es = {
     invalidRules: 'Reglas Inválidas', recentRuntimeLogs: 'Logs recientes de runtime', noLogs: 'Sin logs.',
     newRule: 'Nueva regla', exportCollection: 'Exportar colección', importRule: 'Importar', settingsSaved: 'Configuración guardada.',
     importCompleted: 'Importación completada.', importConflictTitle: 'La colección ya existe', importConflictMessage: 'Ya existe una colección con este ID. ¿Qué deseas hacer?', importConflictUpdate: 'Actualizar', importConflictCopy: 'Crear copia', exportCopiedCollection: 'JSON de colección copiado.', exportCopiedAll: 'JSON de todos los datos copiado.'
+  },
+  releaseNotes: {
+    title: 'Novedades',
+    version: 'Versión {version}',
+    markSeen: 'Entendido',
+    reopen: 'Ver notas de actualización',
+    settingsLabel: 'Notas de actualización',
+    items: {
+      captureStatus: 'El estado de captura es más consistente entre Full App y Sidepanel.',
+      disabledActions: 'Las acciones no disponibles ahora quedan desactivadas y explican el motivo.',
+      rulesLayout: 'Reglas ahora tiene más espacio para nombres y URLs.',
+      moveRules: 'Ahora es posible mover reglas seleccionadas a otra colección.',
+      rulesOrganization: 'Las reglas son más fáciles de organizar, con más espacio para nombres/URLs y la opción de mover reglas seleccionadas a otra colección.',
+      stableLists: 'Las listas de Full App y Sidepanel son más estables, manteniendo encabezados, filtros y pies fijos mientras el contenido se desplaza.',
+      clickStability: 'Red y Logs son más estables durante actualizaciones en tiempo real.',
+      importDrop: 'Importar ahora permite soltar archivos JSON en el editor, manteniendo el pegado manual y la selección por archivo.',
+      solidToasts: 'Los toasts ahora son más sólidos y fáciles de leer.',
+      interfaceClarity: 'La interfaz es más clara y fácil de leer, con acciones no disponibles que explican el motivo y toasts más sólidos.',
+      releaseNotesMenu: 'Nuevo menú Actualizaciones en Full App para seguir las novedades de la extensión.'
+    }
   },
   importTemplate: {
     templates: 'Templates',
@@ -329,6 +360,10 @@ const es = {
     templateCopied: 'JSON del template copiado.',
     templateDownloaded: 'JSON del template descargado.',
     aiPromptCopied: 'Prompt para IA copiado.',
+    importFileReady: '{name} cargado. Revisa el JSON y haz clic en Importar JSON.',
+    importOneFileOnly: 'Suelta un archivo JSON por vez.',
+    importUnsupportedFile: 'Usa un archivo .json.',
+    importFileReadError: 'No se pudo leer el archivo.',
     compatFallbackCdpBusy: 'Captura completa está ocupada. Usando Captura ligera para requests fetch y logs básicos de la página.',
     compatFallbackExtensionBlocked: 'Captura completa fue bloqueada por otra extensión. Usando Captura ligera para requests fetch y logs básicos de la página.'
   },

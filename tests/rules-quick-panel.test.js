@@ -32,6 +32,25 @@ test('rules quick panel keeps collection selector as a filter without collection
   assert.ok(copyPromptIndex < downloadCollectionIndex)
 })
 
+test('rules quick panel keeps the count with filters instead of the footer', () => {
+  const html = renderRulesQuickPanel({
+    settings: { activeCollectionId: 'collection-api' },
+    collections: [
+      { id: 'collection-api', name: 'API scenarios', enabled: true }
+    ],
+    rules: [
+      { id: 'rule-a', name: 'Rule A', collectionId: 'collection-api', enabled: true, match: { method: 'GET', urlPattern: '/a' }, action: { type: 'mockResponse', statusCode: 200 }, diagnostics: {} },
+      { id: 'rule-b', name: 'Rule B', collectionId: 'collection-api', enabled: true, match: { method: 'GET', urlPattern: '/b' }, action: { type: 'mockResponse', statusCode: 200 }, diagnostics: {} }
+    ],
+    rulesFilter: 'Rule A'
+  })
+
+  assert.match(html, /class="[^"]*\brules-quick-meta\b/)
+  assert.match(html, /class="[^"]*\brules-results-count\b/)
+  assert.match(html, /Mostrando 1 de 2 regras/)
+  assert.doesNotMatch(html, /sidepanel-list-footer[\s\S]*Mostrando 1 de 2 regras/)
+})
+
 test('rules quick panel does not show stale matched state while capture is inactive', () => {
   const html = renderRulesQuickPanel({
     attachedTabId: null,

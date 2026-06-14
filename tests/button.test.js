@@ -24,3 +24,17 @@ test('button renders named icon on the right by default', () => {
 
   assert.ok(html.indexOf('class="btn__label"') < html.indexOf('class="btn__icon"'))
 })
+
+test('button wraps disabled controls with custom tooltip target', () => {
+  const html = renderButton({
+    id: 'clear-network',
+    label: 'Limpar rede',
+    disabled: true,
+    tooltip: 'Não há requisições para limpar'
+  })
+
+  assert.match(html, /class="btn-tooltip-wrapper"/)
+  assert.match(html, /tabindex="0"/)
+  assert.match(html, /data-tooltip="Não há requisições para limpar"/)
+  assert.match(html, /<button[^>]*id="clear-network"[^>]*disabled/)
+})

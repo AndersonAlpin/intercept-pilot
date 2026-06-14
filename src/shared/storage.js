@@ -70,10 +70,19 @@ function normalizeSettings(stored, collections) {
     }
   }
   settings.networkIgnorePatterns = parseNetworkIgnorePatterns(settings.networkIgnorePatterns)
+  delete settings.lastSeenReleaseNotesVersion
+  delete settings.lastSeenReleaseNotesAt
   if (!collections.some(c => c.id === settings.activeCollectionId)) {
     settings.activeCollectionId = collections[0]?.id || DEFAULT_COLLECTION_ID
   }
   return settings
+}
+
+function normalizeReleaseNotesState(stored) {
+  return {
+    lastSeenVersion: String(stored?.[STORAGE_KEYS.releaseNotesLastSeenVersion] || ''),
+    lastSeenAt: Math.max(0, Number(stored?.[STORAGE_KEYS.releaseNotesLastSeenAt]) || 0)
+  }
 }
 
 export async function ensureState() {
@@ -91,6 +100,24 @@ export async function ensureState() {
   })
 
   return { collections, rules, settings, logs }
+}
+
+export async function getReleaseNotesState() {
+  const stored = await rawGet([
+    STORAGE_KEYS.releaseNotesLastSeenVersion,
+    STORAGE_KEYS.releaseNotesLastSeenAt
+  ])
+  return normalizeReleaseNotesState(stored)
+}
+
+export async function markReleaseNotesSeen(version, seenAt = Date.now()) {
+  const lastSeenVersion = String(version || '').trim()
+  const lastSeenAt = Math.max(0, Number(seenAt) || Date.now())
+  await rawSet({
+    [STORAGE_KEYS.releaseNotesLastSeenVersion]: lastSeenVersion,
+    [STORAGE_KEYS.releaseNotesLastSeenAt]: lastSeenAt
+  })
+  return { lastSeenVersion, lastSeenAt }
 }
 
 export async function getState() {
@@ -245,6 +272,32 @@ export async function deleteRules(ruleIds = []) {
   if (!ids.size) return state.rules
 
   state.rules = state.rules.filter(rule => !ids.has(rule.id))
+  await setState(state)
+  return state.rules
+}
+
+export async function moveRulesToCollection(ruleIds = [], collectionId) {
+  const state = await getState()
+  const targetCollectionId = String(collectionId || '').trim()
+  const targetCollection = state.collections.find(collection => collection.id === targetCollectionId && collection.enabled !== false)
+  const ids = new Set((Array.isArray(ruleIds) ? ruleIds : [ruleIds])
+    .map(id => String(id || ''))
+    .filter(Boolean))
+  if (!ids.size || !targetCollection) return state.rules
+
+  let changed = false
+  const updatedAt = new Date().toISOString()
+  state.rules = state.rules.map(rule => {
+    if (!ids.has(rule.id) || rule.collectionId === targetCollectionId) return rule
+    changed = true
+    return {
+      ...rule,
+      collectionId: targetCollectionId,
+      updatedAt
+    }
+  })
+  if (!changed) return state.rules
+
   await setState(state)
   return state.rules
 }

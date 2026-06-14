@@ -1,4 +1,4 @@
-import { escapeHtml, truncate, relativeTime } from '../../shared/utils.js'
+import { escapeHtml, truncate } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { icon } from '../../shared/icons.js'
 import { hasActiveCaptureContext } from '../../shared/capture-context.js'
@@ -48,19 +48,7 @@ function stateBadge(rule, captureActive) {
 
 function hitsCell(rule) {
   const count = Number(rule.diagnostics?.matchCount || 0)
-  const last = rule.diagnostics?.lastMatchedAt
-  let tooltip = ''
-  if (last) {
-    const rel = relativeTime(last)
-    if (rel) {
-      tooltip = t('rules.lastMatched', {
-        relative: t(rel.key, { value: rel.value ?? 0 })
-      })
-    }
-  } else {
-    tooltip = t('rules.lastMatchedNever')
-  }
-  return `<span class="rule-hits-cell" data-rule-hit="${rule.id}" ${renderTooltipAttrs(tooltip)}>${count}</span>`
+  return `<span class="rule-hits-cell" data-rule-hit="${rule.id}">${count}</span>`
 }
 
 function iconBtn({ icon: iconName, label, action, ruleId, danger = false }) {
@@ -108,39 +96,42 @@ export function renderRulesPage(state) {
       <input class="input filter-grow" id="full-rules-search" placeholder="${escapeHtml(t('rules.searchPlaceholder'))}" value="${escapeHtml(state.rulesSearch || '')}" />
     </div>
   `
+  const rowsHtml = rules.length ? rules.map(rule => {
+    const urlPattern = rule.match?.urlPattern || ''
+    return `
+      <div class="table-row row-rule ${rule.diagnostics?.lastError ? 'row-error' : ''}" role="row">
+        <div class="col-select">
+          ${renderCheckbox({ data: { 'full-rule-select': rule.id }, ariaLabel: t('rules.selectRule') })}
+        </div>
+        <div class="cell-rule">
+          <strong ${renderTruncatedTooltipAttrs(rule.name, 60)}>${escapeHtml(truncate(rule.name, 60))}</strong>
+          ${urlPattern ? `<span class="cell-rule-url" ${renderTruncatedTooltipAttrs(urlPattern, 80)}>${escapeHtml(truncate(urlPattern, 80))}</span>` : ''}
+        </div>
+        <div>
+          <label class="status-toggle">
+            <input type="checkbox" data-full-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(rule.enabled ? t('common.enabled') : t('common.disabled'))}" />
+            <span class="status-toggle-track" aria-hidden="true"></span>
+          </label>
+        </div>
+        <div class="cell-method">${escapeHtml(displayMethod(rule.match?.method || 'ANY'))}</div>
+        <div>${actionBadge(rule)}</div>
+        <div>${stateBadge(rule, captureActive)}</div>
+        <div class="col-hits">${hitsCell(rule)}</div>
+        <div class="row-actions col-actions data-panel__actions-cell">
+          ${iconBtn({ icon: 'edit', label: t('common.edit'), action: 'edit', ruleId: rule.id })}
+          ${iconBtn({ icon: 'copy', label: t('common.copyJson'), action: 'copy', ruleId: rule.id })}
+          ${iconBtn({ icon: 'download', label: t('common.exportJson'), action: 'export', ruleId: rule.id })}
+          ${iconBtn({ icon: 'trash', label: t('common.delete'), action: 'delete', ruleId: rule.id, danger: true })}
+        </div>
+      </div>
+    `
+  }).join('') : `<div class="empty">${escapeHtml(t('rules.noRules'))}</div>`
   const bodyHtml = `
-    <div class="table table-wide" role="table">
-          ${rules.length ? header : ''}
-          ${rules.length ? rules.map(rule => {
-          const urlPattern = rule.match?.urlPattern || ''
-          return `
-            <div class="table-row row-rule ${rule.diagnostics?.lastError ? 'row-error' : ''}" role="row">
-              <div class="col-select">
-                ${renderCheckbox({ data: { 'full-rule-select': rule.id }, ariaLabel: t('rules.selectRule') })}
-              </div>
-              <div class="cell-rule">
-                <strong ${renderTruncatedTooltipAttrs(rule.name, 60)}>${escapeHtml(truncate(rule.name, 60))}</strong>
-                ${urlPattern ? `<span class="cell-rule-url" ${renderTruncatedTooltipAttrs(urlPattern, 80)}>${escapeHtml(truncate(urlPattern, 80))}</span>` : ''}
-              </div>
-              <div>
-                <label class="status-toggle">
-                  <input type="checkbox" data-full-rule-toggle="${rule.id}" ${rule.enabled ? 'checked' : ''} aria-label="${escapeHtml(rule.enabled ? t('common.enabled') : t('common.disabled'))}" />
-                  <span class="status-toggle-track" aria-hidden="true"></span>
-                </label>
-              </div>
-              <div class="cell-method">${escapeHtml(displayMethod(rule.match?.method || 'ANY'))}</div>
-              <div>${actionBadge(rule)}</div>
-              <div>${stateBadge(rule, captureActive)}</div>
-              <div class="col-hits">${hitsCell(rule)}</div>
-              <div class="row-actions col-actions data-panel__actions-cell">
-                ${iconBtn({ icon: 'edit', label: t('common.edit'), action: 'edit', ruleId: rule.id })}
-                ${iconBtn({ icon: 'copy', label: t('common.copyJson'), action: 'copy', ruleId: rule.id })}
-                ${iconBtn({ icon: 'download', label: t('common.exportJson'), action: 'export', ruleId: rule.id })}
-                ${iconBtn({ icon: 'trash', label: t('common.delete'), action: 'delete', ruleId: rule.id, danger: true })}
-              </div>
-            </div>
-          `
-          }).join('') : `<div class="empty">${escapeHtml(t('rules.noRules'))}</div>`}
+    <div class="data-table data-table--rules" role="table">
+      ${rules.length ? `<div class="data-table__header table table-wide">${header}</div>` : ''}
+      <div class="data-table__rows table table-wide">
+        ${rowsHtml}
+      </div>
     </div>
   `
 
@@ -168,10 +159,14 @@ export function renderRulesPage(state) {
           clearLabel: t('common.clear'),
           deleteLabel: t('common.delete'),
           clearId: 'full-clear-selected-rules-btn',
-          deleteId: 'full-delete-selected-rules-btn'
+          deleteId: 'full-delete-selected-rules-btn',
+          extraActions: [
+            { id: 'full-move-selected-rules-btn', label: t('rules.moveSelected') }
+          ]
         }),
         footerHtml: footerCount ? `<span class="data-panel__count">${escapeHtml(footerCount)}</span>` : '',
-        className: 'rules-data-panel'
+        className: 'rules-data-panel',
+        scrollClassName: 'data-panel__scroll--table'
       })}
     </section>
   `

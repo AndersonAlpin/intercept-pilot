@@ -17,13 +17,13 @@ import {
 } from '../shared/export.js'
 import { toastSuccess, toastError } from '../shared/toast.js'
 import { confirmDialog } from '../shared/dialogs.js'
-import { delegate, patchHtml } from '../shared/ui/dom.js'
+import { createLiveUpdateGuard, delegate, patchHtml } from '../shared/ui/dom.js'
 import { bindSelectMenus } from '../shared/ui/select.js'
 import { renderConnectionHeader } from './components/connection-header.js'
 import { renderTabs } from './components/tabs.js'
 import { renderRulesQuickPanel, renderQuickRuleEditor } from './components/rules-quick-panel.js'
 import { renderNetworkQuickCount, renderNetworkQuickPagination, renderNetworkQuickPanel, renderNetworkQuickRows } from './components/network-quick-panel.js'
-import { renderLogsQuickPanel } from './components/logs-quick-panel.js'
+import { renderLogsQuickList, renderLogsQuickMeta, renderLogsQuickPanel } from './components/logs-quick-panel.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
@@ -83,6 +83,19 @@ const appState = {
 function $(selector) {
   return document.querySelector(selector)
 }
+
+const sideNetworkUpdateGuard = createLiveUpdateGuard({
+  getTarget: () => document
+})
+
+const sideLogsUpdateGuard = createLiveUpdateGuard({
+  getTarget: () => document
+})
+
+const LOG_DETAIL_CACHE_LIMIT = 500
+const logDetailCache = new Map()
+let pendingLogPress = null
+let pendingLogPressTimer = null
 
 function captureFocusSnapshot() {
   const active = document.activeElement
@@ -185,6 +198,7 @@ function applyLogsPagination() {
   appState.logsPagination = { page, pageSize }
   const start = (page - 1) * pageSize
   appState.pagedLogs = appState.filteredLogs.slice(start, start + pageSize)
+  rememberLogDetails(appState.pagedLogs)
 }
 
 function resetLogsPage() {
@@ -249,7 +263,7 @@ function bindNetworkPaginationEvents() {
   })
 }
 
-function refreshSideNetworkOnly() {
+function patchSideNetworkOnly() {
   if (appState.currentTab !== 'network') return
   const table = $('#network-entries-table')
   if (!table) {
@@ -268,11 +282,78 @@ function refreshSideNetworkOnly() {
   bindNetworkPaginationEvents()
 }
 
-function findLogById(logId) {
-  return (appState.visibleLogs || []).find(log => log.id === logId) || null
+function refreshSideNetworkOnly({ defer = false } = {}) {
+  if (defer) {
+    sideNetworkUpdateGuard.run(patchSideNetworkOnly)
+    return
+  }
+  patchSideNetworkOnly()
 }
 
-function openLogDetail(logId) {
+function patchSideLogsOnly() {
+  if (appState.currentTab !== 'logs') return
+  const list = $('#side-logs-list')
+  const meta = $('#side-logs-meta')
+  if (!list || !meta) {
+    render()
+    return
+  }
+  appState.filteredLogs = filteredLogs()
+  applyLogsPagination()
+  patchHtml(list, renderLogsQuickList(appState))
+  patchHtml(meta, renderLogsQuickMeta(appState))
+  bindEvents()
+}
+
+function refreshSideLogsOnly({ defer = false } = {}) {
+  if (defer) {
+    sideLogsUpdateGuard.run(patchSideLogsOnly)
+    return
+  }
+  patchSideLogsOnly()
+}
+
+function rememberLogDetails(logs = []) {
+  for (const log of logs) {
+    if (!log?.id) continue
+    logDetailCache.delete(log.id)
+    logDetailCache.set(log.id, log)
+  }
+  while (logDetailCache.size > LOG_DETAIL_CACHE_LIMIT) {
+    const oldestKey = logDetailCache.keys().next().value
+    logDetailCache.delete(oldestKey)
+  }
+}
+
+function findLogById(logId) {
+  return (appState.visibleLogs || []).find(log => log.id === logId)
+    || (appState.filteredLogs || []).find(log => log.id === logId)
+    || (appState.pagedLogs || []).find(log => log.id === logId)
+    || logDetailCache.get(logId)
+    || null
+}
+
+function readLogSnapshotFromSideRow(row) {
+  if (!row?.dataset?.sideLogDetail) return null
+  const title = row.querySelector('.log-message')?.textContent.trim() || ''
+  const levelText = row.querySelector('.status-badge, .badge')?.textContent.trim().toLowerCase() || ''
+  const errorLabel = t('logs.levels.error').toLowerCase()
+  const warnLabel = t('logs.levels.warn').toLowerCase()
+  const level = levelText === errorLabel ? 'error' : levelText === warnLabel ? 'warn' : 'info'
+  const meta = Array.from(row.querySelectorAll('.item-meta')).map(item => item.textContent.trim())
+  const url = meta.find(value => /^https?:\/\//i.test(value)) || ''
+  return {
+    id: row.dataset.sideLogDetail,
+    scope: 'web',
+    level,
+    message: title,
+    timestamp: meta[0] || '',
+    url
+  }
+}
+
+function openLogDetail(logId, fallbackLog = null) {
+  if (fallbackLog?.id === logId) rememberLogDetails([fallbackLog])
   if (!findLogById(logId)) return
   appState.selectedLogId = logId
   render()
@@ -281,6 +362,49 @@ function openLogDetail(logId) {
 function closeLogDetail() {
   appState.selectedLogId = null
   render()
+}
+
+function getEventElement(event) {
+  const target = event?.target
+  if (target instanceof Element) return target
+  return target?.parentElement || null
+}
+
+function samePressIntent(a, b) {
+  return Boolean(a && b && a.kind === b.kind && a.id === b.id)
+}
+
+function isPointerReleaseInside(selector, event) {
+  const panel = document.querySelector(selector)
+  if (!panel) return false
+  const x = Number(event?.clientX)
+  const y = Number(event?.clientY)
+  if (Number.isFinite(x) && Number.isFinite(y)) {
+    const rect = panel.getBoundingClientRect()
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+  }
+  const target = getEventElement(event)
+  return Boolean(target && panel.contains(target))
+}
+
+function readLogPressIntent(event) {
+  if (appState.currentTab !== 'logs') return null
+  const target = getEventElement(event)
+  const panel = document.querySelector('.logs-panel')
+  if (!target || !panel || !panel.contains(target)) return null
+  const row = target.closest('[data-side-log-detail]')
+  if (!row || !panel.contains(row)) return null
+  return { kind: 'log-detail', id: row.dataset.sideLogDetail, log: readLogSnapshotFromSideRow(row) }
+}
+
+function runLogPressIntent(intent) {
+  if (intent?.kind === 'log-detail' && intent.id) openLogDetail(intent.id, intent.log)
+}
+
+function clearPendingLogPress() {
+  if (pendingLogPressTimer) clearTimeout(pendingLogPressTimer)
+  pendingLogPressTimer = null
+  pendingLogPress = null
 }
 
 async function copySelectedLogField(field) {
@@ -832,12 +956,12 @@ function bindEvents() {
   if (logsPanel && logsPanel.dataset.bound !== 'true') {
     logsPanel.dataset.bound = 'true'
     delegate(logsPanel, 'click', '[data-side-log-detail]', ({ delegateTarget }) => {
-      openLogDetail(delegateTarget.dataset.sideLogDetail)
+      openLogDetail(delegateTarget.dataset.sideLogDetail, readLogSnapshotFromSideRow(delegateTarget))
     })
     delegate(logsPanel, 'keydown', '[data-side-log-detail]', ({ event, delegateTarget }) => {
       if (event.key !== 'Enter' && event.key !== ' ') return
       event.preventDefault()
-      openLogDetail(delegateTarget.dataset.sideLogDetail)
+      openLogDetail(delegateTarget.dataset.sideLogDetail, readLogSnapshotFromSideRow(delegateTarget))
     })
     delegate(logsPanel, 'click', '[data-side-logs-page]', ({ delegateTarget: button }) => {
       const direction = button.dataset.sideLogsPage
@@ -865,12 +989,20 @@ chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:network') {
     appState.networkEntries = message.networkEntries
     appState.networkMeta = message.networkMeta || appState.networkMeta
-    if (appState.currentTab === 'network') refreshSideNetworkOnly()
+    if (appState.currentTab === 'network') refreshSideNetworkOnly({ defer: true })
   }
   if (message?.type === 'state:logs') {
     appState.logs = message.logs
-    if (appState.selectedLogId && !findLogById(appState.selectedLogId)) appState.selectedLogId = null
-    if (appState.currentTab === 'logs') render()
+    if (appState.currentTab === 'logs') {
+      appState.filteredLogs = filteredLogs()
+      applyLogsPagination()
+      if (appState.selectedLogId && !findLogById(appState.selectedLogId)) {
+        appState.selectedLogId = null
+        render()
+        return
+      }
+      refreshSideLogsOnly({ defer: true })
+    }
   }
   if (message?.type === 'state:attached') {
     queueConnectionPatch({ attachedTabId: message.attachedTabId ?? null })
@@ -931,6 +1063,38 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     refreshState()
   }
 })
+
+document.addEventListener('pointerdown', event => {
+  clearPendingLogPress()
+  pendingLogPress = readLogPressIntent(event)
+}, true)
+
+document.addEventListener('pointerup', event => {
+  const logIntent = pendingLogPress
+  if (!logIntent) return
+  if (!isPointerReleaseInside('.logs-panel', event)) {
+    clearPendingLogPress()
+    return
+  }
+  pendingLogPressTimer = setTimeout(() => {
+    const intent = pendingLogPress
+    clearPendingLogPress()
+    runLogPressIntent(intent)
+  }, 120)
+}, true)
+
+document.addEventListener('pointercancel', clearPendingLogPress, true)
+
+document.addEventListener('click', event => {
+  const logIntent = pendingLogPress
+  if (!logIntent) return
+  const clickIntent = readLogPressIntent(event)
+  clearPendingLogPress()
+  if (samePressIntent(logIntent, clickIntent)) return
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  runLogPressIntent(logIntent)
+}, true)
 
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return

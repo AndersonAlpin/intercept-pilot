@@ -89,6 +89,11 @@ export function renderRulesQuickPanel(state) {
           <button class="icon-btn ghost" type="button" id="manage-collections-btn" ${renderTooltipAttrs(t('common.manage'))} aria-label="${escapeHtml(t('common.manage'))}">${icon('settings')}</button>
         </div>
         <input class="input" id="rules-search" placeholder="${t('rules.searchPlaceholder')}" value="${escapeHtml(state.rulesFilter || '')}" />
+        ${countText ? `
+          <div class="rules-quick-meta">
+            <span class="small rules-results-count">${escapeHtml(countText)}</span>
+          </div>
+        ` : ''}
       </div>
       <div class="list">
         ${filtered.length ? filtered.map(rule => {
@@ -122,8 +127,7 @@ export function renderRulesQuickPanel(state) {
           `
         }).join('') : `<div class="empty">${t('rules.noRules')}</div>`}
       </div>
-      <div class="sidepanel-list-footer ${countText ? '' : 'is-centered'}">
-        ${countText ? `<span class="small">${escapeHtml(countText)}</span>` : ''}
+      <div class="sidepanel-list-footer is-centered">
         <button class="link-btn" id="quick-open-advanced-hint">${t('rules.advancedEditor')}</button>
       </div>
     </div>

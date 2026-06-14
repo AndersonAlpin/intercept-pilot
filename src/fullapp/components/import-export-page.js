@@ -6,7 +6,9 @@ import { renderImportTemplateMenu } from '../../shared/ui/import-template-menu.j
 
 export function renderImportExportPage(state) {
   const bodyHtml = `
-    <textarea class="textarea code import-json-input" id="full-import-json" placeholder="${t('fullapp.importPlaceholder')}"></textarea>
+    <div class="import-dropzone" id="full-import-dropzone" data-import-dropzone="true">
+      <textarea class="textarea code import-json-input" id="full-import-json" placeholder="${escapeHtml(t('fullapp.importPlaceholder'))}"></textarea>
+    </div>
     ${state.lastImportExportMessage ? `<pre class="preview">${escapeHtml(state.lastImportExportMessage)}</pre>` : ''}
   `
 
@@ -20,7 +22,13 @@ export function renderImportExportPage(state) {
         <input type="file" id="full-import-file-input" accept="application/json,.json" hidden />
       `,
       bodyHtml,
-      footerHtml: `<button class="btn primary" id="full-import-json-btn" disabled>${t('fullapp.importJson')}</button>`,
+      footerHtml: renderButton({
+        id: 'full-import-json-btn',
+        label: t('fullapp.importJson'),
+        variant: 'primary',
+        disabled: true,
+        tooltip: t('fullapp.importJsonDisabled')
+      }),
       className: 'import-export-panel',
       footerClassName: 'footer-actions'
     })}
