@@ -55,6 +55,7 @@ Rules:
 - Filters area should contain only filters.
 - Footer stays outside the scrollable body.
 - Use contextual count labels, not bare values like `1/1`.
+- Prefer separate header/filter/body/footer blocks with an internal scrollable body over sticky elements inside the body scroll.
 
 ## Scroll and spacing
 
@@ -67,6 +68,7 @@ Guidelines:
 - Apply right-side gutter only when needed.
 - Avoid horizontal scroll unless the table is genuinely wide.
 - Keep footer/pagination stable.
+- Keep action columns and action headers aligned when the body gains a vertical scrollbar.
 
 ## Sidepanel compactness
 
@@ -75,8 +77,20 @@ The Sidepanel should be compact and readable:
 - Cards should not grow huge because of long URLs or log messages.
 - Use line clamp / truncation in lists.
 - Keep full content available in details or tooltip/title when appropriate.
-- Use compact pagination.
+- Keep the capture header, tab selector, panel header, filters, and footer stable while only the active list scrolls.
+- Keep counts close to the related filters/footer instead of floating separately.
 - Avoid primary buttons repeated in every row/card unless truly needed.
+
+## Live updates and clicks
+
+Network and Logs can update while a user is clicking a row or action. These lists should:
+
+- Use stable entry IDs for details/actions.
+- Avoid opening items by array index.
+- Defer list patching during the pointerdown-to-click cycle when rebuilding the list could remove the clicked element.
+- Keep the latest pending update and flush it shortly after the click cycle completes.
+
+Use the shared live-update guard instead of changing capture runtime behavior.
 
 ## Modal shell
 
@@ -86,8 +100,26 @@ Modals should use the shared modal shell pattern when practical:
 - Body scrollable.
 - Footer/actions fixed.
 - Actions aligned to the right.
+- Close icon centered inside a fixed-size icon button.
 - Preserve Escape/backdrop behavior when it already exists.
 - Preserve ids, handlers, and dirty/pristine state.
+
+## Import panel
+
+Import should keep manual paste, file selection, and drag-and-drop on the same validation path.
+
+- Keep drag/drop guidance concise and inside the textarea placeholder.
+- Dropping one `.json` file fills the textarea and waits for the explicit import action.
+- Do not bypass the parser/validator for dropped files.
+
+## Update notes
+
+The Full App sidebar can show an `Updates` item as the final navigation entry.
+
+- Show an unread indicator for the current version until viewed.
+- Hide the item after the post-read visibility window.
+- Do not open the update-notes modal automatically on app entry.
+- Keep update-note content localized through the release notes/i18n path.
 
 ## Network and logs truncation
 

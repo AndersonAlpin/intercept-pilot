@@ -1,21 +1,21 @@
 # InterceptPilot
 
-InterceptPilot is a Chrome/Edge MV3 extension for frontend development and QA. It can attach to a browser tab, intercept HTTP(S) requests through the Chrome Debugger Protocol, mock responses, inspect captured traffic, and turn real requests into reusable rules.
+InterceptPilot is a Chrome/Edge MV3 extension for frontend development and QA. It can capture a browser tab, intercept HTTP(S) requests, mock responses, inspect captured traffic, and turn real requests into reusable rules.
 
 The extension is built with vanilla JS/HTML/CSS and runs as an MV3 service worker with a compact Sidepanel UI plus a larger Full App UI.
 
 ## Project structure
 
 - `src/background/*`: debugger runtime, rule engine, logger, service worker entrypoint.
-- `src/shared/*`: constants, models, storage, messaging, validators, utils.
+- `src/shared/*`: constants, models, storage, messaging, validators, i18n, release notes, utils, and shared UI helpers.
 - `src/sidepanel/*`: compact operational UI.
 - `src/fullapp/*`: full management UI in dedicated extension tab.
 - `icons/*`: extension icons.
 - `tools/*`: packaging and release helpers that do not ship inside the extension.
 - `site/dist/*`: public static privacy policy site for Chrome Web Store and future product web presence.
-- `docs/examples/*`: example import bundles and other QA/support artifacts.
-- `docs/store/*`: Chrome Web Store support notes and publication material.
-- `docs/internal/*`: internal plans, audits, and AI notes that do not affect runtime.
+- `docs/internal/*`: internal architecture and UI notes.
+- `docs/plans/*`: implementation and investigation plans.
+- `docs/releases/*`: release notes and publication copy.
 
 ## Load unpacked
 
@@ -27,11 +27,11 @@ The extension is built with vanilla JS/HTML/CSS and runs as an MV3 service worke
 
 ### Sidepanel (compact)
 
-- Attach/Reattach/Detach/Reload.
-- Select active collection and enable/disable it.
-- Quick rule create/edit and quick toggles.
-- Quick Network view with local filters, compact pagination, request inspection, and create-rule actions.
-- Quick logs.
+- Activate, restart, stop, and reload capture.
+- Select the active collection and enable/disable it.
+- Quick rule create/edit, bulk-friendly rule actions, and compact toggles.
+- Quick Network view with local filters, request inspection, and create-rule actions.
+- Quick Logs view with details.
 - Open Full App for advanced editing.
 
 ### Full App (advanced)
@@ -39,17 +39,17 @@ The extension is built with vanilla JS/HTML/CSS and runs as an MV3 service worke
 - Collections management.
 - Advanced rule editor (headers, resource type, priority, diagnostics state).
 - Network table with filters, pagination, request inspector, copy as Fetch/cURL, and create rule from request.
-- Logs, diagnostics, import/export and settings.
+- Logs, diagnostics, import/export, settings, and update notes.
 
 ## Network behavior
 
-- Captured requests are kept in runtime for the current attached-tab load cycle.
-- When the attached tab starts a real new page load/reload, Network is cleared once and a new cycle begins.
+- Captured requests are kept in runtime for the current captured-tab load cycle.
+- When the captured tab starts a real new page load/reload, Network is cleared once and a new cycle begins.
 - Manual **Clear Network** still clears immediately.
 - Network updates are batched to reduce UI churn during request bursts.
 - Sidepanel and Full App apply filters before pagination.
 - `maxNetworkEntries` is kept for settings compatibility, but it is not used as a destructive runtime trim.
-- Reloads triggered by InterceptPilot first ensure the debugger is attached and `Network`, `Runtime`, and `Fetch` domains are enabled.
+- Reloads triggered by InterceptPilot first ensure the Full capture domains are ready when Full capture is active.
 
 ## Network ignore patterns
 
@@ -60,9 +60,16 @@ Network ignore patterns are user-configurable in **Settings** under **Hide reque
 - Sidepanel and Full App share the same `settings.networkIgnorePatterns` array.
 - Add patterns with Enter in the chips input, remove them with the chip close button.
 
+## Updates
+
+- Full App exposes update notes through the **Updates** sidebar item.
+- The item shows an unread indicator until the current version is viewed.
+- After the current version is viewed, the item remains available for a short window and then hides automatically.
+- Update notes do not open automatically on app entry.
+
 ## Notes
 
 - Storage source of truth: `chrome.storage.local`.
-- Attached debugger session metadata is rehydrated from `chrome.storage.session` when possible.
+- Full capture session metadata is rehydrated from `chrome.storage.session` when possible.
 - Default safety: `applyResponseBody = true`, `applyResponseHeaders = false`.
 - Background keeps interception running even when sidepanel/full app is closed.
