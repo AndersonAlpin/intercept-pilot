@@ -19,7 +19,7 @@ The codebase intentionally uses vanilla JavaScript, HTML templates, and CSS. The
 
 `src/shared/`
 
-- Shared utilities, i18n, storage, messaging, models, validators, display helpers, and UI primitives.
+- Shared utilities, i18n, storage, messaging, models, validators, release notes, display helpers, and UI primitives.
 - UI helpers in `src/shared/ui/` should remain pure HTML-string render helpers.
 
 `src/sidepanel/`
@@ -29,7 +29,7 @@ The codebase intentionally uses vanilla JavaScript, HTML templates, and CSS. The
 
 `src/fullapp/`
 
-- Larger workspace with dashboard, rules, collections, network, logs, import, diagnostics, and settings.
+- Larger workspace with dashboard, rules, collections, network, logs, import, diagnostics, settings, and update notes.
 - Data-heavy pages use the Data Panel layout pattern.
 
 ## Capture flows
@@ -74,6 +74,7 @@ Important UI files:
 - `src/fullapp/components/network-page.js`
 - `src/fullapp/components/network-inspector-modal.js`
 - `src/sidepanel/components/network-quick-panel.js`
+- `src/shared/ui/dom.js` for guarded live-list patching during pointer interactions.
 
 ## Rules flow
 
@@ -107,6 +108,37 @@ Important files:
 - `src/sidepanel/components/logs-quick-panel.js`
 - `src/shared/ui/log-detail.js`
 
+## Live-updating list interactions
+
+Network and Logs can receive state broadcasts while the user is pressing a row or row action. UI code should preserve stable IDs for entries and avoid index-based open/detail flows.
+
+When a live list can be rebuilt during pointer interactions, use `createLiveUpdateGuard` from `src/shared/ui/dom.js` to defer the patch until the click cycle finishes. This keeps Network/Logs interactions from losing clicks while still allowing real-time updates to flush shortly after release.
+
+Do not solve this by changing capture runtime behavior, rule matching, or hit state.
+
+## Import flow
+
+The Full App Import screen supports manual paste, file selection, and JSON drag-and-drop into the editor area.
+
+Dropping a single `.json` file should fill the textarea and wait for the user to click `Import JSON`. The existing parser/validator path remains the source of truth for actual import behavior.
+
+Important files:
+
+- `src/fullapp/components/import-export-page.js`
+- `src/fullapp/fullapp.js`
+- `src/shared/import-export.js`
+
+## Release notes flow
+
+Full App update notes are driven by the current extension version from `chrome.runtime.getManifest().version`.
+
+Release-note content lives in `src/shared/release-notes.js` and localized strings live in `src/shared/locales/`. Seen state is stored outside user settings with dedicated storage keys:
+
+- `releaseNotesLastSeenVersion`
+- `releaseNotesLastSeenAt`
+
+The sidebar `Updates` item shows an unread indicator until the current version is viewed. After viewing, it remains visible for the configured post-read window and then hides automatically. The modal should open only from the manual sidebar path, not automatically on Full App entry.
+
 ## Sidepanel vs Full App
 
 Sidepanel:
@@ -122,6 +154,7 @@ Full App:
 - Larger tables/lists.
 - Header actions separated from filters.
 - Footer counts/pagination outside scrollable bodies.
+- Internal scroll belongs to the body/list area, not to the whole panel when the header, filters, and footer should remain stable.
 
 ## Storage and state
 
@@ -144,5 +177,6 @@ Shared helper locations:
 - `src/shared/network-display.js`: network display formatting.
 - `src/shared/log-display.js`: log display formatting.
 - `src/shared/i18n.js` and `src/shared/locales/`: visible labels.
+- `src/shared/release-notes.js`: versioned update-note mapping.
 
 Keep helpers small, explicit, and easy to validate.
