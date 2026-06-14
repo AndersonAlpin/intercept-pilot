@@ -67,6 +67,14 @@ const es = {
     deleteSelectedConfirmOne: 'La regla seleccionada se eliminará de la colección.\nEsta acción no se puede deshacer.', deleteSelectedConfirmMany: 'Las {count} reglas seleccionadas se eliminarán de la colección.\nEsta acción no se puede deshacer.',
     deleteSelectedSuccessOne: 'Regla seleccionada eliminada.',
     deleteSelectedSuccessMany: '{count} reglas seleccionadas eliminadas.',
+    moveSelected: 'Mover',
+    moveSelectedTitle: 'Mover reglas seleccionadas',
+    moveSelectedMessage: 'Elige la colección de destino para {count} regla(s) seleccionada(s).',
+    moveTargetCollection: 'Colección de destino',
+    moveSelectedConfirm: 'Mover reglas',
+    moveNoDestination: 'Crea o habilita otra colección para mover reglas.',
+    moveSelectedSuccessOne: 'Regla movida a otra colección.',
+    moveSelectedSuccessMany: '{count} reglas movidas a otra colección.',
     selectRule: 'Seleccionar regla', deleteSuccess: 'Regla eliminada.',
     createFromRequestError: 'Error al crear regla desde request.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON de la regla copiado.',
@@ -233,7 +241,10 @@ const es = {
       dataTables: 'Las listas de Full App mantienen encabezados, filtros y pie estables mientras solo se desplazan las filas.',
       sidepanelScroll: 'En Sidepanel, Reglas, Red y Logs mantienen estable la parte superior y los filtros mientras solo se desplaza el contenido de la pestaña.',
       importDrop: 'Importar ahora acepta soltar archivos JSON en el editor sin quitar pegado manual ni selección de archivo.',
-      releaseNotesMenu: 'Las notas de actualización ahora están en el menú lateral, con indicador de no leído y sin modal automático al entrar.'
+      releaseNotesMenu: 'Las notas de actualización ahora están en el menú lateral, con indicador de no leído y sin modal automático al entrar.',
+      moveRules: 'Las reglas seleccionadas ahora se pueden mover a otra colección en lote.',
+      sidepanelRulesCount: 'El contador de Reglas en Sidepanel ahora queda junto a los filtros, igual que Red y Logs.',
+      moveRulesDropdown: 'El selector de colección del modal para mover reglas ahora se abre sin quedar recortado por el cuerpo del modal.'
     }
   },
   importTemplate: {

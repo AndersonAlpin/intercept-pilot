@@ -10,11 +10,16 @@ export function renderFloatingSelectionBar({
   deleteLabel = '',
   clearId,
   deleteId,
+  extraActions = [],
   className,
   attrs
 } = {}) {
   const hidden = Number(count || 0) <= 0
   const disabled = hidden
+  const actionsHtml = (Array.isArray(extraActions) ? extraActions : []).map(action => {
+    const buttonClass = joinClasses('floating-selection-bar__button', action.className)
+    return `<button class="${escapeHtml(buttonClass)}" type="button" id="${escapeHtml(action.id)}" ${disabled ? 'disabled' : ''}>${escapeHtml(action.label)}</button>`
+  }).join('')
   return `
     <div ${renderAttrs({
       ...(attrs || {}),
@@ -27,6 +32,7 @@ export function renderFloatingSelectionBar({
       <span class="floating-selection-bar__label" data-floating-selection-label>${escapeHtml(label)}</span>
       <span class="floating-selection-bar__divider" aria-hidden="true"></span>
       <button class="floating-selection-bar__button" type="button" id="${escapeHtml(clearId)}" ${disabled ? 'disabled' : ''}>${escapeHtml(clearLabel)}</button>
+      ${actionsHtml}
       <button class="floating-selection-bar__button floating-selection-bar__button--danger" type="button" id="${escapeHtml(deleteId)}" ${disabled ? 'disabled' : ''}>${escapeHtml(deleteLabel)}</button>
     </div>
   `

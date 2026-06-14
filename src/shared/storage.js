@@ -276,6 +276,32 @@ export async function deleteRules(ruleIds = []) {
   return state.rules
 }
 
+export async function moveRulesToCollection(ruleIds = [], collectionId) {
+  const state = await getState()
+  const targetCollectionId = String(collectionId || '').trim()
+  const targetCollection = state.collections.find(collection => collection.id === targetCollectionId && collection.enabled !== false)
+  const ids = new Set((Array.isArray(ruleIds) ? ruleIds : [ruleIds])
+    .map(id => String(id || ''))
+    .filter(Boolean))
+  if (!ids.size || !targetCollection) return state.rules
+
+  let changed = false
+  const updatedAt = new Date().toISOString()
+  state.rules = state.rules.map(rule => {
+    if (!ids.has(rule.id) || rule.collectionId === targetCollectionId) return rule
+    changed = true
+    return {
+      ...rule,
+      collectionId: targetCollectionId,
+      updatedAt
+    }
+  })
+  if (!changed) return state.rules
+
+  await setState(state)
+  return state.rules
+}
+
 export async function updateRuleEnabled(ruleId, enabled) {
   const state = await getState()
   const nextEnabled = enabled !== false

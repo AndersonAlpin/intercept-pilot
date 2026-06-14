@@ -157,6 +157,14 @@ const en = {
     deleteSelectedConfirmMany: 'The {count} selected rules will be removed from the collection.\nThis action cannot be undone.',
     deleteSelectedSuccessOne: 'Selected rule deleted.',
     deleteSelectedSuccessMany: '{count} selected rules deleted.',
+    moveSelected: 'Move',
+    moveSelectedTitle: 'Move selected rules',
+    moveSelectedMessage: 'Choose the destination collection for {count} selected rule(s).',
+    moveTargetCollection: 'Destination collection',
+    moveSelectedConfirm: 'Move rules',
+    moveNoDestination: 'Create or enable another collection to move rules.',
+    moveSelectedSuccessOne: 'Rule moved to another collection.',
+    moveSelectedSuccessMany: '{count} rules moved to another collection.',
     selectRule: 'Select rule',
     deleteSuccess: 'Rule deleted.',
     createFromRequestError: 'Failed to create rule from request.',
@@ -375,7 +383,10 @@ const en = {
       dataTables: 'Full App lists keep headers, filters and footers stable while only rows scroll.',
       sidepanelScroll: 'In the Sidepanel, Rules, Network and Logs keep the top area and filters stable while only tab content scrolls.',
       importDrop: 'Import now accepts dropped JSON files in the editor without removing manual paste or file selection.',
-      releaseNotesMenu: 'Update notes now live in the sidebar menu with an unread indicator and no automatic modal on entry.'
+      releaseNotesMenu: 'Update notes now live in the sidebar menu with an unread indicator and no automatic modal on entry.',
+      moveRules: 'Selected rules can now be moved to another collection in bulk.',
+      sidepanelRulesCount: 'The Sidepanel Rules count now sits with the filters, matching Network and Logs.',
+      moveRulesDropdown: 'The collection selector in the move-rules modal now opens without being clipped by the modal body.'
     }
   },
   importTemplate: {

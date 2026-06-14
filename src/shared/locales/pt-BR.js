@@ -67,6 +67,14 @@ const ptBR = {
     deleteSelectedConfirmOne: 'A regra selecionada será removida da coleção.\nEssa ação não pode ser desfeita.', deleteSelectedConfirmMany: 'As {count} regras selecionadas serão removidas da coleção.\nEssa ação não pode ser desfeita.',
     deleteSelectedSuccessOne: 'Regra selecionada excluída.',
     deleteSelectedSuccessMany: '{count} regras selecionadas excluídas.',
+    moveSelected: 'Mover',
+    moveSelectedTitle: 'Mover regras selecionadas',
+    moveSelectedMessage: 'Escolha a coleção de destino para {count} regra(s) selecionada(s).',
+    moveTargetCollection: 'Coleção de destino',
+    moveSelectedConfirm: 'Mover regras',
+    moveNoDestination: 'Crie ou ative outra coleção para mover regras.',
+    moveSelectedSuccessOne: 'Regra movida para outra coleção.',
+    moveSelectedSuccessMany: '{count} regras movidas para outra coleção.',
     selectRule: 'Selecionar regra', deleteSuccess: 'Regra excluída.',
     createFromRequestError: 'Falha ao criar regra da requisição.',
     exportRule: 'Exportar', exportCopiedRule: 'JSON da regra copiado.',
@@ -232,7 +240,10 @@ const ptBR = {
       dataTables: 'Listas do Full App agora mantêm cabeçalhos, filtros e rodapé estáveis enquanto apenas as linhas rolam.',
       sidepanelScroll: 'No Sidepanel, Regras, Rede e Logs mantêm topo e filtros estáveis enquanto apenas o conteúdo da aba rola.',
       importDrop: 'Importar aceita soltar um arquivo JSON no editor, sem remover colagem manual ou seleção por arquivo.',
-      releaseNotesMenu: 'Notas de atualização agora ficam no menu lateral, com indicador de não lido e sem abrir modal automaticamente.'
+      releaseNotesMenu: 'Notas de atualização agora ficam no menu lateral, com indicador de não lido e sem abrir modal automaticamente.',
+      moveRules: 'Regras selecionadas agora podem ser movidas para outra coleção em lote.',
+      sidepanelRulesCount: 'O contador de Regras no Sidepanel agora fica junto dos filtros, igual a Rede e Logs.',
+      moveRulesDropdown: 'O seletor de coleção no modal de mover regras agora abre sem ser cortado pelo corpo do modal.'
     }
   },
   importTemplate: {

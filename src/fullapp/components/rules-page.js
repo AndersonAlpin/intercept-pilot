@@ -159,7 +159,10 @@ export function renderRulesPage(state) {
           clearLabel: t('common.clear'),
           deleteLabel: t('common.delete'),
           clearId: 'full-clear-selected-rules-btn',
-          deleteId: 'full-delete-selected-rules-btn'
+          deleteId: 'full-delete-selected-rules-btn',
+          extraActions: [
+            { id: 'full-move-selected-rules-btn', label: t('rules.moveSelected') }
+          ]
         }),
         footerHtml: footerCount ? `<span class="data-panel__count">${escapeHtml(footerCount)}</span>` : '',
         className: 'rules-data-panel',

@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
-import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, deleteCollections, saveRule, deleteRule, deleteRules, updateRuleEnabled, updateSettings, setLogs, getReleaseNotesState, markReleaseNotesSeen } from '../shared/storage.js'
+import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, deleteCollections, saveRule, deleteRule, deleteRules, moveRulesToCollection, updateRuleEnabled, updateSettings, setLogs, getReleaseNotesState, markReleaseNotesSeen } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, tryPrettyJson, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
@@ -1639,6 +1639,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       case 'rules:deleteMany':
         sendResponse({ rules: await deleteRules(message.ruleIds || []) })
+        await maybeAutoReloadAfterRuleChange()
+        return
+      case 'rules:move':
+        sendResponse({ rules: await moveRulesToCollection(message.ruleIds || [], message.collectionId) })
         await maybeAutoReloadAfterRuleChange()
         return
       case 'rules:duplicate': {

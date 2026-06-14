@@ -9,7 +9,10 @@ const RELEASE_NOTE_KEYS = {
     'releaseNotes.items.dataTables',
     'releaseNotes.items.sidepanelScroll',
     'releaseNotes.items.importDrop',
-    'releaseNotes.items.releaseNotesMenu'
+    'releaseNotes.items.releaseNotesMenu',
+    'releaseNotes.items.moveRules',
+    'releaseNotes.items.sidepanelRulesCount',
+    'releaseNotes.items.moveRulesDropdown'
   ]
 }
 

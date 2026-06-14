@@ -18,6 +18,7 @@ export const MSG = {
   RULES_UPDATE: 'rules:update',
   RULES_DELETE: 'rules:delete',
   RULES_DELETE_MANY: 'rules:deleteMany',
+  RULES_MOVE: 'rules:move',
   RULES_DUPLICATE: 'rules:duplicate',
   RULES_TOGGLE: 'rules:toggle',
 

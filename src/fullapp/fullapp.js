@@ -44,6 +44,7 @@ import { renderDiagnosticsPage } from './components/diagnostics-page.js'
 import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from './components/network-inspector-modal.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { renderReleaseNotesModal } from './components/release-notes-modal.js'
+import { renderRuleMoveModal } from './components/rule-move-modal.js'
 import { getReleaseNotesMenuState, hasReleaseNotesForVersion } from '../shared/release-notes.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
@@ -122,6 +123,7 @@ const state = {
   selectedNetworkEntryId: null,
   selectedLogId: null,
   releaseNotesModal: null,
+  ruleMoveModal: null,
   networkFilterHydrated: false
 }
 
@@ -536,6 +538,12 @@ function render() {
   })
     + renderNetworkInspectorModal(state)
     + renderLogDetailModal({ log: selectedLog, prefix: 'full' })
+    + renderRuleMoveModal({
+      open: Boolean(state.ruleMoveModal),
+      collections: state.collections,
+      activeCollectionId: activeEditableCollectionId(),
+      selectedCount: state.ruleMoveModal?.ruleIds?.length || 0
+    })
     + renderReleaseNotesModal(state.releaseNotesModal || {})
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindSelectMenus()
@@ -1216,6 +1224,17 @@ function activeEditableCollectionId() {
   return selectableCollections[0]?.id || ''
 }
 
+function getSelectedFullRuleIds() {
+  return [...document.querySelectorAll('[data-full-rule-select]:checked')]
+    .map(input => input.dataset.fullRuleSelect)
+    .filter(Boolean)
+}
+
+function closeRuleMoveModal() {
+  state.ruleMoveModal = null
+  render()
+}
+
 function bindEvents() {
   document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => openFullPage(button.dataset.page)))
   bindTopbarEvents()
@@ -1303,9 +1322,7 @@ function bindEvents() {
   })
 
   $('#full-delete-selected-rules-btn')?.addEventListener('click', async () => {
-    const ruleIds = [...document.querySelectorAll('[data-full-rule-select]:checked')]
-      .map(input => input.dataset.fullRuleSelect)
-      .filter(Boolean)
+    const ruleIds = getSelectedFullRuleIds()
     if (!ruleIds.length) return
     const copy = getBulkDeleteDialogCopy('rules', ruleIds.length)
     const ok = await confirmDialog({
@@ -1319,6 +1336,39 @@ function bindEvents() {
     await sendMessage({ type: MSG.RULES_DELETE_MANY, ruleIds })
     if (state.editingRule && ruleIds.includes(state.editingRule.id)) state.editingRule = null
     toastSuccess(getBulkDeleteSuccessMessage('rules', ruleIds.length))
+    await refreshState()
+  })
+
+  $('#full-move-selected-rules-btn')?.addEventListener('click', () => {
+    const ruleIds = getSelectedFullRuleIds()
+    if (!ruleIds.length) return
+    const currentCollectionId = activeEditableCollectionId()
+    const hasDestination = state.collections.some(collection => collection.enabled !== false && collection.id !== currentCollectionId)
+    if (!hasDestination) {
+      toastError(t('rules.moveNoDestination'))
+      return
+    }
+    state.ruleMoveModal = { ruleIds }
+    render()
+  })
+
+  $('#full-move-rules-cancel')?.addEventListener('click', closeRuleMoveModal)
+  $('#full-move-rules-close')?.addEventListener('click', closeRuleMoveModal)
+  document.querySelector('[data-rule-move-backdrop]')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeRuleMoveModal()
+  })
+  $('#full-move-rules-confirm')?.addEventListener('click', async () => {
+    const ruleIds = state.ruleMoveModal?.ruleIds || []
+    const collectionId = $('#full-move-rules-target')?.value || ''
+    if (!ruleIds.length || !collectionId) return
+    const result = await sendMessage({ type: MSG.RULES_MOVE, ruleIds, collectionId })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      return
+    }
+    if (state.editingRule && ruleIds.includes(state.editingRule.id)) state.editingRule = null
+    state.ruleMoveModal = null
+    toastSuccess(t(ruleIds.length === 1 ? 'rules.moveSelectedSuccessOne' : 'rules.moveSelectedSuccessMany', { count: ruleIds.length }))
     await refreshState()
   })
 

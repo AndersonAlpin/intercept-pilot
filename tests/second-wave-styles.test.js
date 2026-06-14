@@ -24,3 +24,8 @@ test('full app table scrollbars add matching right padding to headers and rows',
   assert.match(fullCss, /\.data-table\.is-scrollable-y \.data-table__header,[\s\S]*\.data-table\.is-scrollable-y \.data-table__rows \{[\s\S]*padding-right: 18px;/)
   assert.match(fullCss, /\.data-table\.is-scrollable-y \.data-table__rows \{[\s\S]*scrollbar-gutter: stable;/)
 })
+
+test('rule move modal lets the destination select menu escape the modal body', () => {
+  assert.match(fullCss, /\.rule-move-modal \{[\s\S]*overflow: visible !important;/)
+  assert.match(fullCss, /\.rule-move-modal \.modal-shell-body \{[\s\S]*overflow: visible;/)
+})

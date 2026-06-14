@@ -832,6 +832,18 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .release-notes-modal {
   width: min(520px, 100%);
 }
+.rule-move-modal {
+  width: min(480px, 100%);
+  overflow: visible !important;
+}
+.rule-move-modal .modal-shell-body {
+  overflow: visible;
+}
+.rule-move-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .release-notes {
   display: flex;
   flex-direction: column;
