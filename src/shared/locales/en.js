@@ -380,9 +380,12 @@ const en = {
       disabledActions: 'Unavailable actions are now disabled and explain why.',
       rulesLayout: 'Rules now have more room for names and URLs.',
       moveRules: 'Selected rules can now be moved to another collection.',
+      rulesOrganization: 'Rules are easier to organize, with more room for names/URLs and the option to move selected rules to another collection.',
       stableLists: 'Full App and Sidepanel lists are more stable, keeping headers, filters, and footers fixed while content scrolls.',
+      clickStability: 'Network and Logs are more stable during real-time updates.',
       importDrop: 'Import now accepts dropping JSON files into the editor while preserving manual paste and file selection.',
       solidToasts: 'Toasts are now more solid and easier to read.',
+      interfaceClarity: 'The interface is clearer and easier to read, with unavailable actions explaining why and more solid toasts.',
       releaseNotesMenu: 'New Updates menu in the Full App to keep track of extension changes.'
     }
   },

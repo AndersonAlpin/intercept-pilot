@@ -25,7 +25,7 @@ import { choiceDialog, confirmDialog, promptDialog } from '../shared/dialogs.js'
 import { findCollectionConflictById, parseImportBundle } from '../shared/import-bundles.js'
 import { getPresetById, applyPresetToRule } from '../shared/presets.js'
 import { entryToCurl, entryToFetch } from '../shared/network-format.js'
-import { delegate, patchHtml } from '../shared/ui/dom.js'
+import { createLiveUpdateGuard, delegate, patchHtml } from '../shared/ui/dom.js'
 import { renderButton } from '../shared/ui/button.js'
 import { renderDataPanel } from '../shared/ui/data-panel.js'
 import { bindSelectMenus, renderSelect } from '../shared/ui/select.js'
@@ -38,7 +38,7 @@ import { renderRulesPage } from './components/rules-page.js'
 import { renderRuleEditor } from './components/rule-editor.js'
 import { renderCollectionsPage } from './components/collections-page.js'
 import { renderNetworkPage, renderNetworkFooter, renderNetworkRows, isRenderableNetworkEntry } from './components/network-page.js'
-import { renderLogsPage } from './components/logs-page.js'
+import { renderLogsFooter, renderLogsPage, renderLogsRows } from './components/logs-page.js'
 import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
 import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from './components/network-inspector-modal.js'
@@ -130,6 +130,23 @@ const state = {
 function $(selector) {
   return document.querySelector(selector)
 }
+
+const fullNetworkUpdateGuard = createLiveUpdateGuard({
+  getTarget: () => document
+})
+
+const fullLogsUpdateGuard = createLiveUpdateGuard({
+  getTarget: () => document
+})
+
+const NETWORK_ENTRY_CACHE_LIMIT = 500
+const LOG_DETAIL_CACHE_LIMIT = 500
+const networkEntryCache = new Map()
+const logDetailCache = new Map()
+let pendingNetworkPress = null
+let pendingNetworkPressTimer = null
+let pendingLogPress = null
+let pendingLogPressTimer = null
 
 function getPageTitleLabel(page = state.page) {
   const labels = {
@@ -238,6 +255,8 @@ function applyLocalFilters() {
     return true
   })
   applyNetworkPagination()
+  rememberNetworkEntries(state.pagedNetworkEntries)
+  if (state.inspector?.entryId) ensureNetworkEntryAvailable(state.inspector.entryId)
 
   const logsScope = state.page === 'diagnostics' ? 'app' : 'web'
   const sourceLogs = logsScope === 'web' ? getVisibleLogsForCapture(state) : state.logs.filter(log => normalizeLogScope(log.scope) === 'app')
@@ -249,6 +268,7 @@ function applyLocalFilters() {
     return true
   })
   applyLogsPagination()
+  rememberLogDetails(state.pagedLogs)
 }
 
 function applyNetworkPagination() {
@@ -266,6 +286,35 @@ function resetNetworkPage() {
   state.networkPagination = { ...(state.networkPagination || {}), page: 1 }
 }
 
+function rememberNetworkEntries(entries = []) {
+  for (const entry of entries) {
+    if (!entry?.id) continue
+    networkEntryCache.delete(entry.id)
+    networkEntryCache.set(entry.id, entry)
+  }
+  while (networkEntryCache.size > NETWORK_ENTRY_CACHE_LIMIT) {
+    const oldestKey = networkEntryCache.keys().next().value
+    networkEntryCache.delete(oldestKey)
+  }
+}
+
+function findNetworkEntryById(entryId) {
+  return (state.visibleNetworkEntries || []).find(entry => entry.id === entryId)
+    || (state.filteredNetworkEntries || []).find(entry => entry.id === entryId)
+    || (state.pagedNetworkEntries || []).find(entry => entry.id === entryId)
+    || networkEntryCache.get(entryId)
+    || null
+}
+
+function ensureNetworkEntryAvailable(entryId) {
+  const entry = findNetworkEntryById(entryId)
+  if (!entry) return null
+  if (!(state.visibleNetworkEntries || []).some(item => item.id === entryId)) {
+    state.visibleNetworkEntries = [entry, ...(state.visibleNetworkEntries || [])]
+  }
+  return entry
+}
+
 function applyLogsPagination() {
   const pagination = state.logsPagination || { page: 1, pageSize: 100 }
   const pageSize = Math.max(1, Number(pagination.pageSize || 100))
@@ -279,6 +328,18 @@ function applyLogsPagination() {
 
 function resetLogsPage() {
   state.logsPagination = { ...(state.logsPagination || {}), page: 1 }
+}
+
+function rememberLogDetails(logs = []) {
+  for (const log of logs) {
+    if (!log?.id) continue
+    logDetailCache.delete(log.id)
+    logDetailCache.set(log.id, log)
+  }
+  while (logDetailCache.size > LOG_DETAIL_CACHE_LIMIT) {
+    const oldestKey = logDetailCache.keys().next().value
+    logDetailCache.delete(oldestKey)
+  }
 }
 
 function renderNetworkIgnoreChips() {
@@ -670,7 +731,7 @@ function queueConnectionPatch(patch) {
 }
 
 function openInspector(entryId) {
-  const entry = (state.visibleNetworkEntries || []).find(e => e.id === entryId)
+  const entry = ensureNetworkEntryAvailable(entryId)
   if (!entry) return
   state.selectedNetworkEntryId = entryId
   state.inspector = { entryId, tab: 'overview' }
@@ -687,7 +748,7 @@ function setInspectorTab(tab) {
   state.inspector.tab = tab
   render()
   if (tab === 'response') {
-    const entry = (state.visibleNetworkEntries || []).find(e => e.id === state.inspector.entryId)
+    const entry = findNetworkEntryById(state.inspector.entryId)
     if (entry && entry.responseBodyLoaded === 'idle' && !expectsNoBody(entry)) {
       loadInspectorBody()
     }
@@ -697,7 +758,7 @@ function setInspectorTab(tab) {
 async function loadInspectorBody() {
   if (!state.inspector) return
   const entryId = state.inspector.entryId
-  const entry = (state.visibleNetworkEntries || []).find(e => e.id === entryId)
+  const entry = findNetworkEntryById(entryId)
   if (!entry) return
   entry.responseBodyLoaded = 'loading'
   refreshInspectorBodyOnly()
@@ -718,7 +779,7 @@ function refreshInspectorBodyOnly() {
   if (!state.inspector) return
   const bodyEl = document.querySelector('#inspector-body')
   if (!bodyEl) return
-  const entry = (state.visibleNetworkEntries || []).find(e => e.id === state.inspector.entryId)
+  const entry = findNetworkEntryById(state.inspector.entryId)
   if (!entry) {
     closeInspector()
     return
@@ -1058,13 +1119,7 @@ function bindCreateRuleFromRequestEvents() {
 
   delegate(table, 'click', '[data-full-create-from-request]', async ({ event, delegateTarget: button }) => {
     event.stopPropagation()
-    const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId: button.dataset.fullCreateFromRequest })
-    if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
-    setCurrentPage('rules', { renderPage: false })
-    state.editingRule = result.createdRule || null
-    state.editorMode = 'create'
-    state.editorPristine = true
-    await refreshState()
+    await createRuleFromNetworkEntry(button.dataset.fullCreateFromRequest)
   })
 
   delegate(table, 'click', '[data-entry-id]', ({ target, delegateTarget: row }) => {
@@ -1073,7 +1128,7 @@ function bindCreateRuleFromRequestEvents() {
   })
 }
 
-function refreshNetworkTableOnly() {
+function patchNetworkTableOnly() {
   if (state.page !== 'network') return
   const table = $('#full-network-table')
   if (!table) return
@@ -1095,6 +1150,14 @@ function refreshNetworkTableOnly() {
   updateDataPanelScrollStateSoon()
 }
 
+function refreshNetworkTableOnly({ defer = false } = {}) {
+  if (defer) {
+    fullNetworkUpdateGuard.run(patchNetworkTableOnly)
+    return
+  }
+  patchNetworkTableOnly()
+}
+
 function bindNetworkPaginationEvents() {
   const container = $('#full-network-pagination')
   if (!container || container.dataset.bound === 'true') return
@@ -1111,11 +1174,139 @@ function bindNetworkPaginationEvents() {
   })
 }
 
-function findLogById(logId) {
-  return (state.visibleLogs || []).find(log => log.id === logId) || null
+async function createRuleFromNetworkEntry(entryId) {
+  const result = await sendMessage({ type: MSG.RULE_CREATE_FROM_REQUEST, entryId })
+  if (result?.error) return toastError(result.error || t('rules.createFromRequestError'))
+  setCurrentPage('rules', { renderPage: false })
+  state.editingRule = result.createdRule || null
+  state.editorMode = 'create'
+  state.editorPristine = true
+  await refreshState()
 }
 
-function openLogDetail(logId) {
+function patchLogsTableOnly() {
+  if (state.page !== 'logs') return
+  const table = $('#full-logs-table')
+  if (!table) return
+  patchHtml(table, renderLogsRows(state))
+  const header = $('#full-logs-table-header')
+  if (header) header.hidden = !(state.pagedLogs || []).length
+  const footer = $('#full-logs-pagination')
+  if (footer) patchHtml(footer, renderLogsFooter(state))
+  bindLogsEvents()
+  updateDataPanelScrollStateSoon()
+}
+
+function refreshLogsTableOnly({ defer = false } = {}) {
+  if (defer) {
+    fullLogsUpdateGuard.run(patchLogsTableOnly)
+    return
+  }
+  patchLogsTableOnly()
+}
+
+function getEventElement(event) {
+  const target = event?.target
+  if (target instanceof Element) return target
+  return target?.parentElement || null
+}
+
+function samePressIntent(a, b) {
+  return Boolean(a && b && a.kind === b.kind && a.id === b.id)
+}
+
+function isPointerReleaseInside(selector, event) {
+  const panel = document.querySelector(selector)
+  if (!panel) return false
+  const x = Number(event?.clientX)
+  const y = Number(event?.clientY)
+  if (Number.isFinite(x) && Number.isFinite(y)) {
+    const rect = panel.getBoundingClientRect()
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+  }
+  const target = getEventElement(event)
+  return Boolean(target && panel.contains(target))
+}
+
+function readNetworkPressIntent(event) {
+  if (state.page !== 'network') return null
+  const target = getEventElement(event)
+  const panel = document.querySelector('.network-data-panel')
+  if (!target || !panel || !panel.contains(target)) return null
+  const createButton = target.closest('[data-full-create-from-request]')
+  if (createButton && panel.contains(createButton)) {
+    return { kind: 'network-create', id: createButton.dataset.fullCreateFromRequest }
+  }
+  const row = target.closest('[data-entry-id]')
+  if (!row || !panel.contains(row)) return null
+  return { kind: 'network-inspect', id: row.dataset.entryId }
+}
+
+function runNetworkPressIntent(intent) {
+  if (!intent?.id) return
+  if (intent.kind === 'network-create') {
+    createRuleFromNetworkEntry(intent.id)
+    return
+  }
+  if (intent.kind === 'network-inspect') {
+    openInspector(intent.id)
+  }
+}
+
+function clearPendingNetworkPress() {
+  if (pendingNetworkPressTimer) clearTimeout(pendingNetworkPressTimer)
+  pendingNetworkPressTimer = null
+  pendingNetworkPress = null
+}
+
+function readLogPressIntent(event) {
+  if (state.page !== 'logs') return null
+  const target = getEventElement(event)
+  const panel = document.querySelector('.logs-data-panel')
+  if (!target || !panel || !panel.contains(target)) return null
+  const row = target.closest('[data-full-log-detail]')
+  if (!row || !panel.contains(row)) return null
+  return { kind: 'log-detail', id: row.dataset.fullLogDetail, log: readLogSnapshotFromRow(row) }
+}
+
+function runLogPressIntent(intent) {
+  if (intent?.kind === 'log-detail' && intent.id) openLogDetail(intent.id, intent.log)
+}
+
+function clearPendingLogPress() {
+  if (pendingLogPressTimer) clearTimeout(pendingLogPressTimer)
+  pendingLogPressTimer = null
+  pendingLogPress = null
+}
+
+function findLogById(logId) {
+  return (state.visibleLogs || []).find(log => log.id === logId)
+    || (state.filteredLogs || []).find(log => log.id === logId)
+    || (state.pagedLogs || []).find(log => log.id === logId)
+    || logDetailCache.get(logId)
+    || null
+}
+
+function readLogSnapshotFromRow(row) {
+  if (!row?.dataset?.fullLogDetail) return null
+  const cells = Array.from(row.children || []).map(cell => cell.textContent.trim())
+  const levelText = (cells[1] || '').toLowerCase()
+  const errorLabel = t('logs.levels.error').toLowerCase()
+  const warnLabel = t('logs.levels.warn').toLowerCase()
+  const level = levelText === errorLabel ? 'error' : levelText === warnLabel ? 'warn' : 'info'
+  const url = cells[3] && cells[3] !== '—' ? cells[3] : ''
+  return {
+    id: row.dataset.fullLogDetail,
+    scope: 'web',
+    level,
+    message: cells[0] || '',
+    timestamp: cells[2] || '',
+    url
+  }
+}
+
+function openLogDetail(logId, fallbackLog = null) {
+  if (fallbackLog?.id === logId) rememberLogDetails([fallbackLog])
   if (!findLogById(logId)) return
   state.selectedLogId = logId
   render()
@@ -1148,12 +1339,12 @@ function bindLogsEvents() {
   if (logsTable && logsTable.dataset.logsBound !== 'true') {
     logsTable.dataset.logsBound = 'true'
     delegate(logsTable, 'click', '[data-full-log-detail]', ({ delegateTarget }) => {
-      openLogDetail(delegateTarget.dataset.fullLogDetail)
+      openLogDetail(delegateTarget.dataset.fullLogDetail, readLogSnapshotFromRow(delegateTarget))
     })
     delegate(logsTable, 'keydown', '[data-full-log-detail]', ({ event, delegateTarget }) => {
       if (event.key !== 'Enter' && event.key !== ' ') return
       event.preventDefault()
-      openLogDetail(delegateTarget.dataset.fullLogDetail)
+      openLogDetail(delegateTarget.dataset.fullLogDetail, readLogSnapshotFromRow(delegateTarget))
     })
   }
 
@@ -1880,19 +2071,27 @@ chrome.runtime.onMessage.addListener(message => {
     state.networkMeta = message.networkMeta || state.networkMeta
     if (state.page === 'network') {
       applyLocalFilters()
-      refreshNetworkTableOnly()
+      refreshNetworkTableOnly({ defer: true })
     }
     if (state.inspector) {
-      const entry = state.networkEntries.find(e => e.id === state.inspector.entryId)
+      const entry = findNetworkEntryById(state.inspector.entryId)
       if (entry) refreshInspectorBodyOnly()
       else closeInspector()
     }
   }
   if (message?.type === 'state:logs') {
     state.logs = message.logs
-    if (state.selectedLogId && !findLogById(state.selectedLogId)) state.selectedLogId = null
     if (state.page === 'logs' || state.page === 'diagnostics') {
       applyLocalFilters()
+      if (state.selectedLogId && !findLogById(state.selectedLogId)) {
+        state.selectedLogId = null
+        render()
+        return
+      }
+      if (state.page === 'logs') {
+        refreshLogsTableOnly({ defer: true })
+        return
+      }
       render()
     }
   }
@@ -1967,6 +2166,71 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     refreshState()
   }
 })
+
+document.addEventListener('pointerdown', event => {
+  clearPendingNetworkPress()
+  clearPendingLogPress()
+  pendingNetworkPress = readNetworkPressIntent(event)
+  pendingLogPress = readLogPressIntent(event)
+}, true)
+
+document.addEventListener('pointerup', event => {
+  const networkIntent = pendingNetworkPress
+  if (networkIntent) {
+    if (!isPointerReleaseInside('.network-data-panel', event)) {
+      clearPendingNetworkPress()
+    } else {
+      pendingNetworkPressTimer = setTimeout(() => {
+        const intent = pendingNetworkPress
+        clearPendingNetworkPress()
+        runNetworkPressIntent(intent)
+      }, 120)
+    }
+  }
+
+  const logIntent = pendingLogPress
+  if (logIntent) {
+    if (!isPointerReleaseInside('.logs-data-panel', event)) {
+      clearPendingLogPress()
+    } else {
+      pendingLogPressTimer = setTimeout(() => {
+        const intent = pendingLogPress
+        clearPendingLogPress()
+        runLogPressIntent(intent)
+      }, 120)
+    }
+  }
+}, true)
+
+document.addEventListener('pointercancel', () => {
+  clearPendingNetworkPress()
+  clearPendingLogPress()
+}, true)
+
+document.addEventListener('click', event => {
+  const networkIntent = pendingNetworkPress
+  if (networkIntent) {
+    const clickIntent = readNetworkPressIntent(event)
+    clearPendingNetworkPress()
+    if (!samePressIntent(networkIntent, clickIntent)) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      runNetworkPressIntent(networkIntent)
+      return
+    }
+  }
+
+  const logIntent = pendingLogPress
+  if (logIntent) {
+    const clickIntent = readLogPressIntent(event)
+    clearPendingLogPress()
+    if (!samePressIntent(logIntent, clickIntent)) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      runLogPressIntent(logIntent)
+    }
+  }
+}, true)
 
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return

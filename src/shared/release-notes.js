@@ -3,13 +3,10 @@ import { t } from './i18n.js'
 const RELEASE_NOTE_KEYS = {
   '1.2.0': [
     'releaseNotes.items.captureStatus',
-    'releaseNotes.items.disabledActions',
-    'releaseNotes.items.rulesLayout',
-    'releaseNotes.items.moveRules',
-    'releaseNotes.items.stableLists',
+    'releaseNotes.items.rulesOrganization',
+    'releaseNotes.items.clickStability',
     'releaseNotes.items.importDrop',
-    'releaseNotes.items.solidToasts',
-    'releaseNotes.items.releaseNotesMenu'
+    'releaseNotes.items.interfaceClarity'
   ]
 }
 

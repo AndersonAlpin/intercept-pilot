@@ -33,11 +33,10 @@ function levelBadge(level) {
   return renderBadge({ label: t(`logs.levels.${normalizedLevel}`), variant: kind })
 }
 
-export function renderLogsPage(state) {
+function getLogsView(state) {
   const logs = state.filteredLogs || state.logs.filter(isWebLog)
   const pagedLogs = state.pagedLogs || logs
   const total = (state.visibleLogs || []).filter(isWebLog).length
-  const canClearLogs = total > 0
   const pageSize = Number(state.logsPagination?.pageSize || 100)
   const page = Number(state.logsPagination?.page || 1)
   const start = logs.length ? ((page - 1) * pageSize) + 1 : 0
@@ -61,7 +60,11 @@ export function renderLogsPage(state) {
     ? t('logs.activateCaptureToSeeLogs')
     : t(hasActiveLogsFilter(state) ? 'logs.noResults' : 'logs.webOnlyEmpty')
 
-  const header = `
+  return { logs, pagedLogs, total, pageSize, page, totalPages, countText, emptyMessage }
+}
+
+export function renderLogsHeader() {
+  return `
     <div class="table-row row-logs rules-header" role="row">
       <div role="columnheader">${escapeHtml(t('logs.columns.message'))}</div>
       <div role="columnheader">${escapeHtml(t('common.level'))}</div>
@@ -69,14 +72,11 @@ export function renderLogsPage(state) {
       <div role="columnheader">${escapeHtml(t('logs.columns.url'))}</div>
     </div>
   `
+}
 
-  const filtersHtml = `
-    <div class="filters-row">
-      ${renderSelect({ id: 'full-logs-level', value: state.logsFilter.level, options: getLogLevelOptions(), className: 'filter-small' })}
-      <input class="input filter-grow" id="full-logs-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter.search || '')}" />
-    </div>
-  `
-  const rowsHtml = pagedLogs.length ? pagedLogs.map(log => `
+export function renderLogsRows(state) {
+  const { pagedLogs, emptyMessage } = getLogsView(state)
+  return pagedLogs.length ? pagedLogs.map(log => `
     <div class="table-row row-logs clickable-row" role="button" tabindex="0" data-full-log-detail="${escapeHtml(log.id)}" title="${escapeHtml(t('logs.openDetails'))}">
       <div class="cell-network-url" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</div>
       <div>${levelBadge(log.level || 'info')}</div>
@@ -84,11 +84,43 @@ export function renderLogsPage(state) {
       <div class="cell-network-url" title="${escapeHtml(log.url || '')}">${escapeHtml(log.url || '—')}</div>
     </div>
   `).join('') : renderEmptyState({ message: emptyMessage })
+}
+
+export function renderLogsFooter(state) {
+  const { logs, pageSize, page, totalPages, countText } = getLogsView(state)
+  return renderPagination({
+    page,
+    totalItems: logs.length,
+    pageSize,
+    countLabel: countText,
+    countClassName: 'network-footer-count',
+    dataAction: 'full-logs-page',
+    className: 'network-pagination-controls',
+    buttonClassName: 'btn network-page-btn',
+    labels: {
+      previous: t('network.previous'),
+      next: t('network.next'),
+      previousTitle: t('network.previousPage'),
+      nextTitle: t('network.nextPage'),
+      pageLabel: t('network.pageShort', { page, totalPages })
+    }
+  })
+}
+
+export function renderLogsPage(state) {
+  const { pagedLogs, total } = getLogsView(state)
+  const canClearLogs = total > 0
+  const filtersHtml = `
+    <div class="filters-row">
+      ${renderSelect({ id: 'full-logs-level', value: state.logsFilter.level, options: getLogLevelOptions(), className: 'filter-small' })}
+      <input class="input filter-grow" id="full-logs-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter.search || '')}" />
+    </div>
+  `
   const bodyHtml = `
     <div class="data-table data-table--logs" role="table">
-      ${pagedLogs.length ? `<div class="data-table__header table table-wide">${header}</div>` : ''}
-      <div class="data-table__rows table table-wide">
-        ${rowsHtml}
+      <div class="data-table__header table table-wide" id="full-logs-table-header" ${pagedLogs.length ? '' : 'hidden'}>${renderLogsHeader()}</div>
+      <div class="data-table__rows table table-wide" id="full-logs-table">
+        ${renderLogsRows(state)}
       </div>
     </div>
   `
@@ -106,23 +138,7 @@ export function renderLogsPage(state) {
         }),
         filtersHtml,
         bodyHtml,
-        footerHtml: renderPagination({
-          page,
-          totalItems: logs.length,
-          pageSize,
-          countLabel: countText,
-          countClassName: 'network-footer-count',
-          dataAction: 'full-logs-page',
-          className: 'network-pagination-controls',
-          buttonClassName: 'btn network-page-btn',
-          labels: {
-            previous: t('network.previous'),
-            next: t('network.next'),
-            previousTitle: t('network.previousPage'),
-            nextTitle: t('network.nextPage'),
-            pageLabel: t('network.pageShort', { page, totalPages })
-          }
-        }),
+        footerHtml: renderLogsFooter(state),
         footerClassName: 'network-table-footer',
         footerAttrs: { id: 'full-logs-pagination' },
         className: 'logs-data-panel',

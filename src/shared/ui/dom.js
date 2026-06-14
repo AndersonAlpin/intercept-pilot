@@ -46,9 +46,9 @@ export function delegate(container, eventName, selector, handler, options) {
 }
 
 export function patchHtml(targetOrSelector, html, options = {}) {
-  const root = options.root || document
+  const root = options.root || (typeof document !== 'undefined' ? document : null)
   const target = typeof targetOrSelector === 'string'
-    ? root.querySelector(targetOrSelector)
+    ? root?.querySelector(targetOrSelector)
     : targetOrSelector
 
   if (!target) {
@@ -56,7 +56,124 @@ export function patchHtml(targetOrSelector, html, options = {}) {
     return null
   }
 
+  if (target.innerHTML === html) return target
   target.innerHTML = html
   if (typeof options.afterPatch === 'function') options.afterPatch(target)
   return target
+}
+
+function getEventElement(event) {
+  const target = event?.target
+  if (typeof Element !== 'undefined' && target instanceof Element) return target
+  if (target?.parentElement) return target.parentElement
+  return null
+}
+
+export function createLiveUpdateGuard({
+  getTarget,
+  interactiveSelector,
+  documentRef = typeof document !== 'undefined' ? document : null,
+  windowRef = typeof window !== 'undefined' ? window : null,
+  maxDelayMs = 1500,
+  releaseDelayMs = 50
+} = {}) {
+  let pointerActive = false
+  let waitingForClick = false
+  let pendingUpdate = null
+  let safetyTimer = null
+  let releaseTimer = null
+
+  const clearSafetyTimer = () => {
+    if (!safetyTimer) return
+    clearTimeout(safetyTimer)
+    safetyTimer = null
+  }
+
+  const clearReleaseTimer = () => {
+    if (!releaseTimer) return
+    clearTimeout(releaseTimer)
+    releaseTimer = null
+  }
+
+  const flush = () => {
+    pointerActive = false
+    waitingForClick = false
+    clearSafetyTimer()
+    clearReleaseTimer()
+    const update = pendingUpdate
+    pendingUpdate = null
+    if (typeof update === 'function') update()
+  }
+
+  const scheduleSafetyFlush = () => {
+    clearSafetyTimer()
+    safetyTimer = setTimeout(flush, maxDelayMs)
+  }
+
+  const scheduleReleaseFlush = () => {
+    clearReleaseTimer()
+    releaseTimer = setTimeout(flush, releaseDelayMs)
+  }
+
+  const getRoot = () => typeof getTarget === 'function' ? getTarget() : null
+
+  const onPointerDown = event => {
+    if (event?.button != null && event.button !== 0) return
+    const root = getRoot()
+    const target = getEventElement(event)
+    if (!root || !target || typeof root.contains !== 'function' || !root.contains(target)) return
+    if (interactiveSelector && !target.closest?.(interactiveSelector)) return
+    pointerActive = true
+    waitingForClick = false
+    scheduleSafetyFlush()
+  }
+
+  const onPointerRelease = () => {
+    if (!pointerActive) return
+    pointerActive = false
+    waitingForClick = true
+    clearSafetyTimer()
+    scheduleReleaseFlush()
+  }
+
+  const onClick = () => {
+    if (!waitingForClick) return
+    clearReleaseTimer()
+    releaseTimer = setTimeout(flush, 0)
+  }
+
+  documentRef?.addEventListener?.('pointerdown', onPointerDown, true)
+  documentRef?.addEventListener?.('pointerup', onPointerRelease, true)
+  documentRef?.addEventListener?.('pointercancel', onPointerRelease, true)
+  documentRef?.addEventListener?.('click', onClick, true)
+  windowRef?.addEventListener?.('blur', onPointerRelease, true)
+
+  return {
+    run(update) {
+      if (typeof update !== 'function') return false
+      if (!pointerActive && !waitingForClick) {
+        update()
+        return false
+      }
+      pendingUpdate = update
+      scheduleSafetyFlush()
+      return true
+    },
+    flush,
+    isPointerActive() {
+      return pointerActive || waitingForClick
+    },
+    destroy() {
+      clearSafetyTimer()
+      clearReleaseTimer()
+      pendingUpdate = null
+      pointerActive = false
+      waitingForClick = false
+      documentRef?.removeEventListener?.('pointerdown', onPointerDown, true)
+      documentRef?.removeEventListener?.('pointerup', onPointerRelease, true)
+      documentRef?.removeEventListener?.('pointercancel', onPointerRelease, true)
+      documentRef?.removeEventListener?.('click', onClick, true)
+      windowRef?.removeEventListener?.('blur', onPointerRelease, true)
+    }
+  }
 }

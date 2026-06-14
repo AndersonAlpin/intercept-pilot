@@ -23,39 +23,30 @@ test('release notes 1.2.0 use final localized publication copy', () => {
       title: 'Novidades',
       items: [
         'Captura mais consistente entre Full App e Sidepanel.',
-        'Ações indisponíveis agora ficam desativadas e explicam o motivo.',
-        'Regras ganharam mais espaço para nomes e URLs.',
-        'Agora é possível mover regras selecionadas para outra coleção.',
-        'Listas do Full App e Sidepanel ficaram mais estáveis, mantendo cabeçalhos, filtros e rodapés fixos enquanto o conteúdo rola.',
+        'Regras ficaram mais fáceis de organizar, com mais espaço para nomes/URLs e opção de mover regras selecionadas para outra coleção.',
+        'Rede e Logs ficaram mais estáveis durante atualizações em tempo real.',
         'Importar agora aceita soltar arquivos JSON no editor, mantendo colagem manual e seleção por arquivo.',
-        'Toasts ficaram mais sólidos e legíveis.',
-        'Novo menu Atualizações no Full App para acompanhar as novidades da extensão.'
+        'A interface ficou mais clara e legível, com ações indisponíveis explicando o motivo e toasts mais sólidos.'
       ]
     },
     en: {
       title: 'What’s new',
       items: [
         'Capture status is more consistent between Full App and Sidepanel.',
-        'Unavailable actions are now disabled and explain why.',
-        'Rules now have more room for names and URLs.',
-        'Selected rules can now be moved to another collection.',
-        'Full App and Sidepanel lists are more stable, keeping headers, filters, and footers fixed while content scrolls.',
+        'Rules are easier to organize, with more room for names/URLs and the option to move selected rules to another collection.',
+        'Network and Logs are more stable during real-time updates.',
         'Import now accepts dropping JSON files into the editor while preserving manual paste and file selection.',
-        'Toasts are now more solid and easier to read.',
-        'New Updates menu in the Full App to keep track of extension changes.'
+        'The interface is clearer and easier to read, with unavailable actions explaining why and more solid toasts.'
       ]
     },
     es: {
       title: 'Novedades',
       items: [
         'El estado de captura es más consistente entre Full App y Sidepanel.',
-        'Las acciones no disponibles ahora quedan desactivadas y explican el motivo.',
-        'Reglas ahora tiene más espacio para nombres y URLs.',
-        'Ahora es posible mover reglas seleccionadas a otra colección.',
-        'Las listas de Full App y Sidepanel son más estables, manteniendo encabezados, filtros y pies fijos mientras el contenido se desplaza.',
+        'Las reglas son más fáciles de organizar, con más espacio para nombres/URLs y la opción de mover reglas seleccionadas a otra colección.',
+        'Red y Logs son más estables durante actualizaciones en tiempo real.',
         'Importar ahora permite soltar archivos JSON en el editor, manteniendo el pegado manual y la selección por archivo.',
-        'Los toasts ahora son más sólidos y fáciles de leer.',
-        'Nuevo menú Actualizaciones en Full App para seguir las novedades de la extensión.'
+        'La interfaz es más clara y fácil de leer, con acciones no disponibles que explican el motivo y toasts más sólidos.'
       ]
     }
   }

@@ -237,9 +237,12 @@ const ptBR = {
       disabledActions: 'Ações indisponíveis agora ficam desativadas e explicam o motivo.',
       rulesLayout: 'Regras ganharam mais espaço para nomes e URLs.',
       moveRules: 'Agora é possível mover regras selecionadas para outra coleção.',
+      rulesOrganization: 'Regras ficaram mais fáceis de organizar, com mais espaço para nomes/URLs e opção de mover regras selecionadas para outra coleção.',
       stableLists: 'Listas do Full App e Sidepanel ficaram mais estáveis, mantendo cabeçalhos, filtros e rodapés fixos enquanto o conteúdo rola.',
+      clickStability: 'Rede e Logs ficaram mais estáveis durante atualizações em tempo real.',
       importDrop: 'Importar agora aceita soltar arquivos JSON no editor, mantendo colagem manual e seleção por arquivo.',
       solidToasts: 'Toasts ficaram mais sólidos e legíveis.',
+      interfaceClarity: 'A interface ficou mais clara e legível, com ações indisponíveis explicando o motivo e toasts mais sólidos.',
       releaseNotesMenu: 'Novo menu Atualizações no Full App para acompanhar as novidades da extensão.'
     }
   },

@@ -28,7 +28,7 @@ function isWebLog(log) {
   return String(log?.scope || '').toLowerCase() === 'web'
 }
 
-export function renderLogsQuickPanel(state) {
+function getLogsQuickView(state) {
   const sourceLogs = state.filteredLogs || (state.logs || []).filter(isWebLog)
   const logs = state.pagedLogs || sourceLogs
   const total = (state.visibleLogs || []).filter(isWebLog).length
@@ -52,6 +52,49 @@ export function renderLogsQuickPanel(state) {
       singular: t('logs.entityOne'),
       plural: t('logs.entityMany')
     })
+  return { sourceLogs, logs, total, canClearLogs, pageSize, page, totalPages, countText }
+}
+
+export function renderLogsQuickMeta(state) {
+  const { sourceLogs, pageSize, page, totalPages, countText } = getLogsQuickView(state)
+  return `
+    <span class="small logs-results-count">${escapeHtml(countText)}</span>
+    ${renderPagination({
+      page,
+      totalItems: sourceLogs.length,
+      pageSize,
+      compact: true,
+      dataAction: 'side-logs-page',
+      className: 'network-pagination',
+      buttonClassName: 'network-page-btn',
+      labels: {
+        previousHtml: icon('chevron-left', 14),
+        nextHtml: icon('chevron-right', 14),
+        previousTitle: t('network.previousPage'),
+        nextTitle: t('network.nextPage'),
+        pageLabel: `${page}/${totalPages}`,
+        pageAriaLabel: t('network.pageOf', { page, totalPages })
+      }
+    })}
+  `
+}
+
+export function renderLogsQuickList(state) {
+  const { logs } = getLogsQuickView(state)
+  return logs.length ? logs.map(log => `
+    <div class="item log-item" role="button" tabindex="0" data-side-log-detail="${escapeHtml(log.id)}" title="${escapeHtml(t('logs.openDetails'))}">
+      <div class="item-title">
+        <strong class="log-message" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</strong>
+        ${levelBadge(log.level)}
+      </div>
+      <div class="item-meta">${escapeHtml(log.timestamp || '')}</div>
+      ${log.url ? `<div class="item-meta log-url" title="${escapeHtml(log.url)}">${escapeHtml(log.url)}</div>` : ''}
+    </div>
+  `).join('') : renderEmptyState({ message: t(hasActiveCaptureContext(state) ? 'logs.webOnlyEmpty' : 'logs.activateCaptureToSeeLogs') })
+}
+
+export function renderLogsQuickPanel(state) {
+  const { canClearLogs } = getLogsQuickView(state)
   return `
     <div class="card compact-card sticky-filters logs-panel">
       <div class="sticky-bar logs-sticky-bar">
@@ -69,38 +112,12 @@ export function renderLogsQuickPanel(state) {
           ${renderSelect({ id: 'logs-filter-level', value: state.logsFilter?.level || 'ANY', options: getLogLevelOptions() })}
           <input class="input" id="logs-filter-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter?.search || '')}" />
         </div>
-        <div class="logs-quick-meta">
-          <span class="small logs-results-count">${escapeHtml(countText)}</span>
-          ${renderPagination({
-            page,
-            totalItems: sourceLogs.length,
-            pageSize,
-            compact: true,
-            dataAction: 'side-logs-page',
-            className: 'network-pagination',
-            buttonClassName: 'network-page-btn',
-            labels: {
-              previousHtml: icon('chevron-left', 14),
-              nextHtml: icon('chevron-right', 14),
-              previousTitle: t('network.previousPage'),
-              nextTitle: t('network.nextPage'),
-              pageLabel: `${page}/${totalPages}`,
-              pageAriaLabel: t('network.pageOf', { page, totalPages })
-            }
-          })}
+        <div class="logs-quick-meta" id="side-logs-meta">
+          ${renderLogsQuickMeta(state)}
         </div>
       </div>
-      <div class="list">
-        ${logs.length ? logs.map(log => `
-          <div class="item log-item" role="button" tabindex="0" data-side-log-detail="${escapeHtml(log.id)}" title="${escapeHtml(t('logs.openDetails'))}">
-            <div class="item-title">
-              <strong class="log-message" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</strong>
-              ${levelBadge(log.level)}
-            </div>
-            <div class="item-meta">${escapeHtml(log.timestamp || '')}</div>
-            ${log.url ? `<div class="item-meta log-url" title="${escapeHtml(log.url)}">${escapeHtml(log.url)}</div>` : ''}
-          </div>
-        `).join('') : renderEmptyState({ message: t(hasActiveCaptureContext(state) ? 'logs.webOnlyEmpty' : 'logs.activateCaptureToSeeLogs') })}
+      <div class="list" id="side-logs-list">
+        ${renderLogsQuickList(state)}
       </div>
     </div>
   `
