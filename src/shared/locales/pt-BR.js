@@ -233,17 +233,14 @@ const ptBR = {
     reopen: 'Ver notas de atualização',
     settingsLabel: 'Notas de atualização',
     items: {
-      captureStatus: 'O estado de captura ficou mais consistente entre Full App e Sidepanel.',
-      disabledActions: 'Ações indisponíveis agora ficam desativadas e explicam o motivo com textos localizados.',
-      rulesLayout: 'Regras ganhou mais espaço para nomes e URLs, com Hits melhor separado das ações.',
-      solidToasts: 'Toasts ficaram mais sólidos e legíveis no Full App e no Sidepanel.',
-      dataTables: 'Listas do Full App agora mantêm cabeçalhos, filtros e rodapé estáveis enquanto apenas as linhas rolam.',
-      sidepanelScroll: 'No Sidepanel, Regras, Rede e Logs mantêm topo e filtros estáveis enquanto apenas o conteúdo da aba rola.',
-      importDrop: 'Importar aceita soltar um arquivo JSON no editor, sem remover colagem manual ou seleção por arquivo.',
-      releaseNotesMenu: 'Notas de atualização agora ficam no menu lateral, com indicador de não lido e sem abrir modal automaticamente.',
-      moveRules: 'Regras selecionadas agora podem ser movidas para outra coleção em lote.',
-      sidepanelRulesCount: 'O contador de Regras no Sidepanel agora fica junto dos filtros, igual a Rede e Logs.',
-      moveRulesDropdown: 'O seletor de coleção no modal de mover regras agora abre sem ser cortado pelo corpo do modal.'
+      captureStatus: 'Captura mais consistente entre Full App e Sidepanel.',
+      disabledActions: 'Ações indisponíveis agora ficam desativadas e explicam o motivo.',
+      rulesLayout: 'Regras ganharam mais espaço para nomes e URLs.',
+      moveRules: 'Agora é possível mover regras selecionadas para outra coleção.',
+      stableLists: 'Listas do Full App e Sidepanel ficaram mais estáveis, mantendo cabeçalhos, filtros e rodapés fixos enquanto o conteúdo rola.',
+      importDrop: 'Importar agora aceita soltar arquivos JSON no editor, mantendo colagem manual e seleção por arquivo.',
+      solidToasts: 'Toasts ficaram mais sólidos e legíveis.',
+      releaseNotesMenu: 'Novo menu Atualizações no Full App para acompanhar as novidades da extensão.'
     }
   },
   importTemplate: {

@@ -370,23 +370,20 @@ const en = {
     exportCopiedAll: 'All data JSON copied to clipboard.'
   },
   releaseNotes: {
-    title: 'What is new',
+    title: 'What’s new',
     version: 'Version {version}',
     markSeen: 'Got it',
     reopen: 'View update notes',
     settingsLabel: 'Update notes',
     items: {
-      captureStatus: 'Capture status is more consistent between the Full App and Sidepanel.',
-      disabledActions: 'Unavailable actions now stay disabled and explain why with localized text.',
-      rulesLayout: 'Rules has more room for names and URLs, with Hits better separated from actions.',
-      solidToasts: 'Toasts are more solid and readable in the Full App and Sidepanel.',
-      dataTables: 'Full App lists keep headers, filters and footers stable while only rows scroll.',
-      sidepanelScroll: 'In the Sidepanel, Rules, Network and Logs keep the top area and filters stable while only tab content scrolls.',
-      importDrop: 'Import now accepts dropped JSON files in the editor without removing manual paste or file selection.',
-      releaseNotesMenu: 'Update notes now live in the sidebar menu with an unread indicator and no automatic modal on entry.',
-      moveRules: 'Selected rules can now be moved to another collection in bulk.',
-      sidepanelRulesCount: 'The Sidepanel Rules count now sits with the filters, matching Network and Logs.',
-      moveRulesDropdown: 'The collection selector in the move-rules modal now opens without being clipped by the modal body.'
+      captureStatus: 'Capture status is more consistent between Full App and Sidepanel.',
+      disabledActions: 'Unavailable actions are now disabled and explain why.',
+      rulesLayout: 'Rules now have more room for names and URLs.',
+      moveRules: 'Selected rules can now be moved to another collection.',
+      stableLists: 'Full App and Sidepanel lists are more stable, keeping headers, filters, and footers fixed while content scrolls.',
+      importDrop: 'Import now accepts dropping JSON files into the editor while preserving manual paste and file selection.',
+      solidToasts: 'Toasts are now more solid and easier to read.',
+      releaseNotesMenu: 'New Updates menu in the Full App to keep track of extension changes.'
     }
   },
   importTemplate: {

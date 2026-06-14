@@ -17,6 +17,57 @@ test('release notes resolve localized entries for the current package version', 
   assert.equal(hasReleaseNotesForVersion('0.0.0'), false)
 })
 
+test('release notes 1.2.0 use final localized publication copy', () => {
+  const expected = {
+    'pt-BR': {
+      title: 'Novidades',
+      items: [
+        'Captura mais consistente entre Full App e Sidepanel.',
+        'Ações indisponíveis agora ficam desativadas e explicam o motivo.',
+        'Regras ganharam mais espaço para nomes e URLs.',
+        'Agora é possível mover regras selecionadas para outra coleção.',
+        'Listas do Full App e Sidepanel ficaram mais estáveis, mantendo cabeçalhos, filtros e rodapés fixos enquanto o conteúdo rola.',
+        'Importar agora aceita soltar arquivos JSON no editor, mantendo colagem manual e seleção por arquivo.',
+        'Toasts ficaram mais sólidos e legíveis.',
+        'Novo menu Atualizações no Full App para acompanhar as novidades da extensão.'
+      ]
+    },
+    en: {
+      title: 'What’s new',
+      items: [
+        'Capture status is more consistent between Full App and Sidepanel.',
+        'Unavailable actions are now disabled and explain why.',
+        'Rules now have more room for names and URLs.',
+        'Selected rules can now be moved to another collection.',
+        'Full App and Sidepanel lists are more stable, keeping headers, filters, and footers fixed while content scrolls.',
+        'Import now accepts dropping JSON files into the editor while preserving manual paste and file selection.',
+        'Toasts are now more solid and easier to read.',
+        'New Updates menu in the Full App to keep track of extension changes.'
+      ]
+    },
+    es: {
+      title: 'Novedades',
+      items: [
+        'El estado de captura es más consistente entre Full App y Sidepanel.',
+        'Las acciones no disponibles ahora quedan desactivadas y explican el motivo.',
+        'Reglas ahora tiene más espacio para nombres y URLs.',
+        'Ahora es posible mover reglas seleccionadas a otra colección.',
+        'Las listas de Full App y Sidepanel son más estables, manteniendo encabezados, filtros y pies fijos mientras el contenido se desplaza.',
+        'Importar ahora permite soltar archivos JSON en el editor, manteniendo el pegado manual y la selección por archivo.',
+        'Los toasts ahora son más sólidos y fáciles de leer.',
+        'Nuevo menú Actualizaciones en Full App para seguir las novedades de la extensión.'
+      ]
+    }
+  }
+
+  for (const [locale, copy] of Object.entries(expected)) {
+    setLocale(locale)
+    const notes = getReleaseNotesForVersion('1.2.0')
+    assert.equal(notes.title, copy.title)
+    assert.deepEqual(notes.items, copy.items)
+  }
+})
+
 test('release notes modal renders a reopenable Full App notice', () => {
   setLocale('pt-BR')
   const html = renderReleaseNotesModal({ version: '1.2.0' })
