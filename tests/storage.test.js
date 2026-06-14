@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../src/shared/constants.js'
-import { deleteCollection, deleteCollections, deleteRules } from '../src/shared/storage.js'
+import { deleteCollection, deleteCollections, deleteRules, ensureState, getState, getReleaseNotesState, markReleaseNotesSeen } from '../src/shared/storage.js'
 
 function installChromeStorageMock(initialState) {
   const data = { ...initialState }
@@ -89,4 +89,32 @@ test('deleteCollections removes multiple collections and their rules while prese
   assert.deepEqual(collections.map(collection => collection.id), ['collection-default'])
   assert.deepEqual(data[STORAGE_KEYS.rules].map(rule => rule.id), ['rule-default'])
   assert.equal(data[STORAGE_KEYS.settings].activeCollectionId, 'collection-default')
+})
+
+test('release notes seen state is stored outside settings', async () => {
+  const data = installChromeStorageMock({
+    [STORAGE_KEYS.collections]: [
+      { id: 'collection-default', name: 'Default', enabled: true, order: 0 }
+    ],
+    [STORAGE_KEYS.rules]: [],
+    [STORAGE_KEYS.settings]: { ...DEFAULT_SETTINGS, lastSeenReleaseNotesVersion: 'old-settings-value' },
+    [STORAGE_KEYS.logs]: [],
+    [STORAGE_KEYS.releaseNotesLastSeenVersion]: '1.1.0',
+    [STORAGE_KEYS.releaseNotesLastSeenAt]: 1710000000000
+  })
+
+  assert.equal('lastSeenReleaseNotesVersion' in DEFAULT_SETTINGS, false)
+
+  assert.deepEqual(await getReleaseNotesState(), {
+    lastSeenVersion: '1.1.0',
+    lastSeenAt: 1710000000000
+  })
+  assert.equal((await getState()).settings.lastSeenReleaseNotesVersion, undefined)
+  await ensureState()
+
+  await markReleaseNotesSeen('1.2.0', 1720000000000)
+
+  assert.equal(data[STORAGE_KEYS.releaseNotesLastSeenVersion], '1.2.0')
+  assert.equal(data[STORAGE_KEYS.releaseNotesLastSeenAt], 1720000000000)
+  assert.equal(data[STORAGE_KEYS.settings].lastSeenReleaseNotesVersion, undefined)
 })

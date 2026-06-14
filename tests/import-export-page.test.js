@@ -31,3 +31,16 @@ test('import page disabled JSON import button explains why it is inactive', () =
   assert.match(html, /data-tooltip="Cole um JSON válido para importar"/)
   assert.match(html, /<button[^>]*id="full-import-json-btn"[^>]*disabled/)
 })
+
+test('import page exposes a localized JSON dropzone without replacing manual paste', () => {
+  setLocale('en')
+  const html = renderImportExportPage({ lastImportExportMessage: '' })
+
+  assert.match(html, /id="full-import-dropzone"/)
+  assert.match(html, /class="[^"]*\bimport-dropzone\b/)
+  assert.match(html, /data-import-dropzone="true"/)
+  assert.doesNotMatch(html, /import-dropzone__hint/)
+  assert.match(html, /placeholder="Paste InterceptPilot rule or collection JSON, or drop a JSON file here"/)
+  assert.match(html, /id="full-import-json"/)
+  assert.match(html, /id="full-import-pick-file-btn"/)
+})

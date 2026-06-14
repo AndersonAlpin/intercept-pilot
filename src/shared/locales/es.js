@@ -35,7 +35,7 @@ const es = {
   },
   navigation: {
     rules: 'Reglas', network: 'Red', logs: 'Logs', dashboard: 'Dashboard', collections: 'Colecciones',
-    importExport: 'Importar', diagnostics: 'Diagnóstico', settings: 'Configuración'
+    importExport: 'Importar', diagnostics: 'Diagnóstico', settings: 'Configuración', releaseNotes: 'Actualizaciones'
   },
   collections: {
     title: 'Colección', activeCollection: 'Colección principal', noCollections: 'Sin colecciones.',
@@ -137,6 +137,7 @@ const es = {
     createRule: 'Crear regla',
     appliedRule: 'Regla aplicada',
     result: 'Resultado',
+    resourceTypeColumn: 'Tipo',
     failed: 'Falló',
     noRule: 'Sin regla',
     resultPassThrough: 'Pasó directo',
@@ -197,7 +198,7 @@ const es = {
   },
   fullapp: {
     noRuleSelected: 'Selecciona una regla para editar.', ruleEditor: 'Editor de reglas',
-    importPlaceholder: 'Pega el JSON de una regla o colección de InterceptPilot', importStrategy: 'Pega JSON manualmente o elige un archivo para importarlo al instante.',
+    importPlaceholder: 'Pega el JSON de una regla o colección de InterceptPilot, o suelta un archivo JSON aquí', importStrategy: 'Pega JSON manualmente o elige un archivo para importarlo al instante.',
     noImportExportAction: 'Sin acciones de import/export todavía.', exportCurrentCollection: 'Exportar colección actual',
     exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', importJsonDisabled: 'Pega un JSON válido para importar', importPickFile: 'Archivo JSON', saveSettings: 'Guardar configuración', saveSettingsDisabled: 'No hay cambios para guardar',
     autoAttach: 'Capturar pestaña activa automáticamente', autoReloadAfterRuleChange: 'Auto-recargar tras cambio de regla',
@@ -217,6 +218,23 @@ const es = {
     invalidRules: 'Reglas Inválidas', recentRuntimeLogs: 'Logs recientes de runtime', noLogs: 'Sin logs.',
     newRule: 'Nueva regla', exportCollection: 'Exportar colección', importRule: 'Importar', settingsSaved: 'Configuración guardada.',
     importCompleted: 'Importación completada.', importConflictTitle: 'La colección ya existe', importConflictMessage: 'Ya existe una colección con este ID. ¿Qué deseas hacer?', importConflictUpdate: 'Actualizar', importConflictCopy: 'Crear copia', exportCopiedCollection: 'JSON de colección copiado.', exportCopiedAll: 'JSON de todos los datos copiado.'
+  },
+  releaseNotes: {
+    title: 'Novedades',
+    version: 'Versión {version}',
+    markSeen: 'Entendido',
+    reopen: 'Ver notas de actualización',
+    settingsLabel: 'Notas de actualización',
+    items: {
+      captureStatus: 'El estado de captura es más consistente entre Full App y Sidepanel.',
+      disabledActions: 'Las acciones no disponibles quedan desactivadas y explican el motivo con textos localizados.',
+      rulesLayout: 'Reglas tiene más espacio para nombres y URLs, con Hits mejor separado de las acciones.',
+      solidToasts: 'Los toasts son más sólidos y legibles en Full App y Sidepanel.',
+      dataTables: 'Las listas de Full App mantienen encabezados, filtros y pie estables mientras solo se desplazan las filas.',
+      sidepanelScroll: 'En Sidepanel, Reglas, Red y Logs mantienen estable la parte superior y los filtros mientras solo se desplaza el contenido de la pestaña.',
+      importDrop: 'Importar ahora acepta soltar archivos JSON en el editor sin quitar pegado manual ni selección de archivo.',
+      releaseNotesMenu: 'Las notas de actualización ahora están en el menú lateral, con indicador de no leído y sin modal automático al entrar.'
+    }
   },
   importTemplate: {
     templates: 'Templates',
@@ -331,6 +349,10 @@ const es = {
     templateCopied: 'JSON del template copiado.',
     templateDownloaded: 'JSON del template descargado.',
     aiPromptCopied: 'Prompt para IA copiado.',
+    importFileReady: '{name} cargado. Revisa el JSON y haz clic en Importar JSON.',
+    importOneFileOnly: 'Suelta un archivo JSON por vez.',
+    importUnsupportedFile: 'Usa un archivo .json.',
+    importFileReadError: 'No se pudo leer el archivo.',
     compatFallbackCdpBusy: 'Captura completa está ocupada. Usando Captura ligera para requests fetch y logs básicos de la página.',
     compatFallbackExtensionBlocked: 'Captura completa fue bloqueada por otra extensión. Usando Captura ligera para requests fetch y logs básicos de la página.'
   },

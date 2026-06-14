@@ -76,17 +76,20 @@ export function renderLogsPage(state) {
       <input class="input filter-grow" id="full-logs-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter.search || '')}" />
     </div>
   `
+  const rowsHtml = pagedLogs.length ? pagedLogs.map(log => `
+    <div class="table-row row-logs clickable-row" role="button" tabindex="0" data-full-log-detail="${escapeHtml(log.id)}" title="${escapeHtml(t('logs.openDetails'))}">
+      <div class="cell-network-url" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</div>
+      <div>${levelBadge(log.level || 'info')}</div>
+      <div>${escapeHtml(log.timestamp || '')}</div>
+      <div class="cell-network-url" title="${escapeHtml(log.url || '')}">${escapeHtml(log.url || '—')}</div>
+    </div>
+  `).join('') : renderEmptyState({ message: emptyMessage })
   const bodyHtml = `
-    <div class="table table-wide">
-      ${pagedLogs.length ? header : ''}
-      ${pagedLogs.length ? pagedLogs.map(log => `
-        <div class="table-row row-logs clickable-row" role="button" tabindex="0" data-full-log-detail="${escapeHtml(log.id)}" title="${escapeHtml(t('logs.openDetails'))}">
-          <div class="cell-network-url" title="${escapeHtml(log.message || '')}">${escapeHtml(log.message || '')}</div>
-          <div>${levelBadge(log.level || 'info')}</div>
-          <div>${escapeHtml(log.timestamp || '')}</div>
-          <div class="cell-network-url" title="${escapeHtml(log.url || '')}">${escapeHtml(log.url || '—')}</div>
-        </div>
-      `).join('') : renderEmptyState({ message: emptyMessage })}
+    <div class="data-table data-table--logs" role="table">
+      ${pagedLogs.length ? `<div class="data-table__header table table-wide">${header}</div>` : ''}
+      <div class="data-table__rows table table-wide">
+        ${rowsHtml}
+      </div>
     </div>
   `
 
@@ -122,7 +125,8 @@ export function renderLogsPage(state) {
         }),
         footerClassName: 'network-table-footer',
         footerAttrs: { id: 'full-logs-pagination' },
-        className: 'logs-data-panel'
+        className: 'logs-data-panel',
+        scrollClassName: 'data-panel__scroll--table'
       })}
     </section>
   `

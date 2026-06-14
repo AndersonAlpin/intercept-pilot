@@ -1,6 +1,7 @@
 export const MSG = {
   STATE_GET: 'state:get',
   SETTINGS_UPDATE: 'settings:update',
+  RELEASE_NOTES_MARK_SEEN: 'releaseNotes:markSeen',
   APP_OPEN_FULL: 'app:openFullApp',
 
   DEBUG_ATTACH: 'debugger:attachActiveTab',

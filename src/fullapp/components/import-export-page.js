@@ -6,7 +6,9 @@ import { renderImportTemplateMenu } from '../../shared/ui/import-template-menu.j
 
 export function renderImportExportPage(state) {
   const bodyHtml = `
-    <textarea class="textarea code import-json-input" id="full-import-json" placeholder="${t('fullapp.importPlaceholder')}"></textarea>
+    <div class="import-dropzone" id="full-import-dropzone" data-import-dropzone="true">
+      <textarea class="textarea code import-json-input" id="full-import-json" placeholder="${escapeHtml(t('fullapp.importPlaceholder'))}"></textarea>
+    </div>
     ${state.lastImportExportMessage ? `<pre class="preview">${escapeHtml(state.lastImportExportMessage)}</pre>` : ''}
   `
 

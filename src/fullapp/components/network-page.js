@@ -67,8 +67,26 @@ function getNetworkPaginationSummary(state) {
   return { total, filtered, pageSize, page, totalPages, countText }
 }
 
+function getRenderableNetworkEntries(state) {
+  return (state.pagedNetworkEntries || state.filteredNetworkEntries || state.networkEntries).filter(isRenderableNetworkEntry)
+}
+
+function renderNetworkHeader() {
+  return `
+    <div class="table-row row-network rules-header" role="row">
+      <div role="columnheader">${escapeHtml(t('common.method'))}</div>
+      <div role="columnheader">URL</div>
+      <div role="columnheader">${escapeHtml(t('common.status'))}</div>
+      <div role="columnheader">${escapeHtml(t('network.resourceTypeColumn'))}</div>
+      <div role="columnheader">${escapeHtml(t('network.appliedRule'))}</div>
+      <div role="columnheader">${escapeHtml(t('network.result'))}</div>
+      <div role="columnheader" class="col-actions data-panel__actions-cell">${escapeHtml(t('rules.columns.actions'))}</div>
+    </div>
+  `
+}
+
 export function renderNetworkRows(state) {
-  const entries = (state.pagedNetworkEntries || state.filteredNetworkEntries || state.networkEntries).filter(isRenderableNetworkEntry)
+  const entries = getRenderableNetworkEntries(state)
   if (!entries.length) {
     if (!hasActiveCaptureContext(state)) {
       return renderEmptyState({ message: t('network.activateCaptureToSeeRequests') })
@@ -80,17 +98,6 @@ export function renderNetworkRows(state) {
       helper: lightCapture ? t('network.lightCaptureHelper') : ''
     })
   }
-  const header = `
-    <div class="table-row row-network rules-header" role="row">
-      <div role="columnheader">${escapeHtml(t('common.method'))}</div>
-      <div role="columnheader">URL</div>
-      <div role="columnheader">${escapeHtml(t('common.status'))}</div>
-      <div role="columnheader">TYPE</div>
-      <div role="columnheader">${escapeHtml(t('network.appliedRule'))}</div>
-      <div role="columnheader">${escapeHtml(t('network.result'))}</div>
-      <div role="columnheader" class="col-actions data-panel__actions-cell">${escapeHtml(t('rules.columns.actions'))}</div>
-    </div>
-  `
   const rows = entries.map(entry => `
     <div class="table-row row-network clickable-row"
          data-entry-id="${entry.id}"
@@ -104,7 +111,7 @@ export function renderNetworkRows(state) {
       <div class="footer-actions data-panel__actions-cell">${renderButton({ label: t('network.createRule'), variant: 'secondary', data: { 'full-create-from-request': entry.id } })}</div>
     </div>
   `).join('')
-  return `${header}${rows}`
+  return rows
 }
 
 export function renderNetworkPagination(state) {
@@ -152,6 +159,7 @@ export function renderNetworkFooter(state) {
 
 export function renderNetworkPage(state) {
   const canClearNetwork = (state.visibleNetworkEntries || []).some(isRenderableNetworkEntry)
+  const entries = getRenderableNetworkEntries(state)
   const filtersHtml = `
     <div class="filters-row">
       <input class="input filter-grow" id="full-network-url" placeholder="${t('network.filterUrl')}" value="${escapeHtml(state.networkFilter.url || '')}" spellcheck="false" autocomplete="off" />
@@ -161,8 +169,11 @@ export function renderNetworkPage(state) {
     </div>
   `
   const bodyHtml = `
-    <div class="table table-wide" id="full-network-table">
-      ${renderNetworkRows(state)}
+    <div class="data-table data-table--network" role="table">
+      <div class="data-table__header table table-wide" id="full-network-table-header" ${entries.length ? '' : 'hidden'}>${renderNetworkHeader()}</div>
+      <div class="data-table__rows table table-wide" id="full-network-table">
+        ${renderNetworkRows(state)}
+      </div>
     </div>
   `
 
@@ -181,6 +192,7 @@ export function renderNetworkPage(state) {
         bodyHtml,
         footerHtml: renderNetworkFooter(state),
         className: 'network-data-panel',
+        scrollClassName: 'data-panel__scroll--table',
         footerClassName: 'network-table-footer',
         footerAttrs: { id: 'full-network-pagination' }
       })}

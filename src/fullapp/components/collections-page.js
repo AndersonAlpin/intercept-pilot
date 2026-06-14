@@ -44,44 +44,47 @@ export function renderCollectionsPage(state) {
       <input class="input filter-grow" id="full-collections-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('collections.title').toLowerCase())}" value="${escapeHtml(state.collectionsSearch || '')}" />
     </div>
   `
+  const rowsHtml = collections.length ? collections.map(collection => `
+    <div class="table-row row-collection">
+      <div class="col-select">
+        ${renderCheckbox({
+          data: { 'full-collection-select': collection.id },
+          disabled: collection.id === 'collection-default',
+          ariaLabel: t('collections.selectCollection'),
+          wrapperAttrs: collection.id === 'collection-default' ? getTooltipAttrs(t('collections.defaultCannotDelete')) : null
+        })}
+      </div>
+      <div class="cell-rule">
+        <strong>${escapeHtml(displayCollectionName(collection))}</strong>
+        <span class="cell-rule-url">${counts.get(collection.id) || 0} ${t('collections.rulesCount')}</span>
+      </div>
+      <div>
+        <label class="status-toggle">
+          <input type="checkbox" data-full-collection-enable="${collection.id}" ${collection.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
+          <span class="status-toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+      <div>
+        <label class="status-toggle">
+          <input type="checkbox" data-full-collection-set-active="${collection.id}" ${state.settings?.activeCollectionId === collection.id ? 'checked' : ''} aria-label="${escapeHtml(t('collections.setPrimary'))}" />
+          <span class="status-toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+      <div>${enabledCounts.get(collection.id) || 0}/${counts.get(collection.id) || 0}</div>
+      <div class="row-actions col-actions data-panel__actions-cell">
+        ${collection.id === 'collection-default' ? '' : `<button class="icon-btn" type="button" data-full-collection-rename="${collection.id}" ${renderTooltipAttrs(t('collections.rename'))} aria-label="${escapeHtml(t('collections.rename'))}">${icon('edit')}</button>`}
+        <button class="icon-btn" type="button" data-full-collection-copy="${collection.id}" ${renderTooltipAttrs(t('common.copyJson'))} aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
+        <button class="icon-btn" type="button" data-full-collection-export="${collection.id}" ${renderTooltipAttrs(t('common.exportJson'))} aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
+        ${collection.id === 'collection-default' ? '' : `<button class="icon-btn danger" type="button" data-full-collection-delete="${collection.id}" ${renderTooltipAttrs(t('common.delete'))} aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>`}
+      </div>
+    </div>
+  `).join('') : `<div class="empty">${escapeHtml(t('collections.noCollections'))}</div>`
   const bodyHtml = `
-    <div class="table table-wide">
-          ${collections.length ? header : ''}
-          ${collections.length ? collections.map(collection => `
-            <div class="table-row row-collection">
-              <div class="col-select">
-                ${renderCheckbox({
-                  data: { 'full-collection-select': collection.id },
-                  disabled: collection.id === 'collection-default',
-                  ariaLabel: t('collections.selectCollection'),
-                  wrapperAttrs: collection.id === 'collection-default' ? getTooltipAttrs(t('collections.defaultCannotDelete')) : null
-                })}
-              </div>
-              <div class="cell-rule">
-                <strong>${escapeHtml(displayCollectionName(collection))}</strong>
-                <span class="cell-rule-url">${counts.get(collection.id) || 0} ${t('collections.rulesCount')}</span>
-              </div>
-              <div>
-                <label class="status-toggle">
-                  <input type="checkbox" data-full-collection-enable="${collection.id}" ${collection.enabled ? 'checked' : ''} aria-label="${escapeHtml(t('common.enabled'))}" />
-                  <span class="status-toggle-track" aria-hidden="true"></span>
-                </label>
-              </div>
-              <div>
-                <label class="status-toggle">
-                  <input type="checkbox" data-full-collection-set-active="${collection.id}" ${state.settings?.activeCollectionId === collection.id ? 'checked' : ''} aria-label="${escapeHtml(t('collections.setPrimary'))}" />
-                  <span class="status-toggle-track" aria-hidden="true"></span>
-                </label>
-              </div>
-              <div>${enabledCounts.get(collection.id) || 0}/${counts.get(collection.id) || 0}</div>
-              <div class="row-actions col-actions data-panel__actions-cell">
-                ${collection.id === 'collection-default' ? '' : `<button class="icon-btn" type="button" data-full-collection-rename="${collection.id}" ${renderTooltipAttrs(t('collections.rename'))} aria-label="${escapeHtml(t('collections.rename'))}">${icon('edit')}</button>`}
-                <button class="icon-btn" type="button" data-full-collection-copy="${collection.id}" ${renderTooltipAttrs(t('common.copyJson'))} aria-label="${escapeHtml(t('common.copyJson'))}">${icon('copy')}</button>
-                <button class="icon-btn" type="button" data-full-collection-export="${collection.id}" ${renderTooltipAttrs(t('common.exportJson'))} aria-label="${escapeHtml(t('common.exportJson'))}">${icon('download')}</button>
-                ${collection.id === 'collection-default' ? '' : `<button class="icon-btn danger" type="button" data-full-collection-delete="${collection.id}" ${renderTooltipAttrs(t('common.delete'))} aria-label="${escapeHtml(t('common.delete'))}">${icon('trash')}</button>`}
-              </div>
-            </div>
-          `).join('') : `<div class="empty">${escapeHtml(t('collections.noCollections'))}</div>`}
+    <div class="data-table data-table--collections" role="table">
+      ${collections.length ? `<div class="data-table__header table table-wide">${header}</div>` : ''}
+      <div class="data-table__rows table table-wide">
+        ${rowsHtml}
+      </div>
     </div>
   `
   const footerCount = formatShowingCount({
@@ -109,7 +112,8 @@ export function renderCollectionsPage(state) {
           deleteId: 'full-delete-selected-collections-btn'
         }),
         footerHtml: `<span class="data-panel__count">${escapeHtml(footerCount)}</span>`,
-        className: 'collections-data-panel'
+        className: 'collections-data-panel',
+        scrollClassName: 'data-panel__scroll--table'
       })}
     </section>
   `

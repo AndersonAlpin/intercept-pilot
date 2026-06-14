@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
-import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, deleteCollections, saveRule, deleteRule, deleteRules, updateRuleEnabled, updateSettings, setLogs } from '../shared/storage.js'
+import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, deleteCollections, saveRule, deleteRule, deleteRules, updateRuleEnabled, updateSettings, setLogs, getReleaseNotesState, markReleaseNotesSeen } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, tryPrettyJson, uid } from '../shared/utils.js'
 import { makeRule } from '../shared/models.js'
@@ -530,6 +530,7 @@ async function resolveAttachTargetTab(message, sender) {
 
 async function getFullState() {
   const state = await getState()
+  const releaseNotes = await getReleaseNotesState()
   await updateConnectionFromActiveTab({ allowCandidateUpdate: !hasActiveCapture() })
   const attachedTab = await getAttachedTabRef()
   const candidate = getValidCandidateTab()
@@ -561,6 +562,7 @@ async function getFullState() {
     rules,
     logs: state.logs,
     settings: state.settings || DEFAULT_SETTINGS,
+    releaseNotes,
     networkEntries: runtimeState.networkEntries,
     networkMeta: getNetworkCycleMeta(),
     attachedTabId: runtimeState.attachedTabId,
@@ -1486,6 +1488,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await maybeAutoAttach()
         await updateConnectionFromActiveTab()
         await broadcastConnectionState()
+        return
+      case 'releaseNotes:markSeen':
+        sendResponse(await markReleaseNotesSeen(message.version || '', message.seenAt))
         return
       case 'debugger:attachActiveTab': {
         const targetTab = await resolveAttachTargetTab(message, sender)

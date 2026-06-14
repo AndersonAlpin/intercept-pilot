@@ -87,7 +87,8 @@ const en = {
     collections: 'Collections',
     importExport: 'Import',
     diagnostics: 'Diagnostics',
-    settings: 'Settings'
+    settings: 'Settings',
+    releaseNotes: 'Updates'
   },
   collections: {
     title: 'Collection',
@@ -248,6 +249,7 @@ const en = {
     createRule: 'Create rule',
     appliedRule: 'Applied rule',
     result: 'Result',
+    resourceTypeColumn: 'Type',
     failed: 'Failed',
     noRule: 'No rule',
     resultPassThrough: 'Passed through',
@@ -315,7 +317,7 @@ const en = {
   fullapp: {
     noRuleSelected: 'Select a rule to edit.',
     ruleEditor: 'Rule Editor',
-    importPlaceholder: 'Paste InterceptPilot rule or collection JSON',
+    importPlaceholder: 'Paste InterceptPilot rule or collection JSON, or drop a JSON file here',
     importStrategy: 'Paste JSON manually or choose a file to import right away.',
     noImportExportAction: 'No export/import action yet.',
     exportCurrentCollection: 'Export current collection',
@@ -358,6 +360,23 @@ const en = {
     importConflictCopy: 'Create copy',
     exportCopiedCollection: 'Current collection JSON copied to clipboard.',
     exportCopiedAll: 'All data JSON copied to clipboard.'
+  },
+  releaseNotes: {
+    title: 'What is new',
+    version: 'Version {version}',
+    markSeen: 'Got it',
+    reopen: 'View update notes',
+    settingsLabel: 'Update notes',
+    items: {
+      captureStatus: 'Capture status is more consistent between the Full App and Sidepanel.',
+      disabledActions: 'Unavailable actions now stay disabled and explain why with localized text.',
+      rulesLayout: 'Rules has more room for names and URLs, with Hits better separated from actions.',
+      solidToasts: 'Toasts are more solid and readable in the Full App and Sidepanel.',
+      dataTables: 'Full App lists keep headers, filters and footers stable while only rows scroll.',
+      sidepanelScroll: 'In the Sidepanel, Rules, Network and Logs keep the top area and filters stable while only tab content scrolls.',
+      importDrop: 'Import now accepts dropped JSON files in the editor without removing manual paste or file selection.',
+      releaseNotesMenu: 'Update notes now live in the sidebar menu with an unread indicator and no automatic modal on entry.'
+    }
   },
   importTemplate: {
     templates: 'Templates',
@@ -472,6 +491,10 @@ const en = {
     templateCopied: 'Template JSON copied.',
     templateDownloaded: 'Template JSON downloaded.',
     aiPromptCopied: 'AI prompt copied.',
+    importFileReady: '{name} loaded. Review the JSON and click Import JSON.',
+    importOneFileOnly: 'Drop one JSON file at a time.',
+    importUnsupportedFile: 'Use a .json file.',
+    importFileReadError: 'Could not read the file.',
     compatFallbackCdpBusy: 'Full capture is busy. Using Light capture for fetch requests and basic page logs.',
     compatFallbackExtensionBlocked: 'Full capture was blocked by another extension. Using Light capture for fetch requests and basic page logs.'
   },

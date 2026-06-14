@@ -3,7 +3,7 @@ import { clone, debounce, escapeHtml, isHitOnlyDiff, isOnlyNetworkFiltersDiff, m
 import { makeCollection, makeRule } from '../shared/models.js'
 import { validateRule } from '../shared/validators.js'
 import { normalizeLocale, setLocale, t } from '../shared/i18n.js'
-import { DEFAULT_NETWORK_FILTER_FULL } from '../shared/constants.js'
+import { DEFAULT_NETWORK_FILTER_FULL, STORAGE_KEYS } from '../shared/constants.js'
 import { getVisibleLogsForCapture, getVisibleNetworkEntriesForCapture, normalizeLogScope } from '../shared/capture-context.js'
 import { mergeConnectionState } from '../shared/connection-state.js'
 import { matchesStatusFilter } from '../shared/network-display.js'
@@ -43,6 +43,8 @@ import { renderImportExportPage } from './components/import-export-page.js'
 import { renderDiagnosticsPage } from './components/diagnostics-page.js'
 import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from './components/network-inspector-modal.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
+import { renderReleaseNotesModal } from './components/release-notes-modal.js'
+import { getReleaseNotesMenuState, hasReleaseNotesForVersion } from '../shared/release-notes.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
 import { getBulkDeleteDialogCopy, getBulkDeleteSuccessMessage } from '../shared/bulk-delete-dialog.js'
@@ -82,6 +84,10 @@ const state = {
   attachedTabId: null,
   compatActiveTabId: null,
   settings: {},
+  releaseNotes: {
+    lastSeenVersion: '',
+    lastSeenAt: 0
+  },
 
   editingRule: null,
   editorMode: 'create',
@@ -115,6 +121,7 @@ const state = {
   inspector: null,
   selectedNetworkEntryId: null,
   selectedLogId: null,
+  releaseNotesModal: null,
   networkFilterHydrated: false
 }
 
@@ -183,6 +190,12 @@ function updateDataPanelScrollState(root = document) {
   target.querySelectorAll('.data-panel__scroll').forEach(element => {
     const hasVerticalScroll = element.scrollHeight > element.clientHeight + 1
     element.classList.toggle('is-scrollable-y', hasVerticalScroll)
+  })
+  target.querySelectorAll('.data-table').forEach(table => {
+    const rows = table.querySelector('.data-table__rows')
+    if (!rows) return
+    const hasVerticalScroll = rows.scrollHeight > rows.clientHeight + 1
+    table.classList.toggle('is-scrollable-y', hasVerticalScroll)
   })
 }
 
@@ -384,6 +397,61 @@ function updateImportJsonButtonState() {
   if (button) button.disabled = !hasValidImportJson()
 }
 
+function isJsonImportFile(file) {
+  if (!file) return false
+  const name = String(file.name || '').toLowerCase()
+  const type = String(file.type || '').toLowerCase()
+  return name.endsWith('.json') || type === 'application/json'
+}
+
+function setImportDropzoneActive(active) {
+  $('#full-import-dropzone')?.classList.toggle('is-drag-over', Boolean(active))
+}
+
+async function prepareImportFile(file) {
+  const textarea = $('#full-import-json')
+  if (!textarea || !file) return
+  try {
+    const text = await file.text()
+    textarea.value = text
+    textarea.focus({ preventScroll: true })
+    updateImportJsonButtonState()
+    toastSuccess(t('toasts.importFileReady', { name: file.name || t('fullapp.importPickFile') }))
+  } catch {
+    toastError(t('toasts.importFileReadError'))
+  }
+}
+
+function getCurrentExtensionVersion() {
+  return chrome.runtime.getManifest?.().version || ''
+}
+
+function getCurrentReleaseNotesMenuState() {
+  return getReleaseNotesMenuState({
+    version: getCurrentExtensionVersion(),
+    lastSeenVersion: state.releaseNotes?.lastSeenVersion,
+    lastSeenAt: state.releaseNotes?.lastSeenAt
+  })
+}
+
+function openReleaseNotes(manual = false) {
+  const version = getCurrentExtensionVersion()
+  if (!hasReleaseNotesForVersion(version)) return
+  state.releaseNotesModal = { version, manual }
+  render()
+}
+
+async function closeReleaseNotes() {
+  const modal = state.releaseNotesModal
+  state.releaseNotesModal = null
+  if (modal?.version && state.releaseNotes?.lastSeenVersion !== modal.version) {
+    const seenAt = Date.now()
+    state.releaseNotes = { lastSeenVersion: modal.version, lastSeenAt: seenAt }
+    await sendMessage({ type: MSG.RELEASE_NOTES_MARK_SEEN, version: modal.version, seenAt })
+  }
+  render()
+}
+
 function renderSettingsPage() {
   const lang = normalizeLocale(state.settings.language) || 'en'
   const captureMode = state.settings.captureMode || 'auto'
@@ -461,11 +529,14 @@ function render() {
   const selectedLog = state.selectedLogId ? findLogById(state.selectedLogId) : null
   updateDocumentTitle()
   root.innerHTML = renderAppShell({
-    sidebar: renderSidebar(state.page),
+    sidebar: renderSidebar(state.page, { releaseNotes: getCurrentReleaseNotesMenuState() }),
     topbar: renderTopbar(state),
     content: renderPage(),
     contentClass: isSplitScrollPage ? 'app-content-split' : ''
-  }) + renderNetworkInspectorModal(state) + renderLogDetailModal({ log: selectedLog, prefix: 'full' })
+  })
+    + renderNetworkInspectorModal(state)
+    + renderLogDetailModal({ log: selectedLog, prefix: 'full' })
+    + renderReleaseNotesModal(state.releaseNotesModal || {})
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindSelectMenus()
   bindEvents()
@@ -999,6 +1070,10 @@ function refreshNetworkTableOnly() {
   const table = $('#full-network-table')
   if (!table) return
   patchHtml(table, renderNetworkRows(state))
+  const header = $('#full-network-table-header')
+  if (header) {
+    header.hidden = !(state.pagedNetworkEntries || state.filteredNetworkEntries || state.networkEntries).some(isRenderableNetworkEntry)
+  }
   const footerHtml = renderNetworkFooter(state)
   const paginationEl = $('#full-network-pagination')
   if (paginationEl) {
@@ -1127,6 +1202,10 @@ function readEditorRule() {
 }
 
 function openFullPage(page) {
+  if (page === 'release-notes') {
+    openReleaseNotes(true)
+    return
+  }
   setCurrentPage(page)
 }
 
@@ -1557,6 +1636,36 @@ function bindEvents() {
   importTextarea?.addEventListener('input', updateImportJsonButtonState)
   updateImportJsonButtonState()
 
+  const importDropzone = $('#full-import-dropzone')
+  if (importDropzone) {
+    const activateDropzoneEvents = ['dragenter', 'dragover']
+    const clearDropzoneEvents = ['dragleave', 'drop']
+    activateDropzoneEvents.forEach(type => {
+      importDropzone.addEventListener(type, event => {
+        event.preventDefault()
+        setImportDropzoneActive(true)
+      })
+    })
+    clearDropzoneEvents.forEach(type => {
+      importDropzone.addEventListener(type, () => setImportDropzoneActive(false))
+    })
+    importDropzone.addEventListener('drop', async event => {
+      event.preventDefault()
+      const files = [...(event.dataTransfer?.files || [])]
+      if (!files.length) return
+      if (files.length > 1) {
+        toastError(t('toasts.importOneFileOnly'))
+        return
+      }
+      const file = files[0]
+      if (!isJsonImportFile(file)) {
+        toastError(t('toasts.importUnsupportedFile'))
+        return
+      }
+      await prepareImportFile(file)
+    })
+  }
+
   $('#full-import-json-btn')?.addEventListener('click', async () => {
     const textarea = $('#full-import-json')
     const raw = textarea?.value || ''
@@ -1576,6 +1685,11 @@ function bindEvents() {
     const file = event.target.files?.[0]
     if (!file) return
     try {
+      if (!isJsonImportFile(file)) {
+        event.target.value = ''
+        toastError(t('toasts.importUnsupportedFile'))
+        return
+      }
       const text = await file.text()
       event.target.value = ''
       await importBundleFromText(text)
@@ -1702,6 +1816,12 @@ function bindEvents() {
     await refreshState()
     toastSuccess(t('fullapp.settingsSaved'))
   })
+
+  $('#release-notes-close')?.addEventListener('click', closeReleaseNotes)
+  $('#release-notes-close-x')?.addEventListener('click', closeReleaseNotes)
+  document.querySelector('[data-release-notes-modal="true"]')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeReleaseNotes()
+  })
 }
 
 chrome.runtime.onMessage.addListener(message => {
@@ -1775,6 +1895,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     && !changes.settings
     && !changes.collections
     && !changes.rules
+    && !changes[STORAGE_KEYS.releaseNotesLastSeenVersion]
+    && !changes[STORAGE_KEYS.releaseNotesLastSeenAt]
 
   if (onlyLogsChanged && state.page !== 'logs' && state.page !== 'diagnostics') {
     return
@@ -1791,7 +1913,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       return
     }
   }
-  if (changes.settings || changes.collections || changes.rules || changes.logs) {
+  if (changes.settings || changes.collections || changes.rules || changes.logs || changes[STORAGE_KEYS.releaseNotesLastSeenVersion] || changes[STORAGE_KEYS.releaseNotesLastSeenAt]) {
     refreshState()
   }
 })

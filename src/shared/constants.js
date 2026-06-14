@@ -2,7 +2,9 @@ export const STORAGE_KEYS = {
   collections: 'collections',
   rules: 'rules',
   settings: 'settings',
-  logs: 'logs'
+  logs: 'logs',
+  releaseNotesLastSeenVersion: 'releaseNotesLastSeenVersion',
+  releaseNotesLastSeenAt: 'releaseNotesLastSeenAt'
 }
 
 export const DEFAULT_COLLECTION_ID = 'collection-default'

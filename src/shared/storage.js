@@ -70,10 +70,19 @@ function normalizeSettings(stored, collections) {
     }
   }
   settings.networkIgnorePatterns = parseNetworkIgnorePatterns(settings.networkIgnorePatterns)
+  delete settings.lastSeenReleaseNotesVersion
+  delete settings.lastSeenReleaseNotesAt
   if (!collections.some(c => c.id === settings.activeCollectionId)) {
     settings.activeCollectionId = collections[0]?.id || DEFAULT_COLLECTION_ID
   }
   return settings
+}
+
+function normalizeReleaseNotesState(stored) {
+  return {
+    lastSeenVersion: String(stored?.[STORAGE_KEYS.releaseNotesLastSeenVersion] || ''),
+    lastSeenAt: Math.max(0, Number(stored?.[STORAGE_KEYS.releaseNotesLastSeenAt]) || 0)
+  }
 }
 
 export async function ensureState() {
@@ -91,6 +100,24 @@ export async function ensureState() {
   })
 
   return { collections, rules, settings, logs }
+}
+
+export async function getReleaseNotesState() {
+  const stored = await rawGet([
+    STORAGE_KEYS.releaseNotesLastSeenVersion,
+    STORAGE_KEYS.releaseNotesLastSeenAt
+  ])
+  return normalizeReleaseNotesState(stored)
+}
+
+export async function markReleaseNotesSeen(version, seenAt = Date.now()) {
+  const lastSeenVersion = String(version || '').trim()
+  const lastSeenAt = Math.max(0, Number(seenAt) || Date.now())
+  await rawSet({
+    [STORAGE_KEYS.releaseNotesLastSeenVersion]: lastSeenVersion,
+    [STORAGE_KEYS.releaseNotesLastSeenAt]: lastSeenAt
+  })
+  return { lastSeenVersion, lastSeenAt }
 }
 
 export async function getState() {

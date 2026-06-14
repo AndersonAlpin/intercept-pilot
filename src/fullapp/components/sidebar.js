@@ -1,6 +1,15 @@
 import { t } from '../../shared/i18n.js'
 
-export function renderSidebar(currentPage) {
+function renderNavItem({ id, label, currentPage, unread = false }) {
+  return `
+    <button class="nav-item ${currentPage === id ? 'active' : ''}" data-page="${id}">
+      <span class="nav-item__label">${label}</span>
+      ${unread ? '<span class="nav-item__badge" aria-hidden="true"></span>' : ''}
+    </button>
+  `
+}
+
+export function renderSidebar(currentPage, options = {}) {
   const items = [
     ['dashboard', t('navigation.dashboard')],
     ['rules', t('navigation.rules')],
@@ -11,12 +20,16 @@ export function renderSidebar(currentPage) {
     ['diagnostics', t('navigation.diagnostics')],
     ['settings', t('navigation.settings')]
   ]
+  const releaseNotes = options.releaseNotes || {}
+  if (releaseNotes.visible) {
+    items.push(['release-notes', t('navigation.releaseNotes'), Boolean(releaseNotes.unread)])
+  }
 
   return `
     <aside class="app-sidebar">
       <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="InterceptPilot" />
       <nav>
-        ${items.map(([id, label]) => `<button class="nav-item ${currentPage === id ? 'active' : ''}" data-page="${id}">${label}</button>`).join('')}
+        ${items.map(([id, label, unread]) => renderNavItem({ id, label, currentPage, unread })).join('')}
       </nav>
     </aside>
   `
