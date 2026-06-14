@@ -206,7 +206,7 @@ const es = {
   },
   fullapp: {
     noRuleSelected: 'Selecciona una regla para editar.', ruleEditor: 'Editor de reglas',
-    importPlaceholder: 'Pega el JSON de una regla o colección de InterceptPilot, o suelta un archivo JSON aquí', importStrategy: 'Pega JSON manualmente o elige un archivo para importarlo al instante.',
+    importPlaceholder: 'Pega el JSON aquí o suelta un archivo .json', importStrategy: 'Pega JSON manualmente o elige un archivo para importarlo al instante.',
     noImportExportAction: 'Sin acciones de import/export todavía.', exportCurrentCollection: 'Exportar colección actual',
     exportAllData: 'Exportar todos los datos', importJson: 'Importar JSON', importJsonDisabled: 'Pega un JSON válido para importar', importPickFile: 'Archivo JSON', saveSettings: 'Guardar configuración', saveSettingsDisabled: 'No hay cambios para guardar',
     autoAttach: 'Capturar pestaña activa automáticamente', autoReloadAfterRuleChange: 'Auto-recargar tras cambio de regla',

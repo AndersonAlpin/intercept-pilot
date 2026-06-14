@@ -325,7 +325,7 @@ const en = {
   fullapp: {
     noRuleSelected: 'Select a rule to edit.',
     ruleEditor: 'Rule Editor',
-    importPlaceholder: 'Paste InterceptPilot rule or collection JSON, or drop a JSON file here',
+    importPlaceholder: 'Paste JSON here or drop a .json file',
     importStrategy: 'Paste JSON manually or choose a file to import right away.',
     noImportExportAction: 'No export/import action yet.',
     exportCurrentCollection: 'Export current collection',

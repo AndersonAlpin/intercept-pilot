@@ -29,3 +29,14 @@ test('rule move modal lets the destination select menu escape the modal body', (
   assert.match(fullCss, /\.rule-move-modal \{[\s\S]*overflow: visible !important;/)
   assert.match(fullCss, /\.rule-move-modal \.modal-shell-body \{[\s\S]*overflow: visible;/)
 })
+
+test('full app modal footers keep actions aligned to the right', () => {
+  assert.match(fullCss, /\.modal-shell-footer \{[\s\S]*display: flex;[\s\S]*justify-content: flex-end;/)
+})
+
+test('modal close buttons center the close glyph', () => {
+  for (const css of [fullCss, sideCss]) {
+    assert.match(css, /\.modal-close \{[\s\S]*width: 32px;[\s\S]*height: 32px;[\s\S]*display: inline-flex;[\s\S]*align-items: center;[\s\S]*justify-content: center;/)
+    assert.match(css, /\.modal-close svg \{[\s\S]*display: block;/)
+  }
+})

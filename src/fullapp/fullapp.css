@@ -806,7 +806,8 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .modal { width: min(720px, 100%); max-height: 85vh; overflow: auto; background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .modal-header h3 { margin: 0; font-size: 18px; }
-.modal-close { border: none; background: transparent; color: var(--text-muted); cursor: pointer; padding: 4px 10px; border-radius: 8px; font-size: 20px; line-height: 1; transition: background-color 140ms ease, color 140ms ease; }
+.modal-close { border: none; background: transparent; color: var(--text-muted); cursor: pointer; width: 32px; height: 32px; padding: 0; border-radius: 8px; font-size: 20px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: background-color 140ms ease, color 140ms ease; }
+.modal-close svg { display: block; }
 .modal-close:hover { color: var(--text); background: rgba(255,255,255,.06); }
 .modal.modal-shell { overflow: hidden; padding: 0; gap: 0; }
 .modal-shell-header {
@@ -827,6 +828,9 @@ button,input,select,textarea { font: inherit; color: inherit; }
   flex: 0 0 auto;
   padding: 12px 18px 16px;
   border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   justify-content: flex-end;
 }
 .release-notes-modal {

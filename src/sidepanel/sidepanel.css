@@ -650,7 +650,8 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .modal-header h2,
 .modal-header h3 { margin: 0; font-size: 16px; }
-.modal-close { border: none; background: transparent; color: var(--text-muted); cursor: pointer; padding: 4px 10px; border-radius: 8px; font-size: 20px; line-height: 1; transition: background-color 140ms ease, color 140ms ease; }
+.modal-close { border: none; background: transparent; color: var(--text-muted); cursor: pointer; width: 32px; height: 32px; padding: 0; border-radius: 8px; font-size: 20px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: background-color 140ms ease, color 140ms ease; }
+.modal-close svg { display: block; }
 .modal-close:hover { color: var(--text); background: rgba(255,255,255,.06); }
 .modal.modal-shell { overflow: hidden; padding: 0; gap: 0; }
 .modal-shell-header {

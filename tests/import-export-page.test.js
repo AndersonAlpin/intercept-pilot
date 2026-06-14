@@ -40,7 +40,7 @@ test('import page exposes a localized JSON dropzone without replacing manual pas
   assert.match(html, /class="[^"]*\bimport-dropzone\b/)
   assert.match(html, /data-import-dropzone="true"/)
   assert.doesNotMatch(html, /import-dropzone__hint/)
-  assert.match(html, /placeholder="Paste InterceptPilot rule or collection JSON, or drop a JSON file here"/)
+  assert.match(html, /placeholder="Paste JSON here or drop a \.json file"/)
   assert.match(html, /id="full-import-json"/)
   assert.match(html, /id="full-import-pick-file-btn"/)
 })
