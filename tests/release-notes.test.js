@@ -9,12 +9,45 @@ import { renderSidebar } from '../src/fullapp/components/sidebar.js'
 
 test('release notes resolve localized entries for the current package version', () => {
   setLocale('en')
-  const notes = getReleaseNotesForVersion('1.2.0')
+  const notes = getReleaseNotesForVersion('1.2.1')
 
-  assert.equal(notes.version, '1.2.0')
+  assert.equal(notes.version, '1.2.1')
   assert.ok(notes.items.length >= 1)
+  assert.equal(hasReleaseNotesForVersion('1.2.1'), true)
   assert.equal(hasReleaseNotesForVersion('1.2.0'), true)
   assert.equal(hasReleaseNotesForVersion('0.0.0'), false)
+})
+
+test('release notes 1.2.1 use localized consolidated copy', () => {
+  const expected = {
+    'pt-BR': [
+      'Captura mais consistente entre Full App e Sidepanel.',
+      'Regras ficaram mais fáceis de organizar, com mais espaço para nomes/URLs e opção de mover regras selecionadas para outra coleção.',
+      'Rede e Logs ficaram mais estáveis durante atualizações em tempo real.',
+      'Importar agora aceita soltar arquivos JSON no editor, mantendo colagem manual e seleção por arquivo.',
+      'A interface ficou mais clara e legível, com ações indisponíveis explicando o motivo e toasts mais sólidos.'
+    ],
+    en: [
+      'Capture status is more consistent between Full App and Sidepanel.',
+      'Rules are easier to organize, with more room for names/URLs and the option to move selected rules to another collection.',
+      'Network and Logs are more stable during real-time updates.',
+      'Import now accepts dropping JSON files into the editor while preserving manual paste and file selection.',
+      'The interface is clearer and easier to read, with unavailable actions explaining why and more solid toasts.'
+    ],
+    es: [
+      'El estado de captura es más consistente entre Full App y Sidepanel.',
+      'Las reglas son más fáciles de organizar, con más espacio para nombres/URLs y la opción de mover reglas seleccionadas a otra colección.',
+      'Red y Logs son más estables durante actualizaciones en tiempo real.',
+      'Importar ahora permite soltar archivos JSON en el editor, manteniendo el pegado manual y la selección por archivo.',
+      'La interfaz es más clara y fácil de leer, con acciones no disponibles que explican el motivo y toasts más sólidos.'
+    ]
+  }
+
+  for (const [locale, items] of Object.entries(expected)) {
+    setLocale(locale)
+    const notes = getReleaseNotesForVersion('1.2.1')
+    assert.deepEqual(notes.items, items)
+  }
 })
 
 test('release notes 1.2.0 use final localized publication copy', () => {
@@ -61,11 +94,13 @@ test('release notes 1.2.0 use final localized publication copy', () => {
 
 test('release notes modal renders a reopenable Full App notice', () => {
   setLocale('pt-BR')
-  const html = renderReleaseNotesModal({ version: '1.2.0' })
+  const html = renderReleaseNotesModal({ version: '1.2.1' })
 
   assert.match(html, /data-release-notes-modal="true"/)
   assert.match(html, /Novidades/)
-  assert.match(html, /1\.2\.0/)
+  assert.match(html, /1\.2\.1/)
+  assert.doesNotMatch(html, /Novidades recentes/)
+  assert.doesNotMatch(html, /Correções desta versão/)
   assert.match(html, /id="release-notes-close"/)
 })
 
@@ -75,22 +110,22 @@ test('release notes menu state follows unread and three-day seen window', () => 
   const fourDaysAgo = now - (4 * 24 * 60 * 60 * 1000)
 
   assert.deepEqual(getReleaseNotesMenuState({
-    version: '1.2.0',
+    version: '1.2.1',
     lastSeenVersion: '',
     lastSeenAt: 0,
     now
   }), { visible: true, unread: true })
 
   assert.deepEqual(getReleaseNotesMenuState({
-    version: '1.2.0',
-    lastSeenVersion: '1.2.0',
+    version: '1.2.1',
+    lastSeenVersion: '1.2.1',
     lastSeenAt: twoDaysAgo,
     now
   }), { visible: true, unread: false })
 
   assert.deepEqual(getReleaseNotesMenuState({
-    version: '1.2.0',
-    lastSeenVersion: '1.2.0',
+    version: '1.2.1',
+    lastSeenVersion: '1.2.1',
     lastSeenAt: fourDaysAgo,
     now
   }), { visible: false, unread: false })

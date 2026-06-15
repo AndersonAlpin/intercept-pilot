@@ -1,19 +1,30 @@
 import { t } from './i18n.js'
 
-const RELEASE_NOTE_KEYS = {
-  '1.2.0': [
-    'releaseNotes.items.captureStatus',
-    'releaseNotes.items.rulesOrganization',
-    'releaseNotes.items.clickStability',
-    'releaseNotes.items.importDrop',
-    'releaseNotes.items.interfaceClarity'
-  ]
+const RELEASE_NOTES = {
+  '1.2.1': {
+    itemKeys: [
+      'releaseNotes.items.captureStatus',
+      'releaseNotes.items.rulesOrganization',
+      'releaseNotes.items.clickStability',
+      'releaseNotes.items.importDrop',
+      'releaseNotes.items.interfaceClarity'
+    ]
+  },
+  '1.2.0': {
+    itemKeys: [
+      'releaseNotes.items.captureStatus',
+      'releaseNotes.items.rulesOrganization',
+      'releaseNotes.items.clickStability',
+      'releaseNotes.items.importDrop',
+      'releaseNotes.items.interfaceClarity'
+    ]
+  }
 }
 
 export const RELEASE_NOTES_VISIBLE_AFTER_SEEN_MS = 3 * 24 * 60 * 60 * 1000
 
 export function hasReleaseNotesForVersion(version) {
-  return Array.isArray(RELEASE_NOTE_KEYS[String(version || '')])
+  return Boolean(RELEASE_NOTES[String(version || '')])
 }
 
 export function getReleaseNotesMenuState({
@@ -41,10 +52,12 @@ export function getReleaseNotesMenuState({
 
 export function getReleaseNotesForVersion(version) {
   const resolvedVersion = String(version || '').trim()
-  const keys = RELEASE_NOTE_KEYS[resolvedVersion] || []
+  const notes = RELEASE_NOTES[resolvedVersion] || {}
+  const items = (notes.itemKeys || []).map(key => t(key))
+
   return {
     version: resolvedVersion,
     title: t('releaseNotes.title'),
-    items: keys.map(key => t(key))
+    items
   }
 }
