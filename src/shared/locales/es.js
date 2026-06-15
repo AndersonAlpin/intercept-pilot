@@ -234,6 +234,7 @@ const es = {
     reopen: 'Ver notas de actualización',
     settingsLabel: 'Notas de actualización',
     items: {
+      sidepanelRulesScroll: 'Corregido en el Sidepanel: la lista de reglas ahora conserva la posición y los menús del encabezado se abren fuera de la tarjeta.',
       captureStatus: 'El estado de captura es más consistente entre Full App y Sidepanel.',
       disabledActions: 'Las acciones no disponibles ahora quedan desactivadas y explican el motivo.',
       rulesLayout: 'Reglas ahora tiene más espacio para nombres y URLs.',

@@ -233,6 +233,7 @@ const ptBR = {
     reopen: 'Ver notas de atualização',
     settingsLabel: 'Notas de atualização',
     items: {
+      sidepanelRulesScroll: 'Corrigido no Sidepanel: a lista de regras agora preserva a posição e os menus do cabeçalho abrem fora do card.',
       captureStatus: 'Captura mais consistente entre Full App e Sidepanel.',
       disabledActions: 'Ações indisponíveis agora ficam desativadas e explicam o motivo.',
       rulesLayout: 'Regras ganharam mais espaço para nomes e URLs.',

@@ -1,6 +1,16 @@
 import { t } from './i18n.js'
 
 const RELEASE_NOTES = {
+  '1.2.2': {
+    itemKeys: [
+      'releaseNotes.items.captureStatus',
+      'releaseNotes.items.rulesOrganization',
+      'releaseNotes.items.clickStability',
+      'releaseNotes.items.importDrop',
+      'releaseNotes.items.interfaceClarity',
+      'releaseNotes.items.sidepanelRulesScroll'
+    ]
+  },
   '1.2.1': {
     itemKeys: [
       'releaseNotes.items.captureStatus',

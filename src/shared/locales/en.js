@@ -376,6 +376,7 @@ const en = {
     reopen: 'View update notes',
     settingsLabel: 'Update notes',
     items: {
+      sidepanelRulesScroll: 'Fixed in the Sidepanel: the rules list now preserves its position and header menus open outside the card.',
       captureStatus: 'Capture status is more consistent between Full App and Sidepanel.',
       disabledActions: 'Unavailable actions are now disabled and explain why.',
       rulesLayout: 'Rules now have more room for names and URLs.',

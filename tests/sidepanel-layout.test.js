@@ -17,3 +17,8 @@ test('sidepanel keeps chrome fixed while only tab content lists scroll', () => {
   assert.doesNotMatch(css, /\.card\.sticky-filters \.sticky-bar\s*\{[^}]*position:\s*sticky;/s)
   assert.match(css, /\.card\.sticky-filters > \.list,\s*\.card\.sticky-filters > \.table\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-height:\s*0;[^}]*overflow:\s*auto;/s)
 })
+
+test('sidepanel rules panel lets header dropdowns escape without reopening full-card scroll', () => {
+  assert.match(css, /\.card\.sticky-filters\.rules-panel\s*\{[^}]*overflow:\s*visible;/s)
+  assert.match(css, /\.rules-panel > \.list\s*\{[^}]*overflow:\s*auto;/s)
+})
