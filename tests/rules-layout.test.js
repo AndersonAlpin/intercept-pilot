@@ -7,11 +7,14 @@ const css = readFileSync(new URL('../src/fullapp/fullapp.css', import.meta.url),
 test('rules grid gives the rule name column extra room', () => {
   assert.match(
     css,
-    /\.row-rule \{ grid-template-columns: 28px minmax\(420px, 1fr\) 70px 70px 120px 150px 84px 190px; \}/
+    /\.row-rule \{ grid-template-columns: 28px minmax\(200px, 1fr\) 54px 54px 92px 112px 56px 166px; \}/
   )
+})
+
+test('compact rules grid keeps row actions inside the visible panel', () => {
   assert.match(
     css,
-    /@media \(max-width: 1200px\) \{[\s\S]*\.row-rule \{ grid-template-columns: 28px minmax\(320px, 1fr\) 62px 62px 104px 126px 72px 174px; \}/
+    /\.row-rule \{ min-width: 856px; \}/
   )
 })
 

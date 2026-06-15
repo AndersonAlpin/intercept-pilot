@@ -610,7 +610,7 @@ function render() {
   bindSelectMenus()
   bindEvents()
   restoreFocusSnapshot(focusSnapshot)
-  updateDataPanelScrollStateSoon()
+  updateDataPanelScrollState(root)
 }
 
 function bindTopbarEvents() {

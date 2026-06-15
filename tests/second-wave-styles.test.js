@@ -5,6 +5,11 @@ import { readFileSync } from 'node:fs'
 const fullCss = readFileSync(new URL('../src/fullapp/fullapp.css', import.meta.url), 'utf8')
 const sideCss = readFileSync(new URL('../src/sidepanel/sidepanel.css', import.meta.url), 'utf8')
 
+function cssBlock(css, selector) {
+  const match = css.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{[\\s\\S]*?\\n\\}`))
+  return match ? match[0] : ''
+}
+
 test('full app and sidepanel toasts use a solid base surface', () => {
   for (const css of [fullCss, sideCss]) {
     assert.match(css, /\.toast \{[\s\S]*background: rgb\(11, 15, 23\);/)
@@ -23,6 +28,17 @@ test('full app table rows scroll separately from table headers without sticky po
 test('full app table scrollbars add matching right padding to headers and rows', () => {
   assert.match(fullCss, /\.data-table\.is-scrollable-y \.data-table__header,[\s\S]*\.data-table\.is-scrollable-y \.data-table__rows \{[\s\S]*padding-right: 18px;/)
   assert.match(fullCss, /\.data-table\.is-scrollable-y \.data-table__rows \{[\s\S]*scrollbar-gutter: stable;/)
+})
+
+test('full app bulk selection bars float over the panel without reserving layout space', () => {
+  const barBlock = cssBlock(fullCss, '.floating-selection-bar')
+  assert.doesNotMatch(fullCss, /\.data-panel__selection \{/)
+  assert.match(barBlock, /position: absolute;/)
+  assert.match(barBlock, /left: 50%;/)
+  assert.match(barBlock, /bottom: 58px;/)
+  assert.match(barBlock, /max-width: calc\(100% - 32px\);/)
+  assert.doesNotMatch(fullCss, /\.data-panel\.has-selection \.data-table__rows \{[\s\S]*padding-bottom: 82px;/)
+  assert.doesNotMatch(fullCss, /\.data-panel\.has-selection \.data-panel__scroll \{[\s\S]*padding-bottom: 82px;/)
 })
 
 test('rule move modal lets the destination select menu escape the modal body', () => {
