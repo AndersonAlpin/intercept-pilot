@@ -1,6 +1,6 @@
 {
   "name": "intercept-pilot-extension",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "scripts": {
     "package": "node tools/package-extension.js",
