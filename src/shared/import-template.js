@@ -17,7 +17,7 @@ function makeTemplateRule(seed) {
     name: seed.name,
     match: {
       matchType: 'contains',
-      resourceType: 'Fetch',
+      resourceType: 'ANY',
       ...seed.match
     },
     action: {
@@ -153,6 +153,7 @@ export function getAiPrompt(t) {
     `Allowed match.matchType values: ${matchTypes}.`,
     `Allowed match.method values: ${methods}.`,
     `Allowed match.resourceType values: ${resourceTypes}.`,
+    'Prefer resourceType "ANY". "Fetch" and "XHR" only match that exact CDP resource type, and app requests from libraries like ofetch or axios are often reported as "XHR", so "Fetch" can silently miss them.',
     'Allowed action.type values: "mockResponse", "failRequest", "delayOnly", "passThrough".',
     '',
     'Use mockResponse to simulate any HTTP response status code from 100 to 599, including redirects, client errors and server errors.',

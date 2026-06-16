@@ -376,6 +376,7 @@ const en = {
     reopen: 'View update notes',
     settingsLabel: 'Update notes',
     items: {
+      aiTemplateResourceType: 'The AI rule-generation prompt now uses ANY as the default resource type. This prevents rules generated as Fetch from missing requests reported by the browser as XHR, which is common in apps using ofetch/axios.',
       sidepanelRulesScroll: 'Fixed in the Sidepanel: the rules list now preserves its position and header menus open outside the card.',
       captureStatus: 'Capture status is more consistent between Full App and Sidepanel.',
       disabledActions: 'Unavailable actions are now disabled and explain why.',
@@ -428,6 +429,7 @@ const en = {
       'Allowed match.matchType values: {matchTypes}.',
       'Allowed match.method values: {methods}.',
       'Allowed match.resourceType values: {resourceTypes}.',
+      'Prefer resourceType "ANY". "Fetch" and "XHR" only match that exact CDP resource type, and app requests from libraries like ofetch or axios are often reported as "XHR", so "Fetch" can silently miss them.',
       'Allowed action.type values: "mockResponse", "failRequest", "delayOnly", "passThrough".',
       '',
       'Use mockResponse to simulate any HTTP response status code from 100 to 599, including redirects, client errors and server errors.',

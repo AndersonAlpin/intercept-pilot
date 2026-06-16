@@ -1,6 +1,11 @@
 import { t } from './i18n.js'
 
 const RELEASE_NOTES = {
+  '1.2.3': {
+    itemKeys: [
+      'releaseNotes.items.aiTemplateResourceType'
+    ]
+  },
   '1.2.2': {
     itemKeys: [
       'releaseNotes.items.captureStatus',

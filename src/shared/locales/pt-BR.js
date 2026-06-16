@@ -233,6 +233,7 @@ const ptBR = {
     reopen: 'Ver notas de atualização',
     settingsLabel: 'Notas de atualização',
     items: {
+      aiTemplateResourceType: 'O prompt de geração de regras por IA agora usa ANY como tipo de recurso por padrão. Isso evita que regras geradas como Fetch deixem de interceptar chamadas identificadas pelo navegador como XHR, comum em apps com ofetch/axios.',
       sidepanelRulesScroll: 'Corrigido no Sidepanel: a lista de regras agora preserva a posição e os menus do cabeçalho abrem fora do card.',
       captureStatus: 'Captura mais consistente entre Full App e Sidepanel.',
       disabledActions: 'Ações indisponíveis agora ficam desativadas e explicam o motivo.',
@@ -285,6 +286,7 @@ const ptBR = {
       'Valores permitidos para match.matchType: {matchTypes}.',
       'Valores permitidos para match.method: {methods}.',
       'Valores permitidos para match.resourceType: {resourceTypes}.',
+      'Prefira resourceType "ANY". "Fetch" e "XHR" casam apenas aquele tipo exato do CDP, e requisições de libs como ofetch ou axios costumam ser reportadas como "XHR", então "Fetch" pode não interceptar.',
       'Valores permitidos para action.type: "mockResponse", "failRequest", "delayOnly", "passThrough".',
       '',
       'Use mockResponse para simular qualquer código de status HTTP de 100 a 599, incluindo redirects, erros de cliente e erros de servidor.',
