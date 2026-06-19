@@ -25,7 +25,11 @@ export const MSG = {
   NETWORK_CLEAR: 'network:clear',
   NETWORK_GET_BODY: 'network:getBody',
   LOGS_CLEAR: 'logs:clear',
-  RULE_CREATE_FROM_REQUEST: 'rule:createFromRequest'
+  RULE_CREATE_FROM_REQUEST: 'rule:createFromRequest',
+
+  AI_BRIDGE_GET_SESSION: 'aiBridge:getSession',
+  AI_BRIDGE_START_SESSION: 'aiBridge:startSession',
+  AI_BRIDGE_REVOKE_SESSION: 'aiBridge:revokeSession'
 }
 
 export async function sendMessage(message) {

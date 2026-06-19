@@ -45,10 +45,12 @@ import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from 
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { renderReleaseNotesModal } from './components/release-notes-modal.js'
 import { renderRuleMoveModal } from './components/rule-move-modal.js'
+import { renderAiBridgeSettingsSection } from './components/ai-bridge-settings-section.js'
 import { getReleaseNotesMenuState, hasReleaseNotesForVersion } from '../shared/release-notes.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
 import { getBulkDeleteDialogCopy, getBulkDeleteSuccessMessage } from '../shared/bulk-delete-dialog.js'
+import { buildAiBridgeMcpConfigText, createAiBridgeSessionState } from '../shared/ai-bridge-state.js'
 
 const PAGE_IDS = ['dashboard', 'rules', 'collections', 'network', 'logs', 'import-export', 'diagnostics', 'settings']
 const PAGE_URL_ALIASES = {
@@ -89,6 +91,7 @@ const state = {
     lastSeenVersion: '',
     lastSeenAt: 0
   },
+  aiBridgeSession: createAiBridgeSessionState(),
 
   editingRule: null,
   editorMode: 'create',
@@ -557,6 +560,7 @@ function renderSettingsPage() {
         ${renderSwitch({ id: 'settings-auto-attach', checked: state.settings.autoAttach, label: t('fullapp.autoAttach'), className: 'settings-toggle' })}
         ${renderSwitch({ id: 'settings-auto-reload', checked: state.settings.autoReloadAfterRuleChange, label: t('fullapp.autoReloadAfterRuleChange'), className: 'settings-toggle' })}
       </div>
+      ${renderAiBridgeSettingsSection(state.aiBridgeSession)}
   `
 
   return renderDataPanel({
@@ -2056,6 +2060,37 @@ function bindEvents() {
     setLocale(payload.language)
     await refreshState()
     toastSuccess(t('fullapp.settingsSaved'))
+  })
+
+  $('#settings-ai-bridge-start-btn')?.addEventListener('click', async () => {
+    const result = await sendMessage({ type: MSG.AI_BRIDGE_START_SESSION })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      return
+    }
+    state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
+    render()
+  })
+
+  $('#settings-ai-bridge-revoke-btn')?.addEventListener('click', async () => {
+    const result = await sendMessage({ type: MSG.AI_BRIDGE_REVOKE_SESSION })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      return
+    }
+    state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
+    render()
+  })
+
+  $('#settings-ai-bridge-copy-config-btn')?.addEventListener('click', async () => {
+    const configText = buildAiBridgeMcpConfigText(state.aiBridgeSession)
+    if (!configText) return
+    try {
+      await copyTextToClipboard(configText)
+      toastSuccess(t('toasts.aiBridgeConfigCopied'))
+    } catch {
+      toastError(t('toasts.copyError'))
+    }
   })
 
   $('#release-notes-close')?.addEventListener('click', closeReleaseNotes)

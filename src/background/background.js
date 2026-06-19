@@ -9,6 +9,7 @@ import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule, getExecutableRules } from './rule-engine.js'
 import { resolveNetworkEntryResponseBody } from './network-entry-body.js'
 import { normalizePerformanceEntries } from './performance-entries.js'
+import { getAiBridgeSession, revokeAiBridgeSession, startAiBridgeSession } from './ai-bridge-session.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
@@ -563,6 +564,7 @@ async function getFullState() {
     logs: state.logs,
     settings: state.settings || DEFAULT_SETTINGS,
     releaseNotes,
+    aiBridgeSession: getAiBridgeSession(),
     networkEntries: runtimeState.networkEntries,
     networkMeta: getNetworkCycleMeta(),
     attachedTabId: runtimeState.attachedTabId,
@@ -1491,6 +1493,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       case 'releaseNotes:markSeen':
         sendResponse(await markReleaseNotesSeen(message.version || '', message.seenAt))
+        return
+      case 'aiBridge:getSession':
+        sendResponse({ aiBridgeSession: getAiBridgeSession() })
+        return
+      case 'aiBridge:startSession':
+        sendResponse({ aiBridgeSession: startAiBridgeSession() })
+        return
+      case 'aiBridge:revokeSession':
+        sendResponse({ aiBridgeSession: revokeAiBridgeSession() })
         return
       case 'debugger:attachActiveTab': {
         const targetTab = await resolveAttachTargetTab(message, sender)
