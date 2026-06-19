@@ -1,24 +1,12 @@
 import { t } from './i18n.js'
 
 const RELEASE_NOTES = {
-  '1.2.1': {
-    itemKeys: [
-      'releaseNotes.items.captureStatus',
-      'releaseNotes.items.rulesOrganization',
-      'releaseNotes.items.clickStability',
-      'releaseNotes.items.importDrop',
-      'releaseNotes.items.interfaceClarity'
-    ]
-  },
-  '1.2.0': {
-    itemKeys: [
-      'releaseNotes.items.captureStatus',
-      'releaseNotes.items.rulesOrganization',
-      'releaseNotes.items.clickStability',
-      'releaseNotes.items.importDrop',
-      'releaseNotes.items.interfaceClarity'
-    ]
-  }
+  // Example:
+  // '0.0.0': {
+  //   itemKeys: [
+  //     'releaseNotes.items.exampleItem'
+  //   ]
+  // }
 }
 
 export const RELEASE_NOTES_VISIBLE_AFTER_SEEN_MS = 3 * 24 * 60 * 60 * 1000

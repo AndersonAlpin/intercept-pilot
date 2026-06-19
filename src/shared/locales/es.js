@@ -52,7 +52,7 @@ const es = {
     deleteSelectedConfirmMany: 'Las {count} colecciones seleccionadas y todas las reglas dentro de ellas se eliminarán.\nEsta acción no se puede deshacer.',
     deleteSelectedSuccessOne: 'Colección seleccionada eliminada.',
     deleteSelectedSuccessMany: '{count} colecciones seleccionadas eliminadas.',
-    selectCollection: 'Seleccionar colección', defaultCannotDelete: 'La colección predeterminada no se puede eliminar.', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
+    selectCollection: 'Seleccionar colección', defaultCannotDelete: 'La colección predeterminada no se puede seleccionar para acciones en lote.', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
   },
   rules: {
     title: 'Reglas', entityOne: 'regla', entityMany: 'reglas', newRule: '+ Regla', searchPlaceholder: 'Buscar reglas', noRules: 'No hay reglas en esta colección.',
@@ -232,20 +232,7 @@ const es = {
     version: 'Versión {version}',
     markSeen: 'Entendido',
     reopen: 'Ver notas de actualización',
-    settingsLabel: 'Notas de actualización',
-    items: {
-      captureStatus: 'El estado de captura es más consistente entre Full App y Sidepanel.',
-      disabledActions: 'Las acciones no disponibles ahora quedan desactivadas y explican el motivo.',
-      rulesLayout: 'Reglas ahora tiene más espacio para nombres y URLs.',
-      moveRules: 'Ahora es posible mover reglas seleccionadas a otra colección.',
-      rulesOrganization: 'Las reglas son más fáciles de organizar, con más espacio para nombres/URLs y la opción de mover reglas seleccionadas a otra colección.',
-      stableLists: 'Las listas de Full App y Sidepanel son más estables, manteniendo encabezados, filtros y pies fijos mientras el contenido se desplaza.',
-      clickStability: 'Red y Logs son más estables durante actualizaciones en tiempo real.',
-      importDrop: 'Importar ahora permite soltar archivos JSON en el editor, manteniendo el pegado manual y la selección por archivo.',
-      solidToasts: 'Los toasts ahora son más sólidos y fáciles de leer.',
-      interfaceClarity: 'La interfaz es más clara y fácil de leer, con acciones no disponibles que explican el motivo y toasts más sólidos.',
-      releaseNotesMenu: 'Nuevo menú Actualizaciones en Full App para seguir las novedades de la extensión.'
-    }
+    settingsLabel: 'Notas de actualización'
   },
   importTemplate: {
     templates: 'Templates',
@@ -285,6 +272,7 @@ const es = {
       'Valores permitidos para match.matchType: {matchTypes}.',
       'Valores permitidos para match.method: {methods}.',
       'Valores permitidos para match.resourceType: {resourceTypes}.',
+      'Prefiere resourceType "ANY". "Fetch" y "XHR" coinciden solo con ese tipo exacto del CDP, y las solicitudes de librerías como ofetch o axios suelen reportarse como "XHR", por lo que "Fetch" puede no interceptar.',
       'Valores permitidos para action.type: "mockResponse", "failRequest", "delayOnly", "passThrough".',
       '',
       'Usa mockResponse para simular cualquier código de estado HTTP de 100 a 599, incluidos redirects, errores de cliente y errores de servidor.',

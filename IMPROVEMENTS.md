@@ -4,7 +4,90 @@ Este roadmap lista apenas melhorias ainda pendentes, parciais ou que precisam de
 
 Itens já entregues devem ficar documentados em `docs/releases/`, `docs/internal/ai/` ou nos planos de execução correspondentes, não neste arquivo.
 
-## 1. Browser Storage Inspector
+## 1. Filtros avançados da Network
+
+Objetivo: evoluir os filtros atuais sem perder a estabilidade de foco e clique durante atualizações em tempo real.
+
+Escopo pendente:
+
+- Filtro por resource type.
+- Filtro por requests com regra aplicada.
+- Filtro por erros/falhas.
+- Ação clara para limpar todos os filtros.
+- Persistência dos novos filtros em Full App e Sidepanel, se fizer sentido para ambos.
+
+Critérios de aceite:
+
+- Filtros são restaurados ao reabrir Full App e Sidepanel.
+- Atualizações em tempo real não removem foco dos inputs.
+- A lista continua abrindo o item correto por ID estável.
+- PT, EN e ES cobrem todos os novos textos.
+
+## 2. Segurança e privacidade
+
+Objetivo: reduzir risco de vazamento de dados sensíveis em inspeção, cópia e exportação.
+
+Escopo pendente:
+
+- Mascarar `Authorization`, `Cookie` e `Set-Cookie` por padrão em cURL/fetch.
+- Opção explícita para copiar headers sensíveis.
+- Avisos em exportações que contenham payloads ou headers sensíveis.
+- Limpeza/sanitização de dados sensíveis.
+- Modo local-only/privado explicado de forma clara.
+
+Critérios de aceite:
+
+- Dados sensíveis não aparecem em cópias/exportações sem intenção clara.
+- O usuário entende quando está copiando informação sensível.
+- Sanitização é consistente entre Full App e Sidepanel quando aplicável.
+
+## 3. Response e Media Preview
+
+Objetivo: melhorar o Network Inspector para exibir previews seguros de responses.
+
+Escopo pendente:
+
+- Preview de `image/png`, `image/jpeg`, `image/webp` e `image/svg+xml`.
+- Preview de JSON formatado.
+- Preview de `text/html`, `text/plain`, CSS e JavaScript como texto.
+- Preview de blob/base64 quando viável.
+- Download/copy do body.
+- Fallback claro para preview indisponível.
+
+Cuidados:
+
+- Bodies podem ser grandes, binários ou sensíveis.
+- Captura leve pode não ter todos os bodies.
+- Captura completa pode depender de `Network.getResponseBody`.
+- SVG deve ser renderizado com cuidado por segurança.
+
+Critérios de aceite:
+
+- Preview nunca quebra o inspector quando o body é grande ou inválido.
+- O usuário entende quando um preview não está disponível.
+- Copiar/download continua disponível quando fizer sentido.
+- Conteúdo potencialmente perigoso é tratado de forma segura.
+
+## 4. Preview e estratégias avançadas de importação
+
+Objetivo: reduzir risco ao importar bundles maiores ou dados vindos de outra instalação.
+
+Escopo pendente:
+
+- Preview antes de aplicar a importação.
+- Diferença visual entre criação, atualização e conflito.
+- Estratégia `merge by id` para coleções/regras.
+- Resumo de impacto antes da confirmação.
+- Possível dry-run interno reaproveitando o parser/validador atual.
+
+Critérios de aceite:
+
+- O usuário entende o que será criado, atualizado ou ignorado antes de confirmar.
+- Conflitos ficam claros.
+- O fluxo continua aceitando colagem manual, seleção de arquivo e drag-and-drop.
+- O parser/validador atual continua sendo a fonte de verdade.
+
+## 5. Browser Storage Inspector
 
 Objetivo: visualizar e gerenciar dados de armazenamento da página capturada pelo Full App.
 
@@ -34,90 +117,25 @@ Critérios de aceite:
 - Dados sensíveis não são expostos/exportados sem aviso.
 - Nenhuma permissão nova entra sem decisão documentada.
 
-## 2. Filtros avançados da Network
+## 6. One-Rule Mode
 
-Objetivo: evoluir os filtros atuais sem perder a estabilidade de foco e clique durante atualizações em tempo real.
-
-Escopo pendente:
-
-- Filtro por resource type.
-- Filtro por requests com regra aplicada.
-- Filtro por erros/falhas.
-- Ação clara para limpar todos os filtros.
-- Persistência dos novos filtros em Full App e Sidepanel, se fizer sentido para ambos.
-
-Critérios de aceite:
-
-- Filtros são restaurados ao reabrir Full App e Sidepanel.
-- Atualizações em tempo real não removem foco dos inputs.
-- A lista continua abrindo o item correto por ID estável.
-- PT, EN e ES cobrem todos os novos textos.
-
-## 3. Preview e estratégias avançadas de importação
-
-Objetivo: reduzir risco ao importar bundles maiores ou dados vindos de outra instalação.
+Objetivo: reduzir conflitos durante testes específicos mantendo apenas uma regra ativa por vez dentro da coleção.
 
 Escopo pendente:
 
-- Preview antes de aplicar a importação.
-- Diferença visual entre criação, atualização e conflito.
-- Estratégia `merge by id` para coleções/regras.
-- Resumo de impacto antes da confirmação.
-- Possível dry-run interno reaproveitando o parser/validador atual.
+- Configuração opt-in.
+- Ao ativar uma regra, desativar automaticamente as outras da mesma coleção.
+- Indicação visual clara quando o modo está ativo.
+- Mensagem explicando quais regras foram desativadas.
 
 Critérios de aceite:
 
-- O usuário entende o que será criado, atualizado ou ignorado antes de confirmar.
-- Conflitos ficam claros.
-- O fluxo continua aceitando colagem manual, seleção de arquivo e drag-and-drop.
-- O parser/validador atual continua sendo a fonte de verdade.
+- O modo pode ser ativado/desativado.
+- O comportamento é reversível e previsível.
+- A UI não depende só de cor para explicar o estado.
+- Full App e Sidepanel refletem a mesma regra ativa.
 
-## 4. Response e Media Preview
-
-Objetivo: melhorar o Network Inspector para exibir previews seguros de responses.
-
-Escopo pendente:
-
-- Preview de `image/png`, `image/jpeg`, `image/webp` e `image/svg+xml`.
-- Preview de JSON formatado.
-- Preview de `text/html`, `text/plain`, CSS e JavaScript como texto.
-- Preview de blob/base64 quando viável.
-- Download/copy do body.
-- Fallback claro para preview indisponível.
-
-Cuidados:
-
-- Bodies podem ser grandes, binários ou sensíveis.
-- Captura leve pode não ter todos os bodies.
-- Captura completa pode depender de `Network.getResponseBody`.
-- SVG deve ser renderizado com cuidado por segurança.
-
-Critérios de aceite:
-
-- Preview nunca quebra o inspector quando o body é grande ou inválido.
-- O usuário entende quando um preview não está disponível.
-- Copiar/download continua disponível quando fizer sentido.
-- Conteúdo potencialmente perigoso é tratado de forma segura.
-
-## 5. Replay de requests no Network Inspector
-
-Objetivo: permitir repetir uma request capturada de forma controlada para comparar resposta original e nova resposta.
-
-Escopo pendente:
-
-- Ação `Replay` no inspector.
-- Confirmação quando a request tiver método ou body potencialmente destrutivo.
-- Exibição do resultado do replay sem substituir a entrada original.
-- Indicação clara se o replay passou por regra, mock ou pass-through.
-
-Critérios de aceite:
-
-- Replay não altera regra, coleção, hit state ou captura sem intenção explícita.
-- O usuário consegue comparar original e replay.
-- Erros de replay são visíveis e copiáveis.
-- A ação é segura por padrão.
-
-## 6. Request Builder / API Client
+## 7. Request Builder / API Client
 
 Objetivo: adicionar uma área semelhante a Insomnia/Postman para montar, enviar e salvar requisições dentro do InterceptPilot.
 
@@ -146,25 +164,25 @@ Critérios de aceite:
 - Coleções continuam claras e não ficam sobrecarregadas.
 - Headers e payloads sensíveis recebem tratamento consistente com o resto do produto.
 
-## 7. One-Rule Mode
+## 8. Replay de requests no Network Inspector
 
-Objetivo: reduzir conflitos durante testes específicos mantendo apenas uma regra ativa por vez dentro da coleção.
+Objetivo: permitir repetir uma request capturada de forma controlada para comparar resposta original e nova resposta.
 
 Escopo pendente:
 
-- Configuração opt-in.
-- Ao ativar uma regra, desativar automaticamente as outras da mesma coleção.
-- Indicação visual clara quando o modo está ativo.
-- Mensagem explicando quais regras foram desativadas.
+- Ação `Replay` no inspector.
+- Confirmação quando a request tiver método ou body potencialmente destrutivo.
+- Exibição do resultado do replay sem substituir a entrada original.
+- Indicação clara se o replay passou por regra, mock ou pass-through.
 
 Critérios de aceite:
 
-- O modo pode ser ativado/desativado.
-- O comportamento é reversível e previsível.
-- A UI não depende só de cor para explicar o estado.
-- Full App e Sidepanel refletem a mesma regra ativa.
+- Replay não altera regra, coleção, hit state ou captura sem intenção explícita.
+- O usuário consegue comparar original e replay.
+- Erros de replay são visíveis e copiáveis.
+- A ação é segura por padrão.
 
-## 8. Melhorias nos modos de captura
+## 9. Melhorias nos modos de captura
 
 Objetivo: melhorar previsibilidade e compatibilidade da Captura completa, Captura leve e modo Automático.
 
@@ -191,7 +209,7 @@ Critérios de aceite:
 - Captura completa continua oferecendo maior cobertura.
 - Não há alteração de permissões sem aprovação explícita.
 
-## 9. Captura em segundo plano e notificações de regra
+## 10. Captura em segundo plano e notificações de regra
 
 Objetivo: deixar mais explícito e confiável o comportamento de captura quando Sidepanel e Full App estão fechados, com feedback discreto quando uma regra é aplicada.
 
@@ -223,7 +241,7 @@ Critérios de aceite:
 - O feedback é discreto e configurável.
 - Não há spam visual em páginas com muitas requests.
 
-## 10. Filtro de hosts para captura automática
+## 11. Filtro de hosts para captura automática
 
 Objetivo: tornar a captura automática mais segura e previsível em ambientes com várias abas, branches e hosts.
 
@@ -241,7 +259,7 @@ Critérios de aceite:
 - O usuário entende por que uma aba foi ignorada.
 - Chrome e Edge seguem o mesmo comportamento.
 
-## 11. Confiabilidade de estado da regra
+## 12. Confiabilidade de estado da regra
 
 Objetivo: revisar cenários difíceis em que uma regra acionada pode perder ou resetar estado visual de forma confusa.
 
@@ -264,7 +282,7 @@ Critérios de aceite:
 - Logs explicam por que um reset aconteceu.
 - Full App e Sidepanel exibem o mesmo estado.
 
-## 12. Host / Project Profiles
+## 13. Host / Project Profiles
 
 Objetivo: separar configurações por projeto, cliente, host ou ambiente de teste.
 
@@ -289,7 +307,7 @@ Critérios de aceite:
 - Alternar perfil atualiza o contexto de trabalho de forma clara.
 - Perfis não acoplam o produto a domínios específicos.
 
-## 13. Diagnóstico avançado de captura
+## 14. Diagnóstico avançado de captura
 
 Objetivo: aprofundar o diagnóstico sem poluir Sidepanel ou telas operacionais.
 
@@ -308,7 +326,7 @@ Critérios de aceite:
 - Diagnóstico avançado fica no Full App.
 - Nenhuma permissão nova é adicionada sem aprovação explícita.
 
-## 14. Session Report / Recording
+## 15. Session Report / Recording
 
 Objetivo: avaliar uma feature de relatório de sessão para debug e bug report.
 
@@ -332,7 +350,7 @@ Critérios de aceite:
 - Dados sensíveis são mascarados ou exigem confirmação.
 - O usuário controla quando grava e exporta.
 
-## 15. Data Tables / Advanced Lists
+## 16. Data Tables / Advanced Lists
 
 Objetivo: evoluir listas densas sem criar abstração pesada cedo demais.
 
@@ -359,24 +377,6 @@ Critérios de aceite:
 - Layout continua alinhado com scrollbars e action columns.
 - A correção de clique em Network/Logs durante atualizações em tempo real continua coberta por teste e validação manual quando o layout dessas listas mudar.
 
-## 16. Segurança e privacidade
-
-Objetivo: reduzir risco de vazamento de dados sensíveis em inspeção, cópia e exportação.
-
-Escopo pendente:
-
-- Mascarar `Authorization`, `Cookie` e `Set-Cookie` por padrão em cURL/fetch.
-- Opção explícita para copiar headers sensíveis.
-- Avisos em exportações que contenham payloads ou headers sensíveis.
-- Limpeza/sanitização de dados sensíveis.
-- Modo local-only/privado explicado de forma clara.
-
-Critérios de aceite:
-
-- Dados sensíveis não aparecem em cópias/exportações sem intenção clara.
-- O usuário entende quando está copiando informação sensível.
-- Sanitização é consistente entre Full App e Sidepanel quando aplicável.
-
 ## 17. Remodelagem visual, tema light/dark e branding
 
 Objetivo: remodelar visualmente o InterceptPilot, definir tema claro/escuro de forma consistente e evoluir a identidade do produto.
@@ -402,7 +402,42 @@ Critérios de aceite:
 - Sidepanel e Full App parecem parte do mesmo produto.
 - Focus ring continua visível para teclado, mas menos pesado visualmente.
 
-## 18. MCP/local bridge
+## 18. Auto-dismiss para notice modals
+
+Objetivo: melhorar avisos informativos sem atrapalhar o fluxo.
+
+Escopo pendente:
+
+- Auto-close opcional para notices informativos.
+- Timeout entre 2.5s e 4s.
+- Pausar timeout em hover/focus.
+- Manter confirmações persistentes.
+- Manter fechamento manual e teclado.
+
+Critérios de aceite:
+
+- Mensagens informativas somem automaticamente quando apropriado.
+- Confirmações destrutivas nunca fecham sozinhas.
+- O comportamento continua acessível por teclado.
+
+## 19. Organização futura de regras
+
+Objetivo: complementar a organização de regras sem sobrecarregar a tela principal.
+
+Escopo pendente:
+
+- Avaliar ação por linha para mover regra, se a barra de seleção em massa não for suficiente.
+- Aviso opcional para nomes duplicados ou regras muito parecidas na coleção destino.
+- Opção de trocar para a coleção destino depois de mover regras.
+- Ordenação manual ou por prioridade, se virar necessidade real.
+
+Critérios de aceite:
+
+- A tela de Regras permanece densa e escaneável.
+- Ações novas não competem com editar, duplicar, exportar, excluir e avançado.
+- Full App e Sidepanel continuam sincronizados.
+
+## 20. MCP/local bridge
 
 Objetivo: pesquisar uma integração local para Claude/Codex e outros agentes conseguirem se conectar ao InterceptPilot com segurança.
 
@@ -426,60 +461,25 @@ Critérios de aceite:
 - Escrita em regras/configurações só entra depois de modo explícito e auditável.
 - O agente nunca recebe tokens, cookies, payloads sensíveis ou URLs privadas sem política clara de sanitização.
 
-## 19. Auto-dismiss para notice modals
-
-Objetivo: melhorar avisos informativos sem atrapalhar o fluxo.
-
-Escopo pendente:
-
-- Auto-close opcional para notices informativos.
-- Timeout entre 2.5s e 4s.
-- Pausar timeout em hover/focus.
-- Manter confirmações persistentes.
-- Manter fechamento manual e teclado.
-
-Critérios de aceite:
-
-- Mensagens informativas somem automaticamente quando apropriado.
-- Confirmações destrutivas nunca fecham sozinhas.
-- O comportamento continua acessível por teclado.
-
-## 20. Organização futura de regras
-
-Objetivo: complementar a organização de regras sem sobrecarregar a tela principal.
-
-Escopo pendente:
-
-- Avaliar ação por linha para mover regra, se a barra de seleção em massa não for suficiente.
-- Aviso opcional para nomes duplicados ou regras muito parecidas na coleção destino.
-- Opção de trocar para a coleção destino depois de mover regras.
-- Ordenação manual ou por prioridade, se virar necessidade real.
-
-Critérios de aceite:
-
-- A tela de Regras permanece densa e escaneável.
-- Ações novas não competem com editar, duplicar, exportar, excluir e avançado.
-- Full App e Sidepanel continuam sincronizados.
-
 ## Priorização recomendada
 
 1. Filtros avançados da Network.
-2. Browser Storage Inspector.
-3. Request Builder / API Client.
+2. Segurança e privacidade.
+3. Response e Media Preview.
 4. Preview e estratégias avançadas de importação.
-5. Segurança e privacidade.
-6. Response e Media Preview.
-7. Remodelagem visual, tema light/dark e branding.
-8. One-Rule Mode.
+5. Browser Storage Inspector.
+6. One-Rule Mode.
+7. Request Builder / API Client.
+8. Replay de requests no Network Inspector.
 9. Captura em segundo plano e notificações de regra.
 10. Filtro de hosts para captura automática.
 11. Diagnóstico avançado de captura.
 12. Melhorias nos modos de captura.
-13. Replay de requests no Network Inspector.
-14. Data Tables / Advanced Lists.
-15. Host / Project Profiles.
-16. Confiabilidade de estado da regra.
-17. Session Report / Recording.
+13. Data Tables / Advanced Lists.
+14. Host / Project Profiles.
+15. Confiabilidade de estado da regra.
+16. Session Report / Recording.
+17. Remodelagem visual, tema light/dark e branding.
 18. Organização futura de regras.
 19. Auto-dismiss para notice modals.
 20. MCP/local bridge.

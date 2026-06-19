@@ -96,6 +96,17 @@ const LOG_DETAIL_CACHE_LIMIT = 500
 const logDetailCache = new Map()
 let pendingLogPress = null
 let pendingLogPressTimer = null
+const SIDE_SCROLL_SELECTORS = Object.freeze({
+  rules: [
+    { selector: '.rules-panel > .list' }
+  ],
+  network: [
+    { selector: '#network-entries-table' }
+  ],
+  logs: [
+    { selector: '#side-logs-list' }
+  ]
+})
 
 function captureFocusSnapshot() {
   const active = document.activeElement
@@ -325,6 +336,30 @@ function rememberLogDetails(logs = []) {
   }
 }
 
+function captureScrollSnapshot() {
+  const targets = SIDE_SCROLL_SELECTORS[appState.currentTab] || []
+  return targets
+    .map(({ selector }) => {
+      const el = document.querySelector(selector)
+      if (!el) return null
+      return {
+        selector,
+        left: el.scrollLeft,
+        top: el.scrollTop
+      }
+    })
+    .filter(Boolean)
+}
+
+function restoreScrollSnapshot(snapshot) {
+  for (const item of snapshot || []) {
+    const el = document.querySelector(item.selector)
+    if (!el) continue
+    el.scrollLeft = Number(item.left || 0)
+    el.scrollTop = Number(item.top || 0)
+  }
+}
+
 function findLogById(logId) {
   return (appState.visibleLogs || []).find(log => log.id === logId)
     || (appState.filteredLogs || []).find(log => log.id === logId)
@@ -427,6 +462,7 @@ async function copySelectedLogField(field) {
 function render() {
   const root = $('#app')
   const focusSnapshot = captureFocusSnapshot()
+  const scrollSnapshot = captureScrollSnapshot()
   const header = renderConnectionHeader(appState)
   const tabs = renderTabs(appState.currentTab)
 
@@ -450,6 +486,7 @@ function render() {
   updateHeaderOffset()
   bindSelectMenus()
   bindEvents()
+  restoreScrollSnapshot(scrollSnapshot)
   restoreFocusSnapshot(focusSnapshot)
 }
 

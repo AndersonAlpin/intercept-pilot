@@ -27,3 +27,7 @@ test('rules hits stay visually closer to state than actions', () => {
   assert.match(css, /\.row-rule \.col-hits \{ justify-self: start; text-align: left; \}/)
   assert.match(css, /\.rules-header \.col-hits \{ text-align: left; \}/)
 })
+
+test('full app select menus leave space between hover targets', () => {
+  assert.match(css, /\.select-menu__list\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*gap:\s*4px;/s)
+})

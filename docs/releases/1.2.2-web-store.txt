@@ -1,0 +1,6 @@
+Version 1.2.2
+
+Fixed:
+
+- Fixed the Sidepanel Rules list resetting to the top when enabling or disabling a rule.
+- Fixed Sidepanel Rules header dropdowns that were clipped inside the card container.

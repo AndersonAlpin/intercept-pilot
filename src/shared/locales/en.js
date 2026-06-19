@@ -116,7 +116,7 @@ const en = {
     deleteSelectedSuccessOne: 'Selected collection deleted.',
     deleteSelectedSuccessMany: '{count} selected collections deleted.',
     selectCollection: 'Select collection',
-    defaultCannotDelete: 'The default collection cannot be removed.',
+    defaultCannotDelete: 'The default collection cannot be selected for bulk actions.',
     rulesCount: 'rule(s)',
     enabledRules: 'Enabled',
     entityOne: 'collection',
@@ -374,20 +374,7 @@ const en = {
     version: 'Version {version}',
     markSeen: 'Got it',
     reopen: 'View update notes',
-    settingsLabel: 'Update notes',
-    items: {
-      captureStatus: 'Capture status is more consistent between Full App and Sidepanel.',
-      disabledActions: 'Unavailable actions are now disabled and explain why.',
-      rulesLayout: 'Rules now have more room for names and URLs.',
-      moveRules: 'Selected rules can now be moved to another collection.',
-      rulesOrganization: 'Rules are easier to organize, with more room for names/URLs and the option to move selected rules to another collection.',
-      stableLists: 'Full App and Sidepanel lists are more stable, keeping headers, filters, and footers fixed while content scrolls.',
-      clickStability: 'Network and Logs are more stable during real-time updates.',
-      importDrop: 'Import now accepts dropping JSON files into the editor while preserving manual paste and file selection.',
-      solidToasts: 'Toasts are now more solid and easier to read.',
-      interfaceClarity: 'The interface is clearer and easier to read, with unavailable actions explaining why and more solid toasts.',
-      releaseNotesMenu: 'New Updates menu in the Full App to keep track of extension changes.'
-    }
+    settingsLabel: 'Update notes'
   },
   importTemplate: {
     templates: 'Templates',
@@ -427,6 +414,7 @@ const en = {
       'Allowed match.matchType values: {matchTypes}.',
       'Allowed match.method values: {methods}.',
       'Allowed match.resourceType values: {resourceTypes}.',
+      'Prefer resourceType "ANY". "Fetch" and "XHR" only match that exact CDP resource type, and app requests from libraries like ofetch or axios are often reported as "XHR", so "Fetch" can silently miss them.',
       'Allowed action.type values: "mockResponse", "failRequest", "delayOnly", "passThrough".',
       '',
       'Use mockResponse to simulate any HTTP response status code from 100 to 599, including redirects, client errors and server errors.',
