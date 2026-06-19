@@ -1,0 +1,184 @@
+import { AI_BRIDGE_STATUS, DEFAULT_AI_BRIDGE_PORT } from '../shared/ai-bridge-state.js'
+import {
+  getActiveCollection,
+  listCapturedRequests,
+  listCollections,
+  listRules
+} from './ai-bridge-commands.js'
+
+const BRIDGE_SOURCE = 'interceptpilot-extension'
+const BRIDGE_PROTOCOL_VERSION = 1
+const DEFAULT_RECONNECT_DELAY_MS = 1500
+
+const ALLOWED_COMMANDS = {
+  list_captured_requests: listCapturedRequests,
+  list_collections: listCollections,
+  list_rules: listRules,
+  get_active_collection: getActiveCollection
+}
+
+const COMMAND_NOT_ALLOWED_ERROR = {
+  code: 'UNKNOWN_COMMAND',
+  message: 'Command is not allowed.'
+}
+
+function isActiveSession(session = {}) {
+  return Boolean(
+    session.token
+      && session.status !== AI_BRIDGE_STATUS.disabled
+  )
+}
+
+function getSessionPort(session = {}) {
+  const port = Number(session.port || DEFAULT_AI_BRIDGE_PORT)
+  return Number.isFinite(port) && port > 0 ? port : DEFAULT_AI_BRIDGE_PORT
+}
+
+function parseMessage(raw) {
+  try {
+    return JSON.parse(String(raw ?? ''))
+  } catch {
+    return null
+  }
+}
+
+export function createAiBridgeConnection(options = {}) {
+  const {
+    WebSocketCtor = globalThis.WebSocket,
+    getSession,
+    markConnected,
+    markWaiting,
+    getCommandContext,
+    onSessionChange = () => {},
+    setTimeoutFn = setTimeout,
+    clearTimeoutFn = clearTimeout,
+    reconnectDelayMs = DEFAULT_RECONNECT_DELAY_MS
+  } = options
+
+  let socket = null
+  let reconnectTimer = null
+  let closingIntentionally = false
+  let handshakeAccepted = false
+
+  function clearReconnect() {
+    if (!reconnectTimer) return
+    clearTimeoutFn(reconnectTimer)
+    reconnectTimer = null
+  }
+
+  function send(message) {
+    if (!socket || typeof socket.send !== 'function') return
+    socket.send(JSON.stringify(message))
+  }
+
+  function sendCommandError(id, error = COMMAND_NOT_ALLOWED_ERROR) {
+    send({
+      id,
+      type: 'command:error',
+      ok: false,
+      error
+    })
+  }
+
+  function scheduleReconnect() {
+    if (reconnectTimer) return
+    reconnectTimer = setTimeoutFn(() => {
+      reconnectTimer = null
+      sync()
+    }, reconnectDelayMs)
+  }
+
+  async function handleCommand(message) {
+    const id = String(message?.id || '')
+    const command = String(message?.command || '')
+    if (!id || !ALLOWED_COMMANDS[command]) {
+      sendCommandError(id, COMMAND_NOT_ALLOWED_ERROR)
+      return
+    }
+
+    try {
+      const context = await getCommandContext()
+      send({
+        id,
+        type: 'command:result',
+        ok: true,
+        result: ALLOWED_COMMANDS[command](context)
+      })
+    } catch {
+      sendCommandError(id, {
+        code: 'COMMAND_FAILED',
+        message: 'Command failed.'
+      })
+    }
+  }
+
+  function handleMessage(event) {
+    const message = parseMessage(event?.data)
+    if (!message) return
+
+    if (message.type === 'hello:ack' && message.ok === true && Number(message.version) === BRIDGE_PROTOCOL_VERSION) {
+      handshakeAccepted = true
+      onSessionChange(markConnected())
+      return
+    }
+
+    if (message.type === 'command') {
+      if (!handshakeAccepted) return
+      handleCommand(message)
+    }
+  }
+
+  function connect(session) {
+    if (!WebSocketCtor || socket) return
+
+    const url = `ws://127.0.0.1:${getSessionPort(session)}`
+    closingIntentionally = false
+    handshakeAccepted = false
+    socket = new WebSocketCtor(url)
+
+    socket.onopen = () => {
+      send({
+        type: 'hello',
+        source: BRIDGE_SOURCE,
+        token: session.token,
+        version: BRIDGE_PROTOCOL_VERSION
+      })
+    }
+    socket.onmessage = handleMessage
+    socket.onerror = () => {
+      if (socket && typeof socket.close === 'function') socket.close()
+    }
+    socket.onclose = () => {
+      socket = null
+      handshakeAccepted = false
+      if (closingIntentionally) return
+      if (!isActiveSession(getSession())) return
+      onSessionChange(markWaiting())
+      scheduleReconnect()
+    }
+  }
+
+  function sync() {
+    clearReconnect()
+    const session = getSession()
+    if (!isActiveSession(session)) {
+      disconnect()
+      return
+    }
+    connect(session)
+  }
+
+  function disconnect() {
+    clearReconnect()
+    closingIntentionally = true
+    handshakeAccepted = false
+    const current = socket
+    socket = null
+    if (current && typeof current.close === 'function') current.close()
+  }
+
+  return {
+    sync,
+    disconnect
+  }
+}

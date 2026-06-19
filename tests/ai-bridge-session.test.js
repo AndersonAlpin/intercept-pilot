@@ -45,6 +45,35 @@ test('AI Bridge session controller revokes token and returns to disabled', () =>
   assert.equal(controller.getSession().status, AI_BRIDGE_STATUS.disabled)
 })
 
+test('AI Bridge session controller marks an active session connected without changing token', () => {
+  const controller = createAiBridgeSessionController({
+    tokenGenerator: () => 'token-a',
+    now: () => '2026-06-19T12:00:00.000Z'
+  })
+
+  controller.startSession()
+  const connected = controller.markConnected()
+
+  assert.equal(connected.status, AI_BRIDGE_STATUS.connected)
+  assert.equal(connected.token, 'token-a')
+  assert.equal(connected.connectedAt, '2026-06-19T12:00:00.000Z')
+})
+
+test('AI Bridge session controller marks an active session waiting after disconnect', () => {
+  const controller = createAiBridgeSessionController({
+    tokenGenerator: () => 'token-a',
+    now: () => '2026-06-19T12:00:00.000Z'
+  })
+
+  controller.startSession()
+  controller.markConnected()
+  const waiting = controller.markWaiting()
+
+  assert.equal(waiting.status, AI_BRIDGE_STATUS.waiting)
+  assert.equal(waiting.token, 'token-a')
+  assert.equal(waiting.connectedAt, null)
+})
+
 test('AI Bridge session controller never writes token to chrome.storage.local', () => {
   const writes = []
   globalThis.chrome = {

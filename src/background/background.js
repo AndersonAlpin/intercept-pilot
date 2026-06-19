@@ -9,10 +9,21 @@ import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule, getExecutableRules } from './rule-engine.js'
 import { resolveNetworkEntryResponseBody } from './network-entry-body.js'
 import { normalizePerformanceEntries } from './performance-entries.js'
-import { getAiBridgeSession, revokeAiBridgeSession, startAiBridgeSession } from './ai-bridge-session.js'
+import {
+  getAiBridgeSession,
+  markAiBridgeConnected,
+  markAiBridgeWaiting,
+  revokeAiBridgeSession,
+  startAiBridgeSession
+} from './ai-bridge-session.js'
+import { createAiBridgeConnection } from './ai-bridge-connection.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
+}
+
+function broadcastAiBridgeSession(aiBridgeSession = getAiBridgeSession()) {
+  broadcast({ type: 'state:aiBridge', aiBridgeSession })
 }
 
 async function notifyCompatModeChanged(captureMode) {
@@ -576,6 +587,28 @@ async function getFullState() {
     compatActiveTabId
   }
 }
+
+async function getAiBridgeCommandContext() {
+  const state = await getState()
+  const effectiveCandidate = getEffectiveCandidateTab()
+  return {
+    state: {
+      ...state,
+      attachedTabId: runtimeState.attachedTabId,
+      compatActiveTabId: getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null),
+      networkMeta: getNetworkCycleMeta()
+    },
+    networkEntries: runtimeState.networkEntries
+  }
+}
+
+const aiBridgeConnection = createAiBridgeConnection({
+  getSession: getAiBridgeSession,
+  markConnected: markAiBridgeConnected,
+  markWaiting: markAiBridgeWaiting,
+  getCommandContext: getAiBridgeCommandContext,
+  onSessionChange: broadcastAiBridgeSession
+})
 
 async function reloadTabWithReadyDebugger(tabId) {
   if (!tabId) throw new Error('reloadNoTab')
@@ -1497,12 +1530,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'aiBridge:getSession':
         sendResponse({ aiBridgeSession: getAiBridgeSession() })
         return
-      case 'aiBridge:startSession':
-        sendResponse({ aiBridgeSession: startAiBridgeSession() })
+      case 'aiBridge:startSession': {
+        const aiBridgeSession = startAiBridgeSession()
+        aiBridgeConnection.sync()
+        sendResponse({ aiBridgeSession })
         return
-      case 'aiBridge:revokeSession':
+      }
+      case 'aiBridge:revokeSession': {
+        aiBridgeConnection.disconnect()
         sendResponse({ aiBridgeSession: revokeAiBridgeSession() })
         return
+      }
       case 'debugger:attachActiveTab': {
         const targetTab = await resolveAttachTargetTab(message, sender)
         const tabId = targetTab?.id

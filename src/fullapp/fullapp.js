@@ -2130,6 +2130,10 @@ chrome.runtime.onMessage.addListener(message => {
       render()
     }
   }
+  if (message?.type === 'state:aiBridge') {
+    state.aiBridgeSession = message.aiBridgeSession || createAiBridgeSessionState()
+    if (state.page === 'settings') render()
+  }
   if (message?.type === 'state:attached') {
     queueConnectionPatch({ attachedTabId: message.attachedTabId ?? null })
   }

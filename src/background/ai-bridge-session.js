@@ -39,6 +39,24 @@ export function createAiBridgeSessionController(options = {}) {
       })
       return this.getSession()
     },
+    markConnected() {
+      if (!currentSession.token) return this.getSession()
+      currentSession = normalizeAiBridgeSessionState({
+        ...currentSession,
+        status: AI_BRIDGE_STATUS.connected,
+        connectedAt: now()
+      })
+      return this.getSession()
+    },
+    markWaiting() {
+      if (!currentSession.token) return this.getSession()
+      currentSession = normalizeAiBridgeSessionState({
+        ...currentSession,
+        status: AI_BRIDGE_STATUS.waiting,
+        connectedAt: null
+      })
+      return this.getSession()
+    },
     revokeSession() {
       currentSession = createAiBridgeSessionState({ port })
       return this.getSession()
@@ -54,6 +72,14 @@ export function getAiBridgeSession() {
 
 export function startAiBridgeSession() {
   return aiBridgeSessionController.startSession()
+}
+
+export function markAiBridgeConnected() {
+  return aiBridgeSessionController.markConnected()
+}
+
+export function markAiBridgeWaiting() {
+  return aiBridgeSessionController.markWaiting()
 }
 
 export function revokeAiBridgeSession() {
