@@ -22,3 +22,11 @@ test('sidepanel rules panel lets header dropdowns escape without reopening full-
   assert.match(css, /\.card\.sticky-filters\.rules-panel\s*\{[^}]*overflow:\s*visible;/s)
   assert.match(css, /\.rules-panel > \.list\s*\{[^}]*overflow:\s*auto;/s)
 })
+
+test('sidepanel select menus leave space between hover targets', () => {
+  assert.match(css, /\.select-menu__list\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*gap:\s*4px;/s)
+})
+
+test('sidepanel rules footer preserves the visible lower card border', () => {
+  assert.match(css, /\.rules-panel > \.sidepanel-list-footer\s*\{[^}]*border-radius:\s*0 0 11px 11px;[^}]*box-shadow:\s*inset 0 -1px 0 var\(--border\);/s)
+})

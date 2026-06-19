@@ -52,7 +52,7 @@ const es = {
     deleteSelectedConfirmMany: 'Las {count} colecciones seleccionadas y todas las reglas dentro de ellas se eliminarán.\nEsta acción no se puede deshacer.',
     deleteSelectedSuccessOne: 'Colección seleccionada eliminada.',
     deleteSelectedSuccessMany: '{count} colecciones seleccionadas eliminadas.',
-    selectCollection: 'Seleccionar colección', defaultCannotDelete: 'La colección predeterminada no se puede eliminar.', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
+    selectCollection: 'Seleccionar colección', defaultCannotDelete: 'La colección predeterminada no se puede seleccionar para acciones en lote.', rulesCount: 'regla(s)', enabledRules: 'Activas', entityOne: 'colección', entityMany: 'colecciones'
   },
   rules: {
     title: 'Reglas', entityOne: 'regla', entityMany: 'reglas', newRule: '+ Regla', searchPlaceholder: 'Buscar reglas', noRules: 'No hay reglas en esta colección.',
@@ -232,22 +232,7 @@ const es = {
     version: 'Versión {version}',
     markSeen: 'Entendido',
     reopen: 'Ver notas de actualización',
-    settingsLabel: 'Notas de actualización',
-    items: {
-      aiTemplateResourceType: 'El prompt de generación de reglas por IA ahora usa ANY como tipo de recurso por defecto. Esto evita que las reglas generadas como Fetch dejen de interceptar solicitudes que el navegador identifica como XHR, algo común en apps con ofetch/axios.',
-      sidepanelRulesScroll: 'Corregido en el Sidepanel: la lista de reglas ahora conserva la posición y los menús del encabezado se abren fuera de la tarjeta.',
-      captureStatus: 'El estado de captura es más consistente entre Full App y Sidepanel.',
-      disabledActions: 'Las acciones no disponibles ahora quedan desactivadas y explican el motivo.',
-      rulesLayout: 'Reglas ahora tiene más espacio para nombres y URLs.',
-      moveRules: 'Ahora es posible mover reglas seleccionadas a otra colección.',
-      rulesOrganization: 'Las reglas son más fáciles de organizar, con más espacio para nombres/URLs y la opción de mover reglas seleccionadas a otra colección.',
-      stableLists: 'Las listas de Full App y Sidepanel son más estables, manteniendo encabezados, filtros y pies fijos mientras el contenido se desplaza.',
-      clickStability: 'Red y Logs son más estables durante actualizaciones en tiempo real.',
-      importDrop: 'Importar ahora permite soltar archivos JSON en el editor, manteniendo el pegado manual y la selección por archivo.',
-      solidToasts: 'Los toasts ahora son más sólidos y fáciles de leer.',
-      interfaceClarity: 'La interfaz es más clara y fácil de leer, con acciones no disponibles que explican el motivo y toasts más sólidos.',
-      releaseNotesMenu: 'Nuevo menú Actualizaciones en Full App para seguir las novedades de la extensión.'
-    }
+    settingsLabel: 'Notas de actualización'
   },
   importTemplate: {
     templates: 'Templates',

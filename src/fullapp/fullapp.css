@@ -391,6 +391,9 @@ button,input,select,textarea { font: inherit; color: inherit; }
 }
 .select-menu[data-open="true"] .select-menu__icon { transform: rotate(180deg); }
 .select-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
