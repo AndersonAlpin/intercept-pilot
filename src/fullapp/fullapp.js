@@ -53,7 +53,14 @@ import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
 import { getBulkDeleteDialogCopy, getBulkDeleteSuccessMessage } from '../shared/bulk-delete-dialog.js'
 import { buildAiBridgeMcpConfigText, createAiBridgeSessionState } from '../shared/ai-bridge-state.js'
-import { createSessionAiBridgePermissions, normalizeAiBridgeDefaultPermissions, normalizeAiBridgePermissionsPatch } from '../shared/ai-bridge-permissions.js'
+import {
+  AI_BRIDGE_PERMISSION_MODES,
+  createAiBridgeDefaultPermissionsForMode,
+  createAiBridgeSessionPermissionsForMode,
+  createSessionAiBridgePermissions,
+  normalizeAiBridgeDefaultPermissions,
+  normalizeAiBridgePermissionsPatch
+} from '../shared/ai-bridge-permissions.js'
 
 const PAGE_IDS = ['dashboard', 'rules', 'collections', 'network', 'logs', 'import-export', 'diagnostics', 'ai-bridge', 'settings']
 const PAGE_URL_ALIASES = {
@@ -133,6 +140,7 @@ const state = {
   releaseNotesModal: null,
   ruleMoveModal: null,
   aiBridgeAdvancedOpen: false,
+  aiBridgeDefaultPermissionsOpen: false,
   aiBridgeSessionPermissionsOpen: false,
   networkFilterHydrated: false
 }
@@ -609,6 +617,7 @@ function renderPage() {
   if (state.page === 'ai-bridge') {
     return renderAiBridgePage(state, {
       advancedOpen: state.aiBridgeAdvancedOpen,
+      defaultPermissionsOpen: state.aiBridgeDefaultPermissionsOpen,
       sessionPermissionsOpen: state.aiBridgeSessionPermissionsOpen
     })
   }
@@ -2149,6 +2158,58 @@ function bindEvents() {
     state.aiBridgeAdvancedOpen = Boolean(event.currentTarget.open)
   })
 
+  async function applyAiBridgeDefaultPermissionMode(mode) {
+    const permissions = createAiBridgeDefaultPermissionsForMode(mode)
+    const result = await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { aiBridgePermissions: permissions } })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      render()
+      return
+    }
+    state.settings = {
+      ...(state.settings || {}),
+      ...(result || {}),
+      aiBridgePermissions: normalizeAiBridgeDefaultPermissions(result.aiBridgePermissions || permissions)
+    }
+    state.aiBridgeDefaultPermissionsOpen = false
+    toastSuccess(t('fullapp.aiBridgeDefaultPermissionsSaved'))
+    render()
+  }
+
+  async function applyAiBridgeSessionPermissionMode(mode) {
+    const payload = createAiBridgeSessionPermissionsForMode(mode)
+    const result = await sendMessage({ type: MSG.AI_BRIDGE_UPDATE_SESSION_PERMISSIONS, payload })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      render()
+      return
+    }
+    state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
+    state.aiBridgeSessionPermissionsOpen = false
+    render()
+  }
+
+  function openAiBridgeCustomPermissions() {
+    state.aiBridgeAdvancedOpen = true
+    if (state.aiBridgeSession?.token) state.aiBridgeSessionPermissionsOpen = true
+    else state.aiBridgeDefaultPermissionsOpen = true
+    render()
+  }
+
+  document.querySelectorAll('[data-ai-bridge-mode]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const mode = button.dataset.aiBridgeMode
+      if (mode === AI_BRIDGE_PERMISSION_MODES.custom) {
+        openAiBridgeCustomPermissions()
+        return
+      }
+      if (state.aiBridgeSession?.token) await applyAiBridgeSessionPermissionMode(mode)
+      else await applyAiBridgeDefaultPermissionMode(mode)
+    })
+  })
+
+  $('#ai-bridge-edit-custom-permissions-btn')?.addEventListener('click', openAiBridgeCustomPermissions)
+
   document.querySelectorAll('[data-ai-bridge-default-permission]').forEach(input => {
     input.addEventListener('change', async () => {
       const permissions = normalizeAiBridgeDefaultPermissions({
@@ -2166,6 +2227,7 @@ function bindEvents() {
         ...(result || {}),
         aiBridgePermissions: normalizeAiBridgeDefaultPermissions(result.aiBridgePermissions || permissions)
       }
+      state.aiBridgeDefaultPermissionsOpen = true
       toastSuccess(t('fullapp.aiBridgeDefaultPermissionsSaved'))
       render()
     })
@@ -2183,15 +2245,12 @@ function bindEvents() {
         return
       }
       state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
+      state.aiBridgeSessionPermissionsOpen = true
       render()
     })
   })
 
-  $('#ai-bridge-session-customize-btn')?.addEventListener('click', () => {
-    state.aiBridgeAdvancedOpen = true
-    state.aiBridgeSessionPermissionsOpen = true
-    render()
-  })
+  $('#ai-bridge-session-customize-btn')?.addEventListener('click', openAiBridgeCustomPermissions)
 
   $('#ai-bridge-session-reset-btn')?.addEventListener('click', async () => {
     const payload = createSessionAiBridgePermissions(state.settings?.aiBridgePermissions)
