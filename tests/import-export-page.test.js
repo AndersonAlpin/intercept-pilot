@@ -44,3 +44,29 @@ test('import page exposes a localized JSON dropzone without replacing manual pas
   assert.match(html, /id="full-import-json"/)
   assert.match(html, /id="full-import-pick-file-btn"/)
 })
+
+test('import page renders a pending AI import proposal summary', () => {
+  setLocale('pt-BR')
+  const html = renderImportExportPage({
+    lastImportExportMessage: '',
+    aiBridgePendingImport: {
+      id: 'ai-import-1',
+      source: 'AI Bridge',
+      summary: {
+        type: 'interceptpilot.collection',
+        collectionName: 'Checkout',
+        ruleCount: 2,
+        conflict: { id: 'collection-1', name: 'Checkout antigo' }
+      }
+    }
+  })
+
+  assert.match(html, /Importação proposta pela IA/)
+  assert.match(html, /AI Bridge/)
+  assert.match(html, /Coleção/)
+  assert.match(html, /Checkout/)
+  assert.match(html, /2/)
+  assert.match(html, /Checkout antigo/)
+  assert.match(html, /id="full-ai-import-confirm-btn"/)
+  assert.match(html, /id="full-ai-import-cancel-btn"/)
+})

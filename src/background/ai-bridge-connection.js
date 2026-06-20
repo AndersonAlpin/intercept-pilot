@@ -17,6 +17,8 @@ const ALLOWED_COMMANDS = {
   get_active_collection: getActiveCollection
 }
 
+const WRITE_PROPOSAL_COMMANDS = new Set(['import_bundle'])
+
 const COMMAND_NOT_ALLOWED_ERROR = {
   code: 'UNKNOWN_COMMAND',
   message: 'Command is not allowed.'
@@ -49,6 +51,7 @@ export function createAiBridgeConnection(options = {}) {
     markConnected,
     markWaiting,
     getCommandContext,
+    importBundle,
     onSessionChange = () => {},
     setTimeoutFn = setTimeout,
     clearTimeoutFn = clearTimeout,
@@ -91,12 +94,27 @@ export function createAiBridgeConnection(options = {}) {
   async function handleCommand(message) {
     const id = String(message?.id || '')
     const command = String(message?.command || '')
-    if (!id || !ALLOWED_COMMANDS[command]) {
+    if (!id || (!ALLOWED_COMMANDS[command] && !WRITE_PROPOSAL_COMMANDS.has(command))) {
       sendCommandError(id, COMMAND_NOT_ALLOWED_ERROR)
       return
     }
 
     try {
+      if (command === 'import_bundle') {
+        const result = await importBundle(message.payload || {})
+        if (result?.error) {
+          sendCommandError(id, result.error)
+          return
+        }
+        send({
+          id,
+          type: 'command:result',
+          ok: true,
+          result
+        })
+        return
+      }
+
       const context = await getCommandContext()
       send({
         id,

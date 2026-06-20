@@ -17,6 +17,7 @@ import {
   startAiBridgeSession
 } from './ai-bridge-session.js'
 import { createAiBridgeConnection } from './ai-bridge-connection.js'
+import { cancelPendingAiImport, confirmPendingAiImport, createPendingAiImport, getPendingAiImport } from './ai-bridge-imports.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
@@ -24,6 +25,25 @@ function broadcast(message) {
 
 function broadcastAiBridgeSession(aiBridgeSession = getAiBridgeSession()) {
   broadcast({ type: 'state:aiBridge', aiBridgeSession })
+}
+
+function broadcastAiBridgeImport(pendingImport = getPendingAiImport()) {
+  broadcast({ type: 'state:aiBridgeImport', pendingImport })
+}
+
+async function openFullAppPage(page = '') {
+  const base = chrome.runtime.getURL('src/fullapp/fullapp.html')
+  const url = page ? `${base}?page=${encodeURIComponent(page)}` : base
+  const tabs = await chrome.tabs.query({})
+  const existing = tabs.find(tab => tab.url?.startsWith(base))
+  if (existing?.id) {
+    await chrome.tabs.update(existing.id, { active: true, url })
+    if (existing.windowId != null) {
+      await chrome.windows.update(existing.windowId, { focused: true }).catch(() => {})
+    }
+  } else {
+    await chrome.tabs.create({ url })
+  }
 }
 
 async function notifyCompatModeChanged(captureMode) {
@@ -576,6 +596,7 @@ async function getFullState() {
     settings: state.settings || DEFAULT_SETTINGS,
     releaseNotes,
     aiBridgeSession: getAiBridgeSession(),
+    aiBridgePendingImport: getPendingAiImport(),
     networkEntries: runtimeState.networkEntries,
     networkMeta: getNetworkCycleMeta(),
     attachedTabId: runtimeState.attachedTabId,
@@ -602,11 +623,22 @@ async function getAiBridgeCommandContext() {
   }
 }
 
+async function proposeAiBridgeImport(payload) {
+  const state = await getState()
+  const result = createPendingAiImport(payload, { collections: state.collections })
+  if (!result.error) {
+    broadcastAiBridgeImport()
+    await openFullAppPage('import-export').catch(() => {})
+  }
+  return result
+}
+
 const aiBridgeConnection = createAiBridgeConnection({
   getSession: getAiBridgeSession,
   markConnected: markAiBridgeConnected,
   markWaiting: markAiBridgeWaiting,
   getCommandContext: getAiBridgeCommandContext,
+  importBundle: proposeAiBridgeImport,
   onSessionChange: broadcastAiBridgeSession
 })
 
@@ -1539,6 +1571,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'aiBridge:revokeSession': {
         aiBridgeConnection.disconnect()
         sendResponse({ aiBridgeSession: revokeAiBridgeSession() })
+        return
+      }
+      case 'aiBridge:getPendingImport':
+        sendResponse({ pendingImport: getPendingAiImport() })
+        return
+      case 'aiBridge:confirmPendingImport': {
+        const result = await confirmPendingAiImport(message.pendingImportId || '')
+        sendResponse({ ...result, pendingImport: getPendingAiImport() })
+        broadcastAiBridgeImport()
+        return
+      }
+      case 'aiBridge:cancelPendingImport': {
+        const result = cancelPendingAiImport(message.pendingImportId || '')
+        sendResponse({ ...result, pendingImport: getPendingAiImport() })
+        broadcastAiBridgeImport()
         return
       }
       case 'debugger:attachActiveTab': {

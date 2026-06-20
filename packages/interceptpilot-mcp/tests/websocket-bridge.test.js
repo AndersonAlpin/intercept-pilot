@@ -79,7 +79,7 @@ test('bridge reports a clear error when extension is not connected', async () =>
   )
 })
 
-test('bridge rejects commands outside the read-only allowlist', async () => {
+test('bridge rejects commands outside the local allowlist', async () => {
   const { bridge } = makeBridge()
   connectExtension(bridge)
 
@@ -87,6 +87,28 @@ test('bridge rejects commands outside the read-only allowlist', async () => {
     bridge.callCommand('enable_rule', {}),
     /Command is not allowed/
   )
+})
+
+test('bridge forwards import_bundle command with bundleJson payload', async () => {
+  const { bridge } = makeBridge({ idGenerator: () => 'req_import' })
+  const socket = connectExtension(bridge)
+
+  const pending = bridge.callCommand('import_bundle', { bundleJson: '{"schemaVersion":1}' })
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req_import',
+    type: 'command',
+    command: 'import_bundle',
+    payload: { bundleJson: '{"schemaVersion":1}' }
+  })
+
+  socket.receive(JSON.stringify({
+    id: 'req_import',
+    type: 'command:result',
+    ok: true,
+    result: { status: 'awaiting_human_confirmation', pendingImportId: 'ai-import-1' }
+  }))
+
+  assert.deepEqual(await pending, { status: 'awaiting_human_confirmation', pendingImportId: 'ai-import-1' })
 })
 
 test('bridge accepts extension hello and sends ack without logging token', () => {

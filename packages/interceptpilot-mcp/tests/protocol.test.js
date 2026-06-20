@@ -10,14 +10,16 @@ import {
   validateHelloMessage
 } from '../src/protocol.js'
 
-test('protocol exposes only read-only commands for the MVP', () => {
+test('protocol exposes only allowed MVP commands', () => {
   assert.deepEqual(ALLOWED_COMMANDS, [
     'list_captured_requests',
     'list_collections',
     'list_rules',
-    'get_active_collection'
+    'get_active_collection',
+    'import_bundle'
   ])
   assert.equal(isAllowedCommand('list_rules'), true)
+  assert.equal(isAllowedCommand('import_bundle'), true)
   assert.equal(isAllowedCommand('enable_rule'), false)
   assert.equal(isAllowedCommand('set_capture_mode'), false)
 })

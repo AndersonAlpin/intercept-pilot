@@ -182,6 +182,93 @@ test('AI Bridge connection rejects unknown commands with safe error', async () =
   })
 })
 
+test('AI Bridge connection routes import_bundle command through write proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedImports = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => harness.session,
+    markConnected: () => harness.session,
+    markWaiting: () => harness.session,
+    getCommandContext: async () => ({}),
+    importBundle: async payload => {
+      proposedImports.push(payload)
+      return { status: 'awaiting_human_confirmation', pendingImportId: 'ai-import-1' }
+    },
+    setTimeoutFn: fn => {
+      harness.timers.push(fn)
+      return harness.timers.length
+    },
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-import', type: 'command', command: 'import_bundle', payload: { bundleJson: '{"schemaVersion":1}' } }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedImports, [{ bundleJson: '{"schemaVersion":1}' }])
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-import',
+    type: 'command:result',
+    ok: true,
+    result: { status: 'awaiting_human_confirmation', pendingImportId: 'ai-import-1' }
+  })
+})
+
+test('AI Bridge connection returns safe error when import_bundle is rejected', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => harness.session,
+    markConnected: () => harness.session,
+    markWaiting: () => harness.session,
+    getCommandContext: async () => ({}),
+    importBundle: async () => ({
+      error: {
+        code: 'INVALID_JSON',
+        message: 'Import bundle JSON is invalid.'
+      }
+    }),
+    setTimeoutFn: fn => {
+      harness.timers.push(fn)
+      return harness.timers.length
+    },
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-import', type: 'command', command: 'import_bundle', payload: { bundleJson: '{bad json' } }))
+  await Promise.resolve()
+
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-import',
+    type: 'command:error',
+    ok: false,
+    error: {
+      code: 'INVALID_JSON',
+      message: 'Import bundle JSON is invalid.'
+    }
+  })
+})
+
 test('AI Bridge connection ignores commands before hello ack', async () => {
   FakeWebSocket.instances = []
   const harness = makeHarness({

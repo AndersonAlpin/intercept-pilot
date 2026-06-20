@@ -92,6 +92,7 @@ const state = {
     lastSeenAt: 0
   },
   aiBridgeSession: createAiBridgeSessionState(),
+  aiBridgePendingImport: null,
 
   editingRule: null,
   editorMode: 'create',
@@ -896,7 +897,7 @@ function parseCrossExtensionLabels(code) {
 async function importRuleBundle(bundle) {
   if (!bundle?.rule) {
     toastError(t('toasts.ruleImportError'))
-    return
+    return false
   }
   const activeCollectionId = activeEditableCollectionId()
   const existingNames = state.rules
@@ -917,10 +918,11 @@ async function importRuleBundle(bundle) {
   const result = await sendMessage({ type: MSG.RULES_CREATE, payload })
   if (result?.error) {
     toastError(t('toasts.ruleImportError'))
-    return
+    return false
   }
   toastSuccess(t('toasts.ruleImported'))
   await refreshState()
+  return true
 }
 
 function buildImportedRulePayload(rule, overrides = {}) {
@@ -1030,8 +1032,7 @@ async function importCollectionBundle(bundle) {
 
 async function importParsedBundle(bundle) {
   if (bundle.type === BUNDLE_TYPE_RULE) {
-    await importRuleBundle(bundle)
-    return true
+    return importRuleBundle(bundle)
   }
   if (bundle.type === BUNDLE_TYPE_COLLECTION) {
     return importCollectionBundle(bundle)
@@ -1055,6 +1056,48 @@ async function importBundleFromText(raw) {
     return false
   }
   return importParsedBundle(parsed.bundle)
+}
+
+async function cancelAiBridgePendingImport() {
+  const pendingImportId = state.aiBridgePendingImport?.id || ''
+  if (!pendingImportId) return
+
+  const result = await sendMessage({
+    type: MSG.AI_BRIDGE_CANCEL_PENDING_IMPORT,
+    pendingImportId
+  })
+  if (result?.error) {
+    toastError(translateBackendError(result.error.code || result.error.message || result.error))
+    return
+  }
+
+  state.aiBridgePendingImport = result.pendingImport || null
+  toastSuccess(t('toasts.aiImportCanceled'))
+  render()
+}
+
+async function confirmAiBridgePendingImport() {
+  const pendingImport = state.aiBridgePendingImport
+  if (!pendingImport?.id || !pendingImport.bundle) {
+    toastError(t('toasts.aiImportMissing'))
+    return
+  }
+
+  const ok = await importParsedBundle(pendingImport.bundle)
+  if (!ok) return
+
+  const result = await sendMessage({
+    type: MSG.AI_BRIDGE_CONFIRM_PENDING_IMPORT,
+    pendingImportId: pendingImport.id
+  })
+  if (result?.error) {
+    toastError(translateBackendError(result.error.code || result.error.message || result.error))
+    return
+  }
+
+  state.aiBridgePendingImport = result.pendingImport || null
+  toastSuccess(t('toasts.aiImportConfirmed'))
+  render()
 }
 
 async function handleImportTemplateAction(action) {
@@ -1943,6 +1986,9 @@ function bindEvents() {
     }
   })
 
+  $('#full-ai-import-cancel-btn')?.addEventListener('click', cancelAiBridgePendingImport)
+  $('#full-ai-import-confirm-btn')?.addEventListener('click', confirmAiBridgePendingImport)
+
   bindImportTemplateMenuEvents()
 
   // Network Inspector modal binds
@@ -2133,6 +2179,10 @@ chrome.runtime.onMessage.addListener(message => {
   if (message?.type === 'state:aiBridge') {
     state.aiBridgeSession = message.aiBridgeSession || createAiBridgeSessionState()
     if (state.page === 'settings') render()
+  }
+  if (message?.type === 'state:aiBridgeImport') {
+    state.aiBridgePendingImport = message.pendingImport || null
+    if (state.page === 'import-export') render()
   }
   if (message?.type === 'state:attached') {
     queueConnectionPatch({ attachedTabId: message.attachedTabId ?? null })

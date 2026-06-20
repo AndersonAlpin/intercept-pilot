@@ -15,7 +15,8 @@ export const ALLOWED_COMMANDS = Object.freeze([
   'list_captured_requests',
   'list_collections',
   'list_rules',
-  'get_active_collection'
+  'get_active_collection',
+  'import_bundle'
 ])
 
 const ALLOWED_COMMAND_SET = new Set(ALLOWED_COMMANDS)

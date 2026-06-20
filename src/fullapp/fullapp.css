@@ -285,6 +285,60 @@ button,input,select,textarea { font: inherit; color: inherit; }
   flex-direction: column;
   gap: 12px;
 }
+.ai-import-proposal {
+  border: 1px solid rgba(91, 130, 255, .38);
+  border-radius: 10px;
+  background: rgba(91, 130, 255, .08);
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+.ai-import-proposal__header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.ai-import-proposal__header h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.ai-import-proposal__header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.ai-import-proposal__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.ai-import-proposal__row {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  background: rgba(11, 15, 23, .28);
+}
+.ai-import-proposal__row span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.ai-import-proposal__row strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.ai-import-proposal__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
 .import-dropzone {
   flex: 1;
   min-height: 280px;
