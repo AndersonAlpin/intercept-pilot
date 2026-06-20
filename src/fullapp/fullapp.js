@@ -46,6 +46,7 @@ import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { renderReleaseNotesModal } from './components/release-notes-modal.js'
 import { renderRuleMoveModal } from './components/rule-move-modal.js'
 import { renderAiBridgeSettingsSection } from './components/ai-bridge-settings-section.js'
+import { renderAiBridgeProposalModal } from './components/ai-bridge-proposal-modal.js'
 import { getReleaseNotesMenuState, hasReleaseNotesForVersion } from '../shared/release-notes.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
@@ -611,6 +612,7 @@ function render() {
       selectedCount: state.ruleMoveModal?.ruleIds?.length || 0
     })
     + renderReleaseNotesModal(state.releaseNotesModal || {})
+    + renderAiBridgeProposalModal(state.aiBridgePendingImport)
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindSelectMenus()
   bindEvents()
@@ -1991,6 +1993,12 @@ function bindEvents() {
 
   $('#full-ai-import-cancel-btn')?.addEventListener('click', cancelAiBridgePendingImport)
   $('#full-ai-import-confirm-btn')?.addEventListener('click', confirmAiBridgePendingImport)
+  $('#full-ai-proposal-cancel-btn')?.addEventListener('click', cancelAiBridgePendingImport)
+  $('#full-ai-proposal-confirm-btn')?.addEventListener('click', confirmAiBridgePendingImport)
+  $('#full-ai-proposal-close')?.addEventListener('click', cancelAiBridgePendingImport)
+  document.querySelector('[data-ai-proposal-backdrop="true"]')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) cancelAiBridgePendingImport()
+  })
 
   bindImportTemplateMenuEvents()
 
@@ -2185,7 +2193,7 @@ chrome.runtime.onMessage.addListener(message => {
   }
   if (message?.type === 'state:aiBridgeImport') {
     state.aiBridgePendingImport = message.pendingImport || null
-    if (state.page === 'import-export') render()
+    render()
   }
   if (message?.type === 'state:attached') {
     queueConnectionPatch({ attachedTabId: message.attachedTabId ?? null })

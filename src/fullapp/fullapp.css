@@ -339,6 +339,55 @@ button,input,select,textarea { font: inherit; color: inherit; }
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+.ai-bridge-proposal-modal {
+  max-width: 640px;
+}
+.ai-bridge-proposal-modal__body {
+  display: grid;
+  gap: 14px;
+}
+.ai-bridge-proposal-modal__notice {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ai-bridge-proposal-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.ai-bridge-proposal-modal__row {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  background: rgba(11, 15, 23, .32);
+}
+.ai-bridge-proposal-modal__row span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.ai-bridge-proposal-modal__row strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.ai-bridge-proposal-modal__details {
+  justify-self: flex-start;
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: none;
+}
+.ai-bridge-proposal-modal__details:hover {
+  text-decoration: underline;
+}
+.ai-bridge-proposal-modal__footer {
+  justify-content: flex-end;
+}
 .import-dropzone {
   flex: 1;
   min-height: 280px;

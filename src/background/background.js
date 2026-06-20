@@ -31,21 +31,6 @@ function broadcastAiBridgeImport(pendingImport = getPendingAiImport()) {
   broadcast({ type: 'state:aiBridgeImport', pendingImport })
 }
 
-async function openFullAppPage(page = '') {
-  const base = chrome.runtime.getURL('src/fullapp/fullapp.html')
-  const url = page ? `${base}?page=${encodeURIComponent(page)}` : base
-  const tabs = await chrome.tabs.query({})
-  const existing = tabs.find(tab => tab.url?.startsWith(base))
-  if (existing?.id) {
-    await chrome.tabs.update(existing.id, { active: true, url })
-    if (existing.windowId != null) {
-      await chrome.windows.update(existing.windowId, { focused: true }).catch(() => {})
-    }
-  } else {
-    await chrome.tabs.create({ url })
-  }
-}
-
 async function notifyCompatModeChanged(captureMode) {
   const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] }).catch(() => [])
   await Promise.all(tabs.map(tab => (
@@ -635,7 +620,6 @@ async function proposeAiBridgeImport(payload) {
   const result = createPendingAiImport(payload, { collections: state.collections })
   if (!result.error) {
     broadcastAiBridgeImport()
-    await openFullAppPage('import-export').catch(() => {})
   }
   return result
 }
