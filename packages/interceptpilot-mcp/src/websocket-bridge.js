@@ -3,8 +3,10 @@ import { WebSocketServer } from 'ws'
 import {
   BRIDGE_HOST,
   BRIDGE_PORT,
+  MESSAGE_TYPES,
   createCommandMessage,
   createHelloAckMessage,
+  createPingMessage,
   isAllowedCommand,
   isCommandResponse,
   parseBridgeMessage,
@@ -12,6 +14,7 @@ import {
 } from './protocol.js'
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 20000
 const DEFAULT_MAX_PENDING_REQUESTS = 25
 const NOT_CONNECTED_MESSAGE = 'InterceptPilot extension is not connected. Open InterceptPilot settings and start an AI Bridge session.'
 const TIMEOUT_MESSAGE = 'InterceptPilot did not respond in time.'
@@ -47,19 +50,27 @@ export function createExtensionBridge(options = {}) {
   const {
     WebSocketServerCtor = WebSocketServer,
     port = BRIDGE_PORT,
+    expectedKey = '',
     expectedToken = '',
     requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
     maxPendingRequests = DEFAULT_MAX_PENDING_REQUESTS,
+    heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS,
     idGenerator,
     logger = createDefaultLogger(),
     setTimeoutFn = setTimeout,
-    clearTimeoutFn = clearTimeout
+    clearTimeoutFn = clearTimeout,
+    setIntervalFn = setInterval,
+    clearIntervalFn = clearInterval
   } = options
+
+  // `expectedKey` is preferred; `expectedToken` stays as a temporary alias.
+  const expectedConnectionKey = String(expectedKey || expectedToken || '')
 
   let server = null
   let activeSocket = null
   let connected = false
   let requestSeq = 0
+  let heartbeatTimer = null
   const pending = new Map()
   const host = BRIDGE_HOST
 
@@ -81,10 +92,25 @@ export function createExtensionBridge(options = {}) {
     pending.clear()
   }
 
+  function startHeartbeat() {
+    if (heartbeatTimer) return
+    heartbeatTimer = setIntervalFn(() => {
+      if (activeSocket && connected) sendJson(activeSocket, createPingMessage())
+    }, heartbeatIntervalMs)
+    heartbeatTimer?.unref?.()
+  }
+
+  function stopHeartbeat() {
+    if (!heartbeatTimer) return
+    clearIntervalFn(heartbeatTimer)
+    heartbeatTimer = null
+  }
+
   function detachSocket(socket) {
     if (socket !== activeSocket) return
     activeSocket = null
     connected = false
+    stopHeartbeat()
     rejectPending(DISCONNECTED_MESSAGE)
     logger.info('Extension disconnected.')
   }
@@ -105,7 +131,7 @@ export function createExtensionBridge(options = {}) {
   }
 
   function acceptHello(socket, message) {
-    const validation = validateHelloMessage(message, { expectedToken })
+    const validation = validateHelloMessage(message, { expectedKey: expectedConnectionKey })
     if (!validation.ok) {
       logger.warn(validation.error)
       socket.close()
@@ -121,6 +147,7 @@ export function createExtensionBridge(options = {}) {
     activeSocket = socket
     connected = true
     sendJson(socket, createHelloAckMessage())
+    startHeartbeat()
     logger.info('Extension connected.')
   }
 
@@ -135,6 +162,8 @@ export function createExtensionBridge(options = {}) {
       if (message.type === 'hello') acceptHello(socket, message)
       return
     }
+
+    if (message.type === MESSAGE_TYPES.pong) return
 
     handleResponse(message)
   }
@@ -155,6 +184,7 @@ export function createExtensionBridge(options = {}) {
   }
 
   async function close() {
+    stopHeartbeat()
     rejectPending(DISCONNECTED_MESSAGE)
     if (activeSocket) activeSocket.close()
     activeSocket = null

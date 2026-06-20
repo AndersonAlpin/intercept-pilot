@@ -87,6 +87,41 @@ test('protocol rejects hello when expected token does not match', () => {
   assert.doesNotMatch(JSON.stringify(result), /pairing-token-123|different-token/)
 })
 
+test('protocol validates hello using the preferred key field', () => {
+  const result = validateHelloMessage({
+    type: 'hello',
+    source: 'interceptpilot-extension',
+    key: 'stable-key-123',
+    version: BRIDGE_PROTOCOL_VERSION
+  }, { expectedKey: 'stable-key-123' })
+
+  assert.equal(result.ok, true)
+  assert.doesNotMatch(JSON.stringify(result), /stable-key-123/)
+})
+
+test('protocol still accepts the legacy token alias against expectedKey', () => {
+  const result = validateHelloMessage({
+    type: 'hello',
+    source: 'interceptpilot-extension',
+    token: 'stable-key-123',
+    version: BRIDGE_PROTOCOL_VERSION
+  }, { expectedKey: 'stable-key-123' })
+
+  assert.equal(result.ok, true)
+})
+
+test('protocol rejects hello when the key does not match the expected key', () => {
+  const result = validateHelloMessage({
+    type: 'hello',
+    source: 'interceptpilot-extension',
+    key: 'wrong-key',
+    version: BRIDGE_PROTOCOL_VERSION
+  }, { expectedKey: 'right-key' })
+
+  assert.deepEqual(result, { ok: false, error: 'Invalid InterceptPilot hello message.' })
+  assert.doesNotMatch(JSON.stringify(result), /wrong-key|right-key/)
+})
+
 test('protocol parses valid JSON messages and ignores invalid JSON', () => {
   assert.deepEqual(parseBridgeMessage('{"type":"hello"}'), { type: 'hello' })
   assert.equal(parseBridgeMessage('{bad json'), null)

@@ -2,9 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-const backgroundSource = readFileSync(new URL('../src/background/background.js', import.meta.url), 'utf8')
-const fullAppSource = readFileSync(new URL('../src/fullapp/fullapp.js', import.meta.url), 'utf8')
-const fullAppCss = readFileSync(new URL('../src/fullapp/fullapp.css', import.meta.url), 'utf8')
+const backgroundSource = readFileSync(new URL('../src/background/background.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+const fullAppSource = readFileSync(new URL('../src/fullapp/fullapp.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+const fullAppCss = readFileSync(new URL('../src/fullapp/fullapp.css', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 
 test('AI Bridge start session copies saved default permissions into the session', () => {
   const startBlock = backgroundSource.match(/case 'aiBridge:startSession': \{[\s\S]*?return\n\s+\}/)?.[0] || ''
@@ -46,12 +46,14 @@ test('Full App toggles MCP configuration visibility without changing the copied 
   assert.match(fullAppSource, /copyTextToClipboard\(configText\)/)
 })
 
-test('Full App clears expanded MCP configuration when the AI Bridge session ends', () => {
+test('Full App keeps the stable MCP configuration available after the session ends', () => {
   const revokeBlock = fullAppSource.match(/\$\(('#settings-ai-bridge-revoke-btn'|"#settings-ai-bridge-revoke-btn")\)\?\.addEventListener\('click'[\s\S]*?\n  \}\)/)?.[0] || ''
   const aiBridgeStateBlock = fullAppSource.match(/if \(message\?\.type === 'state:aiBridge'\) \{[\s\S]*?\n  \}/)?.[0] || ''
 
-  assert.match(revokeBlock, /state\.aiBridgeConfigVisible = false/)
-  assert.match(aiBridgeStateBlock, /state\.aiBridgeConfigVisible = false/)
+  // The stable connection key persists across Stop, so the copied config stays valid and is not force-hidden.
+  assert.match(revokeBlock, /await refreshState\(\)/)
+  assert.doesNotMatch(revokeBlock, /state\.aiBridgeConfigVisible = false/)
+  assert.doesNotMatch(aiBridgeStateBlock, /state\.aiBridgeConfigVisible = false/)
 })
 
 test('Full App preserves scroll position when re-rendering the same page', () => {

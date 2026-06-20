@@ -51,7 +51,7 @@ import { getReleaseNotesMenuState, hasReleaseNotesForVersion } from '../shared/r
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
 import { getBulkDeleteDialogCopy, getBulkDeleteSuccessMessage } from '../shared/bulk-delete-dialog.js'
-import { buildAiBridgeMcpConfigText, createAiBridgeSessionState } from '../shared/ai-bridge-state.js'
+import { AI_BRIDGE_STATUS, buildAiBridgeMcpConfigText, createAiBridgeSessionState } from '../shared/ai-bridge-state.js'
 import {
   AI_BRIDGE_PERMISSION_MODES,
   createAiBridgeDefaultPermissionsForMode,
@@ -2207,7 +2207,7 @@ function bindEvents() {
   }
 
   function openAiBridgeCustomPermissions() {
-    if (state.aiBridgeSession?.token) state.aiBridgeSessionPermissionsOpen = true
+    if (state.aiBridgeSession?.status && state.aiBridgeSession.status !== AI_BRIDGE_STATUS.disabled) state.aiBridgeSessionPermissionsOpen = true
     else state.aiBridgeDefaultPermissionsOpen = true
     render()
   }
@@ -2219,7 +2219,7 @@ function bindEvents() {
         openAiBridgeCustomPermissions()
         return
       }
-      if (state.aiBridgeSession?.token) await applyAiBridgeSessionPermissionMode(mode)
+      if (state.aiBridgeSession?.status && state.aiBridgeSession.status !== AI_BRIDGE_STATUS.disabled) await applyAiBridgeSessionPermissionMode(mode)
       else await applyAiBridgeDefaultPermissionMode(mode)
     })
   })
@@ -2331,7 +2331,7 @@ function bindEvents() {
     }
     state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
     state.aiBridgeSessionPermissionsOpen = false
-    state.aiBridgeConfigVisible = false
+    await refreshState()
     render()
   })
 
@@ -2343,7 +2343,7 @@ function bindEvents() {
     }
     state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
     state.aiBridgeSessionPermissionsOpen = false
-    state.aiBridgeConfigVisible = false
+    await refreshState()
     render()
   })
 
@@ -2353,7 +2353,7 @@ function bindEvents() {
   })
 
   $('#settings-ai-bridge-copy-config-btn')?.addEventListener('click', async () => {
-    const configText = buildAiBridgeMcpConfigText(state.aiBridgeSession)
+    const configText = buildAiBridgeMcpConfigText({ key: state.settings?.aiBridgeConnectionKey || '', port: state.aiBridgeSession?.port })
     if (!configText) return
     try {
       await copyTextToClipboard(configText)
@@ -2361,6 +2361,20 @@ function bindEvents() {
     } catch {
       toastError(t('toasts.copyError'))
     }
+  })
+
+  $('#settings-ai-bridge-regenerate-key-btn')?.addEventListener('click', async () => {
+    if (!window.confirm(t('fullapp.aiBridgeRegenerateKeyConfirm'))) return
+    const result = await sendMessage({ type: MSG.AI_BRIDGE_REGENERATE_KEY })
+    if (result?.error) {
+      toastError(translateBackendError(result.error))
+      return
+    }
+    state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
+    state.aiBridgeConfigVisible = true
+    await refreshState()
+    render()
+    toastSuccess(t('toasts.aiBridgeKeyRegenerated'))
   })
 
   $('#release-notes-close')?.addEventListener('click', closeReleaseNotes)
@@ -2402,9 +2416,8 @@ chrome.runtime.onMessage.addListener(message => {
   }
   if (message?.type === 'state:aiBridge') {
     state.aiBridgeSession = message.aiBridgeSession || createAiBridgeSessionState()
-    if (!state.aiBridgeSession.token) {
+    if (state.aiBridgeSession.status === AI_BRIDGE_STATUS.disabled) {
       state.aiBridgeSessionPermissionsOpen = false
-      state.aiBridgeConfigVisible = false
     }
     if (state.page === 'settings' || state.page === 'ai-bridge') render()
   }

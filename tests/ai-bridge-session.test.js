@@ -5,37 +5,24 @@ import { AI_BRIDGE_STATUS } from '../src/shared/ai-bridge-state.js'
 import { createAiBridgeSessionController } from '../src/background/ai-bridge-session.js'
 
 test('AI Bridge session controller starts disabled', () => {
-  const controller = createAiBridgeSessionController({
-    tokenGenerator: () => 'token-a',
-    now: () => '2026-06-19T12:00:00.000Z'
-  })
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
 
   assert.equal(controller.getSession().status, AI_BRIDGE_STATUS.disabled)
-  assert.equal(controller.getSession().token, '')
+  assert.equal('token' in controller.getSession(), false)
 })
 
-test('AI Bridge session controller generates a token for each started session', () => {
-  const tokens = ['token-a', 'token-b']
-  const controller = createAiBridgeSessionController({
-    tokenGenerator: () => tokens.shift(),
-    now: () => '2026-06-19T12:00:00.000Z'
-  })
+test('AI Bridge session start does not mint or carry a credential', () => {
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
 
-  const first = controller.startSession()
-  const second = controller.startSession()
+  const session = controller.startSession()
 
-  assert.equal(first.status, AI_BRIDGE_STATUS.waiting)
-  assert.equal(first.token, 'token-a')
-  assert.equal(second.status, AI_BRIDGE_STATUS.waiting)
-  assert.equal(second.token, 'token-b')
-  assert.notEqual(first.token, second.token)
+  assert.equal(session.status, AI_BRIDGE_STATUS.waiting)
+  assert.equal('token' in session, false)
+  assert.equal('key' in session, false)
 })
 
 test('AI Bridge session starts with permissions copied from saved defaults', () => {
-  const controller = createAiBridgeSessionController({
-    tokenGenerator: () => 'token-a',
-    now: () => '2026-06-19T12:00:00.000Z'
-  })
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
 
   const session = controller.startSession({
     allowQueryValuesByDefault: true,
@@ -49,83 +36,63 @@ test('AI Bridge session starts with permissions copied from saved defaults', () 
 
 test('AI Bridge session permission updates do not mutate saved defaults', () => {
   const defaults = { allowQueryValuesByDefault: false }
-  const controller = createAiBridgeSessionController({
-    tokenGenerator: () => 'token-a',
-    now: () => '2026-06-19T12:00:00.000Z'
-  })
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
 
   controller.startSession(defaults)
-  const updated = controller.updateSessionPermissions({
-    allowQueryValuesThisSession: true
-  })
+  const updated = controller.updateSessionPermissions({ allowQueryValuesThisSession: true })
 
   assert.equal(updated.permissions.allowQueryValuesThisSession, true)
   assert.deepEqual(defaults, { allowQueryValuesByDefault: false })
 })
 
-test('AI Bridge session controller revokes token and returns to disabled', () => {
-  const controller = createAiBridgeSessionController({
-    tokenGenerator: () => 'token-a',
-    now: () => '2026-06-19T12:00:00.000Z'
-  })
+test('AI Bridge session stop returns to disabled and clears permissions', () => {
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
 
   controller.startSession()
-  const revoked = controller.revokeSession()
+  const stopped = controller.stopSession()
 
-  assert.equal(revoked.status, AI_BRIDGE_STATUS.disabled)
-  assert.equal(revoked.token, '')
-  assert.equal(revoked.permissions, null)
+  assert.equal(stopped.status, AI_BRIDGE_STATUS.disabled)
+  assert.equal(stopped.permissions, null)
   assert.equal(controller.getSession().status, AI_BRIDGE_STATUS.disabled)
 })
 
-test('AI Bridge session controller marks an active session connected without changing token', () => {
-  const controller = createAiBridgeSessionController({
-    tokenGenerator: () => 'token-a',
-    now: () => '2026-06-19T12:00:00.000Z'
-  })
+test('AI Bridge session controller marks an active session connected', () => {
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
 
   controller.startSession()
   const connected = controller.markConnected()
 
   assert.equal(connected.status, AI_BRIDGE_STATUS.connected)
-  assert.equal(connected.token, 'token-a')
   assert.equal(connected.connectedAt, '2026-06-19T12:00:00.000Z')
 })
 
+test('AI Bridge session controller does not mark connected without an active session', () => {
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
+
+  assert.equal(controller.markConnected().status, AI_BRIDGE_STATUS.disabled)
+})
+
 test('AI Bridge session controller marks an active session waiting after disconnect', () => {
-  const controller = createAiBridgeSessionController({
-    tokenGenerator: () => 'token-a',
-    now: () => '2026-06-19T12:00:00.000Z'
-  })
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
 
   controller.startSession()
   controller.markConnected()
   const waiting = controller.markWaiting()
 
   assert.equal(waiting.status, AI_BRIDGE_STATUS.waiting)
-  assert.equal(waiting.token, 'token-a')
   assert.equal(waiting.connectedAt, null)
 })
 
-test('AI Bridge session controller never writes token to chrome.storage.local', () => {
+test('AI Bridge session controller never writes to chrome.storage.local', () => {
   const writes = []
   globalThis.chrome = {
-    storage: {
-      local: {
-        async set(value) {
-          writes.push(value)
-        }
-      }
-    }
+    storage: { local: { async set(value) { writes.push(value) } } }
   }
 
-  const controller = createAiBridgeSessionController({
-    tokenGenerator: () => 'token-a',
-    now: () => '2026-06-19T12:00:00.000Z'
-  })
+  const controller = createAiBridgeSessionController({ now: () => '2026-06-19T12:00:00.000Z' })
 
   controller.startSession()
-  controller.revokeSession()
+  controller.stopSession()
 
   assert.deepEqual(writes, [])
   delete globalThis.chrome

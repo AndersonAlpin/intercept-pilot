@@ -20,14 +20,14 @@ function connectedState(permissions = {}) {
   return {
     aiBridgeSession: {
       status: 'connected',
-      token: 'secret-token',
       port: 37177,
       startedAt: '2026-06-20T10:00:00.000Z',
       connectedAt: '2026-06-20T10:01:00.000Z',
       permissions
     },
     settings: {
-      aiBridgePermissions: {}
+      aiBridgePermissions: {},
+      aiBridgeConnectionKey: 'secret-token'
     }
   }
 }
@@ -36,14 +36,14 @@ function waitingState(permissions = {}) {
   return {
     aiBridgeSession: {
       status: 'waiting',
-      token: 'secret-token',
       port: 37177,
       startedAt: '2026-06-20T10:00:00.000Z',
       connectedAt: null,
       permissions
     },
     settings: {
-      aiBridgePermissions: {}
+      aiBridgePermissions: {},
+      aiBridgeConnectionKey: 'secret-token'
     }
   }
 }

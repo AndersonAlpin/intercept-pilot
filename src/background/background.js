@@ -15,11 +15,13 @@ import {
   getAiBridgeSession,
   markAiBridgeConnected,
   markAiBridgeWaiting,
-  revokeAiBridgeSession,
+  stopAiBridgeSession,
   startAiBridgeSession,
   updateAiBridgeSessionPermissions
 } from './ai-bridge-session.js'
+import { AI_BRIDGE_STATUS, generateAiBridgeConnectionKey, resolveAiBridgeConnectionKey } from '../shared/ai-bridge-state.js'
 import { createAiBridgeConnection } from './ai-bridge-connection.js'
+import { createAiBridgeKeepalive } from './ai-bridge-keepalive.js'
 import { cancelPendingAiImport, confirmPendingAiImport, createPendingAiImport, getPendingAiImport } from './ai-bridge-imports.js'
 import { AI_BRIDGE_RULE_ACTIONS, cancelPendingAiRuleAction, confirmPendingAiRuleAction, createPendingAiRuleAction, getPendingAiRuleAction } from './ai-bridge-actions.js'
 
@@ -846,8 +848,24 @@ async function requestAiBridgeRuleAction(action, payload) {
   return result
 }
 
+let aiBridgeConnectionKeyCache = ''
+
+function getAiBridgeConnectionKey() {
+  return aiBridgeConnectionKeyCache
+}
+
+async function ensureAiBridgeConnectionKey() {
+  const state = await getState()
+  const existing = String(state.settings?.aiBridgeConnectionKey || '')
+  const key = resolveAiBridgeConnectionKey(existing)
+  if (key !== existing) await updateSettings({ aiBridgeConnectionKey: key })
+  aiBridgeConnectionKeyCache = key
+  return key
+}
+
 const aiBridgeConnection = createAiBridgeConnection({
   getSession: getAiBridgeSession,
+  getConnectionKey: getAiBridgeConnectionKey,
   markConnected: markAiBridgeConnected,
   markWaiting: markAiBridgeWaiting,
   getCommandContext: getAiBridgeCommandContext,
@@ -855,6 +873,33 @@ const aiBridgeConnection = createAiBridgeConnection({
   requestRuleAction: requestAiBridgeRuleAction,
   onSessionChange: broadcastAiBridgeSession
 })
+
+const aiBridgeKeepalive = createAiBridgeKeepalive({
+  alarms: globalThis.chrome?.alarms,
+  onTick: () => {
+    if (getAiBridgeSession().status !== AI_BRIDGE_STATUS.disabled) aiBridgeConnection.sync()
+  }
+})
+
+function startAiBridgeKeepalive() {
+  aiBridgeKeepalive.start()
+}
+
+function stopAiBridgeKeepalive() {
+  aiBridgeKeepalive.stop()
+}
+
+async function initAiBridgeFromSettings() {
+  const state = await getState()
+  const enabled = state.settings?.aiBridgeConnectionEnabled === true
+  const key = String(state.settings?.aiBridgeConnectionKey || '')
+  if (!enabled || !key) return
+  aiBridgeConnectionKeyCache = key
+  startAiBridgeSession(state.settings?.aiBridgePermissions)
+  aiBridgeConnection.sync()
+  startAiBridgeKeepalive()
+  broadcastAiBridgeSession()
+}
 
 async function reloadTabWithReadyDebugger(tabId) {
   if (!tabId) throw new Error('reloadNoTab')
@@ -1605,6 +1650,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     await updateConnectionFromActiveTab()
     await broadcastConnectionState()
   }
+  await initAiBridgeFromSettings()
 })()
 
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
@@ -1780,8 +1826,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const state = await getState()
         cancelPendingAiImport()
         cancelPendingAiRuleAction()
+        await ensureAiBridgeConnectionKey()
+        await updateSettings({ aiBridgeConnectionEnabled: true })
         const aiBridgeSession = startAiBridgeSession(state.settings?.aiBridgePermissions)
         aiBridgeConnection.sync()
+        startAiBridgeKeepalive()
         sendResponse({ aiBridgeSession })
         broadcastAiBridgeImport()
         broadcastAiBridgeAction()
@@ -1789,11 +1838,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       case 'aiBridge:revokeSession': {
         aiBridgeConnection.disconnect()
+        stopAiBridgeKeepalive()
+        await updateSettings({ aiBridgeConnectionEnabled: false })
         cancelPendingAiImport()
         cancelPendingAiRuleAction()
-        sendResponse({ aiBridgeSession: revokeAiBridgeSession() })
+        sendResponse({ aiBridgeSession: stopAiBridgeSession() })
         broadcastAiBridgeImport()
         broadcastAiBridgeAction()
+        return
+      }
+      case 'aiBridge:regenerateKey': {
+        const state = await getState()
+        const key = generateAiBridgeConnectionKey()
+        await updateSettings({ aiBridgeConnectionKey: key })
+        aiBridgeConnectionKeyCache = key
+        let aiBridgeSession = getAiBridgeSession()
+        if (aiBridgeSession.status !== AI_BRIDGE_STATUS.disabled) {
+          aiBridgeConnection.disconnect()
+          aiBridgeSession = startAiBridgeSession(state.settings?.aiBridgePermissions)
+          aiBridgeConnection.sync()
+        }
+        sendResponse({ aiBridgeSession })
+        broadcastAiBridgeSession(aiBridgeSession)
         return
       }
       case 'aiBridge:updateSessionPermissions': {

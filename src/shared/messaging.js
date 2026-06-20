@@ -30,6 +30,7 @@ export const MSG = {
   AI_BRIDGE_GET_SESSION: 'aiBridge:getSession',
   AI_BRIDGE_START_SESSION: 'aiBridge:startSession',
   AI_BRIDGE_REVOKE_SESSION: 'aiBridge:revokeSession',
+  AI_BRIDGE_REGENERATE_KEY: 'aiBridge:regenerateKey',
   AI_BRIDGE_UPDATE_SESSION_PERMISSIONS: 'aiBridge:updateSessionPermissions',
   AI_BRIDGE_GET_PENDING_IMPORT: 'aiBridge:getPendingImport',
   AI_BRIDGE_CONFIRM_PENDING_IMPORT: 'aiBridge:confirmPendingImport',

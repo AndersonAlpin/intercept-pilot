@@ -13,7 +13,8 @@
     "activeTab",
     "webNavigation",
     "scripting",
-    "management"
+    "management",
+    "alarms"
   ],
   "host_permissions": ["<all_urls>"],
   "background": {

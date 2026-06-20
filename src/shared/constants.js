@@ -39,7 +39,9 @@ export const DEFAULT_SETTINGS = {
     fullApp: { ...DEFAULT_NETWORK_FILTER_FULL },
     sidepanel: { ...DEFAULT_NETWORK_FILTER_SIDE }
   },
-  aiBridgePermissions: { ...AI_BRIDGE_DEFAULT_PERMISSIONS }
+  aiBridgePermissions: { ...AI_BRIDGE_DEFAULT_PERMISSIONS },
+  aiBridgeConnectionKey: '',
+  aiBridgeConnectionEnabled: false
 }
 
 export const METHODS = ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']

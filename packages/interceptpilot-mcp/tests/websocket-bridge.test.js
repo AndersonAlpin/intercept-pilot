@@ -197,6 +197,50 @@ test('bridge timeout rejects safely and clears pending request', async () => {
   assert.equal(bridge.getPendingCount(), 0)
 })
 
+test('bridge accepts hello using the preferred key field and expectedKey', () => {
+  const { bridge } = makeBridge({ expectedKey: 'stable-key-123' })
+  const socket = new FakeSocket()
+  bridge.handleSocket(socket)
+  socket.receive(JSON.stringify({
+    type: 'hello',
+    source: 'interceptpilot-extension',
+    key: 'stable-key-123',
+    version: 1
+  }))
+
+  assert.equal(bridge.isConnected(), true)
+})
+
+test('bridge sends a heartbeat ping on the interval and ignores pong', () => {
+  let tick = null
+  const { bridge } = makeBridge({
+    heartbeatIntervalMs: 1000,
+    setIntervalFn: fn => { tick = fn; return 1 },
+    clearIntervalFn: () => { tick = null }
+  })
+  const socket = connectExtension(bridge)
+  socket.sent.length = 0
+
+  tick()
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), { type: 'ping' })
+
+  assert.doesNotThrow(() => socket.receive(JSON.stringify({ type: 'pong' })))
+  assert.equal(bridge.isConnected(), true)
+})
+
+test('bridge stops the heartbeat when the extension disconnects', () => {
+  let cleared = false
+  const { bridge } = makeBridge({
+    heartbeatIntervalMs: 1000,
+    setIntervalFn: () => 'timer-1',
+    clearIntervalFn: () => { cleared = true }
+  })
+  const socket = connectExtension(bridge)
+
+  socket.close()
+  assert.equal(cleared, true)
+})
+
 test('bridge clears pending requests when extension disconnects', async () => {
   const { bridge } = makeBridge({ idGenerator: () => 'req_disconnect' })
   const socket = connectExtension(bridge)

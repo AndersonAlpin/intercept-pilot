@@ -6,25 +6,16 @@ import {
 } from '../shared/ai-bridge-state.js'
 import { createSessionAiBridgePermissions, normalizeAiBridgePermissionsPatch } from '../shared/ai-bridge-permissions.js'
 
-function randomHexToken(byteLength = 32) {
-  const bytes = new Uint8Array(byteLength)
-  if (globalThis.crypto?.getRandomValues) {
-    globalThis.crypto.getRandomValues(bytes)
-  } else {
-    for (let i = 0; i < bytes.length; i += 1) {
-      bytes[i] = Math.floor(Math.random() * 256)
-    }
-  }
-  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
-}
-
 export function createAiBridgeSessionController(options = {}) {
   const {
-    tokenGenerator = randomHexToken,
     now = () => new Date().toISOString(),
     port = DEFAULT_AI_BRIDGE_PORT
   } = options
   let currentSession = createAiBridgeSessionState({ port })
+
+  function isActive() {
+    return currentSession.status !== AI_BRIDGE_STATUS.disabled
+  }
 
   return {
     getSession() {
@@ -33,7 +24,6 @@ export function createAiBridgeSessionController(options = {}) {
     startSession(defaultPermissions = {}) {
       currentSession = normalizeAiBridgeSessionState({
         status: AI_BRIDGE_STATUS.waiting,
-        token: tokenGenerator(),
         port,
         startedAt: now(),
         connectedAt: null,
@@ -42,7 +32,7 @@ export function createAiBridgeSessionController(options = {}) {
       return this.getSession()
     },
     markConnected() {
-      if (!currentSession.token) return this.getSession()
+      if (!isActive()) return this.getSession()
       currentSession = normalizeAiBridgeSessionState({
         ...currentSession,
         status: AI_BRIDGE_STATUS.connected,
@@ -51,7 +41,7 @@ export function createAiBridgeSessionController(options = {}) {
       return this.getSession()
     },
     markWaiting() {
-      if (!currentSession.token) return this.getSession()
+      if (!isActive()) return this.getSession()
       currentSession = normalizeAiBridgeSessionState({
         ...currentSession,
         status: AI_BRIDGE_STATUS.waiting,
@@ -59,12 +49,12 @@ export function createAiBridgeSessionController(options = {}) {
       })
       return this.getSession()
     },
-    revokeSession() {
+    stopSession() {
       currentSession = createAiBridgeSessionState({ port })
       return this.getSession()
     },
     updateSessionPermissions(patch = {}) {
-      if (!currentSession.token) return this.getSession()
+      if (!isActive()) return this.getSession()
       currentSession = normalizeAiBridgeSessionState({
         ...currentSession,
         permissions: {
@@ -95,8 +85,8 @@ export function markAiBridgeWaiting() {
   return aiBridgeSessionController.markWaiting()
 }
 
-export function revokeAiBridgeSession() {
-  return aiBridgeSessionController.revokeSession()
+export function stopAiBridgeSession() {
+  return aiBridgeSessionController.stopSession()
 }
 
 export function updateAiBridgeSessionPermissions(patch) {

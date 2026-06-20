@@ -38,10 +38,7 @@ const COMMAND_NOT_ALLOWED_ERROR = {
 }
 
 function isActiveSession(session = {}) {
-  return Boolean(
-    session.token
-      && session.status !== AI_BRIDGE_STATUS.disabled
-  )
+  return session.status !== AI_BRIDGE_STATUS.disabled
 }
 
 function getSessionPort(session = {}) {
@@ -61,6 +58,7 @@ export function createAiBridgeConnection(options = {}) {
   const {
     WebSocketCtor = globalThis.WebSocket,
     getSession,
+    getConnectionKey = () => '',
     markConnected,
     markWaiting,
     getCommandContext,
@@ -172,6 +170,12 @@ export function createAiBridgeConnection(options = {}) {
       return
     }
 
+    if (message.type === 'pong') return
+    if (message.type === 'ping') {
+      if (handshakeAccepted) send({ type: 'pong' })
+      return
+    }
+
     if (message.type === 'command') {
       if (!handshakeAccepted) return
       handleCommand(message)
@@ -180,6 +184,9 @@ export function createAiBridgeConnection(options = {}) {
 
   function connect(session) {
     if (!WebSocketCtor || socket) return
+
+    const connectionKey = String(getConnectionKey() || '')
+    if (!connectionKey) return
 
     const url = `ws://127.0.0.1:${getSessionPort(session)}`
     closingIntentionally = false
@@ -190,7 +197,7 @@ export function createAiBridgeConnection(options = {}) {
       send({
         type: 'hello',
         source: BRIDGE_SOURCE,
-        token: session.token,
+        key: connectionKey,
         version: BRIDGE_PROTOCOL_VERSION
       })
     }

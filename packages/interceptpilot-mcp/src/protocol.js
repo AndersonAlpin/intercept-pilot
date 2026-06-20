@@ -8,7 +8,9 @@ export const MESSAGE_TYPES = {
   helloAck: 'hello:ack',
   command: 'command',
   commandResult: 'command:result',
-  commandError: 'command:error'
+  commandError: 'command:error',
+  ping: 'ping',
+  pong: 'pong'
 }
 
 export const ALLOWED_COMMANDS = Object.freeze([
@@ -51,6 +53,10 @@ export function createCommandMessage(id, command, payload = {}) {
   }
 }
 
+export function createPingMessage() {
+  return { type: MESSAGE_TYPES.ping }
+}
+
 export function parseBridgeMessage(raw) {
   try {
     const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw ?? '')
@@ -62,13 +68,14 @@ export function parseBridgeMessage(raw) {
 }
 
 export function validateHelloMessage(message = {}, options = {}) {
-  const token = String(message.token || '')
-  const expectedToken = String(options.expectedToken || '')
+  // The stable credential is `key`; `token` is kept as a temporary backward-compatible alias.
+  const key = String(message.key || message.token || '')
+  const expectedKey = String(options.expectedKey || options.expectedToken || '')
   const ok = message.type === MESSAGE_TYPES.hello
     && message.source === BRIDGE_SOURCE
     && Number(message.version) === BRIDGE_PROTOCOL_VERSION
-    && Boolean(token)
-    && (!expectedToken || token === expectedToken)
+    && Boolean(key)
+    && (!expectedKey || key === expectedKey)
 
   if (!ok) {
     return {

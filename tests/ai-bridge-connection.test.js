@@ -39,6 +39,7 @@ function makeHarness(session) {
   const connection = createAiBridgeConnection({
     WebSocketCtor: FakeWebSocket,
     getSession: () => currentSession,
+    getConnectionKey: () => 'pairing-token-123',
     markConnected: () => {
       currentSession = { ...currentSession, status: AI_BRIDGE_STATUS.connected, connectedAt: '2026-06-19T12:01:00.000Z' }
       return currentSession
@@ -111,7 +112,7 @@ test('AI Bridge connection opens localhost WebSocket and sends token handshake',
   assert.deepEqual(JSON.parse(socket.sent[0]), {
     type: 'hello',
     source: 'interceptpilot-extension',
-    token: 'pairing-token-123',
+    key: 'pairing-token-123',
     version: 1
   })
 })
@@ -195,6 +196,7 @@ test('AI Bridge connection routes import_bundle command through write proposal h
   const connection = createAiBridgeConnection({
     WebSocketCtor: FakeWebSocket,
     getSession: () => harness.session,
+    getConnectionKey: () => 'pairing-token-123',
     markConnected: () => harness.session,
     markWaiting: () => harness.session,
     getCommandContext: async () => ({}),
@@ -237,6 +239,7 @@ test('AI Bridge connection routes rule action request commands through proposal 
   const connection = createAiBridgeConnection({
     WebSocketCtor: FakeWebSocket,
     getSession: () => harness.session,
+    getConnectionKey: () => 'pairing-token-123',
     markConnected: () => harness.session,
     markWaiting: () => harness.session,
     getCommandContext: async () => ({}),
@@ -291,6 +294,7 @@ test('AI Bridge connection returns safe error when import_bundle is rejected', a
   const connection = createAiBridgeConnection({
     WebSocketCtor: FakeWebSocket,
     getSession: () => harness.session,
+    getConnectionKey: () => 'pairing-token-123',
     markConnected: () => harness.session,
     markWaiting: () => harness.session,
     getCommandContext: async () => ({}),
@@ -445,4 +449,41 @@ test('AI Bridge connection closes socket and cancels reconnect on disconnect', (
 
   assert.equal(socket.closed, true)
   assert.equal(harness.timers.length, 0)
+})
+
+test('AI Bridge connection replies pong to a heartbeat ping after hello ack', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.waiting,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: null
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.open()
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  const sentBefore = socket.sent.length
+  socket.receive(JSON.stringify({ type: 'ping' }))
+
+  assert.deepEqual(JSON.parse(socket.sent[sentBefore]), { type: 'pong' })
+})
+
+test('AI Bridge connection ignores ping before hello ack', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.waiting,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: null
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.open()
+  const sentBefore = socket.sent.length
+  socket.receive(JSON.stringify({ type: 'ping' }))
+
+  assert.equal(socket.sent.length, sentBefore)
 })

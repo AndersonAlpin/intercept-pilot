@@ -115,10 +115,12 @@ function renderPermissionGroup(title, rows, permissions, mode) {
   `
 }
 
-function renderStatusSection(session, options = {}) {
+function renderStatusSection(session, settings = {}, options = {}) {
   const enabled = session.status !== AI_BRIDGE_STATUS.disabled
-  const configText = buildAiBridgeMcpConfigText(session)
-  const configVisible = enabled && configText && options.configVisible
+  const key = String(settings.aiBridgeConnectionKey || '')
+  const hasKey = Boolean(key)
+  const configText = buildAiBridgeMcpConfigText({ key, port: session.port })
+  const configVisible = hasKey && configText && options.configVisible
   return `
     <section class="ai-bridge-page__section ai-bridge-page__status">
       <div class="ai-bridge-page__section-header">
@@ -133,13 +135,15 @@ function renderStatusSection(session, options = {}) {
         ${enabled
           ? renderButton({ id: 'settings-ai-bridge-revoke-btn', label: t('fullapp.aiBridgeRevokeSession'), variant: 'secondary' })
           : renderButton({ id: 'settings-ai-bridge-start-btn', label: t('fullapp.aiBridgeStartSession'), variant: 'secondary' })}
-        ${enabled ? renderButton({ id: 'settings-ai-bridge-copy-config-btn', label: t('fullapp.aiBridgeCopyConfig'), variant: 'secondary' }) : ''}
-        ${enabled ? renderButton({ id: 'settings-ai-bridge-toggle-config-btn', label: t(configVisible ? 'fullapp.aiBridgeHideConfig' : 'fullapp.aiBridgeShowConfig'), variant: 'secondary' }) : ''}
+        ${hasKey ? renderButton({ id: 'settings-ai-bridge-copy-config-btn', label: t('fullapp.aiBridgeCopyConfig'), variant: 'secondary' }) : ''}
+        ${hasKey ? renderButton({ id: 'settings-ai-bridge-toggle-config-btn', label: t(configVisible ? 'fullapp.aiBridgeHideConfig' : 'fullapp.aiBridgeShowConfig'), variant: 'secondary' }) : ''}
+        ${hasKey ? renderButton({ id: 'settings-ai-bridge-regenerate-key-btn', label: t('fullapp.aiBridgeRegenerateKey'), variant: 'secondary' }) : ''}
       </div>
       ${configVisible
         ? `
           <p class="ai-bridge-page__config-help">${escapeHtml(t('fullapp.aiBridgeConfigHelp'))}</p>
           <pre class="ai-bridge-page__config" id="settings-ai-bridge-config">${escapeHtml(configText)}</pre>
+          <p class="ai-bridge-page__config-help">${escapeHtml(t('fullapp.aiBridgeDevConfigNote'))}</p>
         `
         : ''}
     </section>
@@ -175,7 +179,7 @@ export function renderAiBridgePage(state = {}, options = {}) {
     description: t('fullapp.aiBridgePageDescription'),
     bodyHtml: `
       <div class="ai-bridge-page">
-        ${renderStatusSection(session, options)}
+        ${renderStatusSection(session, state.settings || {}, options)}
         <section class="ai-bridge-page__section">
           <div class="ai-bridge-page__section-header">
             <div>
