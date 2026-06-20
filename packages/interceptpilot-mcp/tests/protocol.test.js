@@ -22,7 +22,10 @@ test('protocol exposes only allowed MVP commands', () => {
     'get_import_bundle_schema',
     'get_import_bundle_examples',
     'explain_rule_match',
-    'import_bundle'
+    'import_bundle',
+    'request_enable_rule',
+    'request_disable_rule',
+    'request_set_only_active_rule'
   ])
   assert.equal(isAllowedCommand('list_rules'), true)
   assert.equal(isAllowedCommand('list_sanitized_logs'), true)
@@ -32,8 +35,16 @@ test('protocol exposes only allowed MVP commands', () => {
   assert.equal(isAllowedCommand('get_import_bundle_examples'), true)
   assert.equal(isAllowedCommand('explain_rule_match'), true)
   assert.equal(isAllowedCommand('import_bundle'), true)
+  assert.equal(isAllowedCommand('request_enable_rule'), true)
+  assert.equal(isAllowedCommand('request_disable_rule'), true)
+  assert.equal(isAllowedCommand('request_set_only_active_rule'), true)
   assert.equal(isAllowedCommand('enable_rule'), false)
+  assert.equal(isAllowedCommand('update_rule'), false)
+  assert.equal(isAllowedCommand('create_rule'), false)
+  assert.equal(isAllowedCommand('delete_rule'), false)
+  assert.equal(isAllowedCommand('clear_logs'), false)
   assert.equal(isAllowedCommand('set_capture_mode'), false)
+  assert.equal(isAllowedCommand('reload_captured_tab'), false)
 })
 
 test('protocol creates local command messages with stable shape', () => {

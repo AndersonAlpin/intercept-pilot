@@ -6,6 +6,7 @@ import { ALLOWED_COMMANDS, isAllowedCommand } from './protocol.js'
 
 const IMPORT_BUNDLE_INPUT_DESCRIPTION = 'A JSON string containing an InterceptPilot import bundle. It can be either a single rule bundle with type "interceptpilot.rule" or a collection bundle with type "interceptpilot.collection". The extension will create a pending proposal and wait for user confirmation.'
 const RULE_ID_INPUT_DESCRIPTION = 'The InterceptPilot rule id to compare against a captured request.'
+const RULE_ACTION_RULE_ID_INPUT_DESCRIPTION = 'The existing InterceptPilot rule id to use for the pending rule action proposal.'
 const REQUEST_ID_INPUT_DESCRIPTION = 'The captured request/network entry id to compare against the rule.'
 const EMPTY_JSON_INPUT_SCHEMA = {
   type: 'object',
@@ -35,6 +36,17 @@ const EXPLAIN_RULE_MATCH_JSON_INPUT_SCHEMA = {
     }
   },
   required: ['ruleId', 'requestId'],
+  additionalProperties: false
+}
+const RULE_ACTION_JSON_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    ruleId: {
+      type: 'string',
+      description: RULE_ACTION_RULE_ID_INPUT_DESCRIPTION
+    }
+  },
+  required: ['ruleId'],
   additionalProperties: false
 }
 
@@ -85,6 +97,14 @@ function buildExplainRuleMatchPayload(args = {}) {
   }
 }
 
+function buildRuleActionPayload(args = {}) {
+  const ruleId = args?.ruleId
+  if (typeof ruleId !== 'string' || !ruleId.trim()) {
+    throw new Error('ruleId must be a non-empty string.')
+  }
+  return { ruleId }
+}
+
 function createImportProposalResult(result = {}) {
   const summary = result.summary || {}
   const lines = [
@@ -94,6 +114,28 @@ function createImportProposalResult(result = {}) {
     summary.collectionName ? `Collection: ${summary.collectionName}` : '',
     summary.ruleName ? `Rule: ${summary.ruleName}` : '',
     Number.isFinite(Number(summary.ruleCount)) ? `Rules: ${summary.ruleCount}` : ''
+  ].filter(Boolean)
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: lines.join('\n')
+      }
+    ]
+  }
+}
+
+function createRuleActionProposalResult(result = {}) {
+  const summary = result.summary || {}
+  const lines = [
+    'Rule action proposal sent to InterceptPilot.',
+    'The user must confirm it in the Full App before anything is applied.',
+    result.pendingActionId ? `Pending action: ${result.pendingActionId}` : '',
+    result.action ? `Action: ${result.action}` : '',
+    summary.ruleName ? `Rule: ${summary.ruleName}` : '',
+    summary.collectionName ? `Collection: ${summary.collectionName}` : '',
+    Number.isFinite(Number(summary.affectedRuleCount)) ? `Affected rules: ${summary.affectedRuleCount}` : ''
   ].filter(Boolean)
 
   return {
@@ -127,6 +169,18 @@ function createStaticReadOnlyTool(description, getResult) {
   }
 }
 
+function createRuleActionTool(description) {
+  return {
+    description,
+    jsonInputSchema: RULE_ACTION_JSON_INPUT_SCHEMA,
+    registeredInputSchema: {
+      ruleId: z.string().min(1).describe(RULE_ACTION_RULE_ID_INPUT_DESCRIPTION)
+    },
+    buildPayload: buildRuleActionPayload,
+    formatResult: createRuleActionProposalResult
+  }
+}
+
 const MCP_TOOLS = {
   list_captured_requests: createReadOnlyTool('List sanitized requests captured in the active InterceptPilot capture context. Useful for identifying endpoints to mock. Does not include headers, bodies, cookies, Authorization values, or query parameter values.'),
   list_collections: createReadOnlyTool('List InterceptPilot collections with safe summary fields and rule counts. Useful for understanding available scenario groups. Does not include headers, bodies, cookies, tokens, or query parameter values.'),
@@ -155,7 +209,10 @@ const MCP_TOOLS = {
     },
     buildPayload: buildImportBundlePayload,
     formatResult: createImportProposalResult
-  }
+  },
+  request_enable_rule: createRuleActionTool('Request enabling an existing InterceptPilot rule. This creates a pending action proposal in the Full App and requires user confirmation before the rule is enabled.'),
+  request_disable_rule: createRuleActionTool('Request disabling an existing InterceptPilot rule. This creates a pending action proposal in the Full App and requires user confirmation before the rule is disabled.'),
+  request_set_only_active_rule: createRuleActionTool('Request making one rule the only active rule in its collection. This creates a pending action proposal in the Full App and requires user confirmation before enabling the selected rule and disabling the others in the same collection.')
 }
 
 export function getMcpToolNames() {

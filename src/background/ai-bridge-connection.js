@@ -26,6 +26,11 @@ const ALLOWED_COMMANDS = {
 }
 
 const WRITE_PROPOSAL_COMMANDS = new Set(['import_bundle'])
+const RULE_ACTION_PROPOSAL_COMMANDS = {
+  request_enable_rule: 'enable_rule',
+  request_disable_rule: 'disable_rule',
+  request_set_only_active_rule: 'set_only_active_rule'
+}
 
 const COMMAND_NOT_ALLOWED_ERROR = {
   code: 'UNKNOWN_COMMAND',
@@ -60,6 +65,7 @@ export function createAiBridgeConnection(options = {}) {
     markWaiting,
     getCommandContext,
     importBundle,
+    requestRuleAction,
     onSessionChange = () => {},
     setTimeoutFn = setTimeout,
     clearTimeoutFn = clearTimeout,
@@ -102,7 +108,7 @@ export function createAiBridgeConnection(options = {}) {
   async function handleCommand(message) {
     const id = String(message?.id || '')
     const command = String(message?.command || '')
-    if (!id || (!ALLOWED_COMMANDS[command] && !WRITE_PROPOSAL_COMMANDS.has(command))) {
+    if (!id || (!ALLOWED_COMMANDS[command] && !WRITE_PROPOSAL_COMMANDS.has(command) && !RULE_ACTION_PROPOSAL_COMMANDS[command])) {
       sendCommandError(id, COMMAND_NOT_ALLOWED_ERROR)
       return
     }
@@ -110,6 +116,21 @@ export function createAiBridgeConnection(options = {}) {
     try {
       if (command === 'import_bundle') {
         const result = await importBundle(message.payload || {})
+        if (result?.error) {
+          sendCommandError(id, result.error)
+          return
+        }
+        send({
+          id,
+          type: 'command:result',
+          ok: true,
+          result
+        })
+        return
+      }
+
+      if (RULE_ACTION_PROPOSAL_COMMANDS[command]) {
+        const result = await requestRuleAction(RULE_ACTION_PROPOSAL_COMMANDS[command], message.payload || {})
         if (result?.error) {
           sendCommandError(id, result.error)
           return

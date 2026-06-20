@@ -15,7 +15,10 @@ const EXPECTED_TOOL_NAMES = [
   'get_import_bundle_schema',
   'get_import_bundle_examples',
   'explain_rule_match',
-  'import_bundle'
+  'import_bundle',
+  'request_enable_rule',
+  'request_disable_rule',
+  'request_set_only_active_rule'
 ]
 const STATIC_TOOL_NAMES = [
   'get_import_bundle_schema',
@@ -23,7 +26,10 @@ const STATIC_TOOL_NAMES = [
 ]
 const REQUIRED_INPUT_TOOL_NAMES = [
   'import_bundle',
-  'explain_rule_match'
+  'explain_rule_match',
+  'request_enable_rule',
+  'request_disable_rule',
+  'request_set_only_active_rule'
 ]
 
 test('MCP server exposes the allowed InterceptPilot tools', () => {
@@ -69,6 +75,22 @@ test('MCP import_bundle tool declares bundleJson input', () => {
   assert.match(tool.inputSchema.properties.bundleJson.description, /interceptpilot\.rule/)
   assert.match(tool.inputSchema.properties.bundleJson.description, /interceptpilot\.collection/)
   assert.equal(tool.inputSchema.additionalProperties, false)
+})
+
+test('MCP rule action request tools declare ruleId input', () => {
+  const tools = getMcpToolDefinitions().filter(item => item.name.startsWith('request_'))
+
+  assert.deepEqual(tools.map(tool => tool.name), [
+    'request_enable_rule',
+    'request_disable_rule',
+    'request_set_only_active_rule'
+  ])
+  for (const tool of tools) {
+    assert.match(tool.description, /requires user confirmation/)
+    assert.deepEqual(tool.inputSchema.required, ['ruleId'])
+    assert.equal(tool.inputSchema.properties.ruleId.type, 'string')
+    assert.equal(tool.inputSchema.additionalProperties, false)
+  }
 })
 
 test('MCP read-only tool handlers always forward empty payloads', async () => {
@@ -227,6 +249,50 @@ test('MCP import_bundle returns a safe error when extension rejects the bundle',
 
   assert.equal(result.isError, true)
   assert.match(result.content[0].text, /Import bundle JSON is invalid/)
+})
+
+test('MCP rule action tools forward ruleId and format pending proposal result', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        return {
+          status: 'awaiting_human_confirmation',
+          pendingActionId: 'ai-action-1',
+          action: 'enable_rule',
+          summary: {
+            ruleId: 'rule-1',
+            ruleName: 'Checkout 200',
+            collectionName: 'Checkout'
+          }
+        }
+      }
+    }
+  })
+
+  const result = await handleToolCall('request_enable_rule', { ruleId: 'rule-1', ignored: true })
+
+  assert.deepEqual(calls, [{ command: 'request_enable_rule', payload: { ruleId: 'rule-1' } }])
+  assert.equal(result.content[0].type, 'text')
+  assert.match(result.content[0].text, /Rule action proposal sent to InterceptPilot/)
+  assert.match(result.content[0].text, /ai-action-1/)
+  assert.match(result.content[0].text, /Checkout 200/)
+})
+
+test('MCP rule action tools return a safe error for missing ruleId', async () => {
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async () => {
+        throw new Error('should not be called')
+      }
+    }
+  })
+
+  const result = await handleToolCall('request_disable_rule', {})
+
+  assert.equal(result.isError, true)
+  assert.match(result.content[0].text, /ruleId must be a non-empty string/)
 })
 
 test('MCP get_import_bundle_schema returns static schema details without extension connection', async () => {

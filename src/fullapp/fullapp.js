@@ -94,6 +94,7 @@ const state = {
   },
   aiBridgeSession: createAiBridgeSessionState(),
   aiBridgePendingImport: null,
+  aiBridgePendingAction: null,
 
   editingRule: null,
   editorMode: 'create',
@@ -612,7 +613,10 @@ function render() {
       selectedCount: state.ruleMoveModal?.ruleIds?.length || 0
     })
     + renderReleaseNotesModal(state.releaseNotesModal || {})
-    + renderAiBridgeProposalModal(state.aiBridgePendingImport)
+    + renderAiBridgeProposalModal({
+      pendingImport: state.aiBridgePendingImport,
+      pendingAction: state.aiBridgePendingAction
+    })
   document.body.classList.toggle('modal-open', Boolean(document.querySelector('.modal-backdrop')))
   bindSelectMenus()
   bindEvents()
@@ -1103,6 +1107,64 @@ async function confirmAiBridgePendingImport() {
   state.aiBridgePendingImport = result.pendingImport || null
   toastSuccess(t('toasts.aiImportConfirmed'))
   render()
+}
+
+async function cancelAiBridgePendingAction() {
+  const pendingActionId = state.aiBridgePendingAction?.id || ''
+  if (!pendingActionId) return
+
+  const result = await sendMessage({
+    type: MSG.AI_BRIDGE_CANCEL_PENDING_ACTION,
+    pendingActionId
+  })
+  if (result?.error) {
+    toastError(translateBackendError(result.error.code || result.error.message || result.error))
+    return
+  }
+
+  state.aiBridgePendingAction = result.pendingAction || null
+  toastSuccess(t('toasts.aiActionCanceled'))
+  render()
+}
+
+async function confirmAiBridgePendingAction() {
+  const pendingActionId = state.aiBridgePendingAction?.id || ''
+  if (!pendingActionId) {
+    toastError(t('toasts.aiActionMissing'))
+    return
+  }
+
+  const result = await sendMessage({
+    type: MSG.AI_BRIDGE_CONFIRM_PENDING_ACTION,
+    pendingActionId
+  })
+  if (result?.error) {
+    toastError(translateBackendError(result.error.code || result.error.message || result.error))
+    return
+  }
+
+  state.aiBridgePendingAction = result.pendingAction || null
+  if (Array.isArray(result.rules)) {
+    state.rules = result.rules
+  }
+  toastSuccess(t('toasts.aiActionConfirmed'))
+  render()
+}
+
+async function cancelAiBridgeProposal() {
+  if (state.aiBridgePendingAction?.id) {
+    await cancelAiBridgePendingAction()
+    return
+  }
+  await cancelAiBridgePendingImport()
+}
+
+async function confirmAiBridgeProposal() {
+  if (state.aiBridgePendingAction?.id) {
+    await confirmAiBridgePendingAction()
+    return
+  }
+  await confirmAiBridgePendingImport()
 }
 
 async function handleImportTemplateAction(action) {
@@ -1993,11 +2055,11 @@ function bindEvents() {
 
   $('#full-ai-import-cancel-btn')?.addEventListener('click', cancelAiBridgePendingImport)
   $('#full-ai-import-confirm-btn')?.addEventListener('click', confirmAiBridgePendingImport)
-  $('#full-ai-proposal-cancel-btn')?.addEventListener('click', cancelAiBridgePendingImport)
-  $('#full-ai-proposal-confirm-btn')?.addEventListener('click', confirmAiBridgePendingImport)
-  $('#full-ai-proposal-close')?.addEventListener('click', cancelAiBridgePendingImport)
+  $('#full-ai-proposal-cancel-btn')?.addEventListener('click', cancelAiBridgeProposal)
+  $('#full-ai-proposal-confirm-btn')?.addEventListener('click', confirmAiBridgeProposal)
+  $('#full-ai-proposal-close')?.addEventListener('click', cancelAiBridgeProposal)
   document.querySelector('[data-ai-proposal-backdrop="true"]')?.addEventListener('click', event => {
-    if (event.target === event.currentTarget) cancelAiBridgePendingImport()
+    if (event.target === event.currentTarget) cancelAiBridgeProposal()
   })
 
   bindImportTemplateMenuEvents()
@@ -2193,6 +2255,10 @@ chrome.runtime.onMessage.addListener(message => {
   }
   if (message?.type === 'state:aiBridgeImport') {
     state.aiBridgePendingImport = message.pendingImport || null
+    render()
+  }
+  if (message?.type === 'state:aiBridgeAction') {
+    state.aiBridgePendingAction = message.pendingAction || null
     render()
   }
   if (message?.type === 'state:attached') {

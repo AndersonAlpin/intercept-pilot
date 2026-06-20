@@ -32,7 +32,10 @@ export const MSG = {
   AI_BRIDGE_REVOKE_SESSION: 'aiBridge:revokeSession',
   AI_BRIDGE_GET_PENDING_IMPORT: 'aiBridge:getPendingImport',
   AI_BRIDGE_CONFIRM_PENDING_IMPORT: 'aiBridge:confirmPendingImport',
-  AI_BRIDGE_CANCEL_PENDING_IMPORT: 'aiBridge:cancelPendingImport'
+  AI_BRIDGE_CANCEL_PENDING_IMPORT: 'aiBridge:cancelPendingImport',
+  AI_BRIDGE_GET_PENDING_ACTION: 'aiBridge:getPendingAction',
+  AI_BRIDGE_CONFIRM_PENDING_ACTION: 'aiBridge:confirmPendingAction',
+  AI_BRIDGE_CANCEL_PENDING_ACTION: 'aiBridge:cancelPendingAction'
 }
 
 export async function sendMessage(message) {

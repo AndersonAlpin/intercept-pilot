@@ -10,6 +10,13 @@ function getProposalTypeLabel(type) {
   return t('common.unknown')
 }
 
+function getRuleActionLabel(action) {
+  if (action === 'enable_rule') return t('fullapp.aiActionTypeEnableRule')
+  if (action === 'disable_rule') return t('fullapp.aiActionTypeDisableRule')
+  if (action === 'set_only_active_rule') return t('fullapp.aiActionTypeSetOnlyActiveRule')
+  return t('common.unknown')
+}
+
 function getBundleRule(bundle) {
   if (bundle?.type !== BUNDLE_TYPE_RULE) return null
   return bundle.rule || null
@@ -66,9 +73,7 @@ function getPendingImportSummary(pendingImport) {
   }
 }
 
-export function renderAiBridgeProposalModal(pendingImport) {
-  if (!pendingImport?.id) return ''
-
+function renderImportProposalBody(pendingImport) {
   const summary = getPendingImportSummary(pendingImport)
   const isCollection = summary.type === BUNDLE_TYPE_COLLECTION
   const rows = [
@@ -81,7 +86,7 @@ export function renderAiBridgeProposalModal(pendingImport) {
     !isCollection ? renderSummaryRow(t('fullapp.aiProposalModalAction'), summary.action) : ''
   ].join('')
 
-  const bodyHtml = `
+  return `
     <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
     <div class="ai-bridge-proposal-modal__grid">
       ${rows}
@@ -90,13 +95,46 @@ export function renderAiBridgeProposalModal(pendingImport) {
       ${escapeHtml(t('fullapp.aiProposalModalViewDetails'))}
     </a>
   `
+}
+
+function renderActionProposalBody(pendingAction) {
+  const summary = pendingAction.summary || {}
+  const isSetOnlyActiveRule = pendingAction.action === 'set_only_active_rule'
+  const affectedNames = Array.isArray(summary.affectedRules)
+    ? summary.affectedRules.map(rule => rule.name).filter(Boolean).join(', ')
+    : ''
+  const rows = [
+    renderSummaryRow(t('fullapp.aiImportSource'), pendingAction.source || 'AI Bridge'),
+    renderSummaryRow(t('fullapp.aiActionType'), getRuleActionLabel(pendingAction.action)),
+    renderSummaryRow(t('fullapp.aiActionRule'), summary.ruleName),
+    renderSummaryRow(t('fullapp.aiActionCollection'), summary.collectionName),
+    renderSummaryRow(t('fullapp.aiActionImpact'), t(`fullapp.aiActionImpact_${pendingAction.action}`)),
+    isSetOnlyActiveRule ? renderSummaryRow(t('fullapp.aiActionAffectedRuleCount'), summary.affectedRuleCount) : '',
+    isSetOnlyActiveRule ? renderSummaryRow(t('fullapp.aiActionAffectedRules'), affectedNames) : ''
+  ].join('')
+
+  return `
+    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
+    <div class="ai-bridge-proposal-modal__grid">
+      ${rows}
+    </div>
+  `
+}
+
+export function renderAiBridgeProposalModal(proposal) {
+  const pendingAction = proposal?.pendingAction || (proposal?.action ? proposal : null)
+  const pendingImport = proposal?.pendingImport || (!pendingAction ? proposal : null)
+  if (!pendingAction?.id && !pendingImport?.id) return ''
+
+  const isAction = Boolean(pendingAction?.id)
+  const bodyHtml = isAction ? renderActionProposalBody(pendingAction) : renderImportProposalBody(pendingImport)
   const footerHtml = `
     ${renderButton({ id: 'full-ai-proposal-cancel-btn', label: t('fullapp.aiImportCancel'), variant: 'secondary' })}
-    ${renderButton({ id: 'full-ai-proposal-confirm-btn', label: t('fullapp.aiProposalModalConfirm'), variant: 'primary' })}
+    ${renderButton({ id: 'full-ai-proposal-confirm-btn', label: isAction ? t('fullapp.aiActionConfirm') : t('fullapp.aiProposalModalConfirm'), variant: 'primary' })}
   `
 
   return renderModalShell({
-    title: t('fullapp.aiImportProposalTitle'),
+    title: isAction ? t('fullapp.aiActionProposalTitle') : t('fullapp.aiImportProposalTitle'),
     bodyHtml,
     footerHtml,
     className: 'ai-bridge-proposal-modal-backdrop',

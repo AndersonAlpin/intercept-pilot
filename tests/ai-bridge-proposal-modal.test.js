@@ -82,20 +82,57 @@ test('AI Bridge proposal modal renders a collection import summary', () => {
   assert.match(html, />3</)
 })
 
+test('AI Bridge proposal modal renders a safe rule action summary', () => {
+  setLocale('pt-BR')
+
+  const html = renderAiBridgeProposalModal({
+    pendingAction: {
+      id: 'ai-action-1',
+      source: 'AI Bridge',
+      action: 'set_only_active_rule',
+      summary: {
+        ruleId: 'rule-1',
+        ruleName: 'Checkout 200',
+        collectionId: 'collection-1',
+        collectionName: 'Checkout',
+        affectedRuleCount: 2,
+        affectedRules: [
+          { id: 'rule-2', name: 'Checkout 500' },
+          { id: 'rule-3', name: 'Checkout timeout' }
+        ]
+      }
+    }
+  })
+
+  assert.match(html, /data-ai-bridge-proposal-modal="true"/)
+  assert.match(html, /Ação proposta pela IA/)
+  assert.match(html, /Ativar somente esta regra/)
+  assert.match(html, /Checkout 200/)
+  assert.match(html, /Checkout/)
+  assert.match(html, /2/)
+  assert.match(html, /Checkout 500, Checkout timeout/)
+  assert.match(html, /Confirmar ação/)
+  assert.doesNotMatch(html, /responseBody|Authorization|Cookie|token=/i)
+})
+
 test('AI Bridge proposal modal is empty without a pending proposal', () => {
   assert.equal(renderAiBridgeProposalModal(null), '')
   assert.equal(renderAiBridgeProposalModal({}), '')
 })
 
 test('Full App renders and handles AI Bridge proposal modal globally', () => {
-  assert.match(fullAppSource, /renderAiBridgeProposalModal\(state\.aiBridgePendingImport\)/)
-  assert.match(fullAppSource, /\$\('#full-ai-proposal-cancel-btn'\)\?\.addEventListener\('click', cancelAiBridgePendingImport\)/)
-  assert.match(fullAppSource, /\$\('#full-ai-proposal-confirm-btn'\)\?\.addEventListener\('click', confirmAiBridgePendingImport\)/)
+  assert.match(fullAppSource, /renderAiBridgeProposalModal\(\{\s*pendingImport: state\.aiBridgePendingImport,\s*pendingAction: state\.aiBridgePendingAction\s*\}\)/)
+  assert.match(fullAppSource, /\$\('#full-ai-proposal-cancel-btn'\)\?\.addEventListener\('click', cancelAiBridgeProposal\)/)
+  assert.match(fullAppSource, /\$\('#full-ai-proposal-confirm-btn'\)\?\.addEventListener\('click', confirmAiBridgeProposal\)/)
 
   const aiBridgeImportHandler = fullAppSource.match(/if \(message\?\.type === 'state:aiBridgeImport'\) \{[\s\S]*?\n  \}/)?.[0] || ''
   assert.match(aiBridgeImportHandler, /state\.aiBridgePendingImport = message\.pendingImport \|\| null/)
   assert.match(aiBridgeImportHandler, /render\(\)/)
   assert.doesNotMatch(aiBridgeImportHandler, /state\.page === 'import-export'/)
+
+  const aiBridgeActionHandler = fullAppSource.match(/if \(message\?\.type === 'state:aiBridgeAction'\) \{[\s\S]*?\n  \}/)?.[0] || ''
+  assert.match(aiBridgeActionHandler, /state\.aiBridgePendingAction = message\.pendingAction \|\| null/)
+  assert.match(aiBridgeActionHandler, /render\(\)/)
 })
 
 test('AI Bridge import proposals do not force the Full App to the Import page', () => {

@@ -18,6 +18,7 @@ import {
 } from './ai-bridge-session.js'
 import { createAiBridgeConnection } from './ai-bridge-connection.js'
 import { cancelPendingAiImport, confirmPendingAiImport, createPendingAiImport, getPendingAiImport } from './ai-bridge-imports.js'
+import { AI_BRIDGE_RULE_ACTIONS, cancelPendingAiRuleAction, confirmPendingAiRuleAction, createPendingAiRuleAction, getPendingAiRuleAction } from './ai-bridge-actions.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
@@ -29,6 +30,10 @@ function broadcastAiBridgeSession(aiBridgeSession = getAiBridgeSession()) {
 
 function broadcastAiBridgeImport(pendingImport = getPendingAiImport()) {
   broadcast({ type: 'state:aiBridgeImport', pendingImport })
+}
+
+function broadcastAiBridgeAction(pendingAction = getPendingAiRuleAction()) {
+  broadcast({ type: 'state:aiBridgeAction', pendingAction })
 }
 
 async function notifyCompatModeChanged(captureMode) {
@@ -582,6 +587,7 @@ async function getFullState() {
     releaseNotes,
     aiBridgeSession: getAiBridgeSession(),
     aiBridgePendingImport: getPendingAiImport(),
+    aiBridgePendingAction: getPendingAiRuleAction(),
     networkEntries: runtimeState.networkEntries,
     networkMeta: getNetworkCycleMeta(),
     attachedTabId: runtimeState.attachedTabId,
@@ -616,10 +622,92 @@ async function getAiBridgeCommandContext() {
 }
 
 async function proposeAiBridgeImport(payload) {
+  if (getPendingAiRuleAction()) {
+    return {
+      error: {
+        code: 'PENDING_PROPOSAL_EXISTS',
+        message: 'Another AI Bridge proposal is already pending.'
+      }
+    }
+  }
   const state = await getState()
   const result = createPendingAiImport(payload, { collections: state.collections })
   if (!result.error) {
     broadcastAiBridgeImport()
+  }
+  return result
+}
+
+function applyRuleEnabledState(rule, enabled, updatedAt) {
+  const nextEnabled = enabled !== false
+  const nextRule = {
+    ...rule,
+    enabled: nextEnabled,
+    updatedAt
+  }
+
+  if (nextEnabled && rule.enabled === false) {
+    nextRule.diagnostics = {
+      ...(rule.diagnostics || {}),
+      lastMatchedAt: null
+    }
+  }
+
+  return nextRule
+}
+
+async function applyAiBridgeRuleAction(pendingAction = {}) {
+  const state = await getState()
+  const summary = pendingAction.summary || {}
+  const targetRuleId = String(summary.ruleId || '')
+  const targetRule = state.rules.find(rule => rule.id === targetRuleId)
+  if (!targetRule) {
+    return {
+      error: {
+        code: 'RULE_NOT_FOUND',
+        message: 'Rule was not found.'
+      }
+    }
+  }
+
+  const updatedAt = new Date().toISOString()
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.enableRule) {
+    state.rules = state.rules.map(rule => (
+      rule.id === targetRuleId ? applyRuleEnabledState(rule, true, updatedAt) : rule
+    ))
+  } else if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.disableRule) {
+    state.rules = state.rules.map(rule => (
+      rule.id === targetRuleId ? applyRuleEnabledState(rule, false, updatedAt) : rule
+    ))
+  } else if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.setOnlyActiveRule) {
+    const collectionId = String(summary.collectionId || targetRule.collectionId || '')
+    state.rules = state.rules.map(rule => (
+      rule.collectionId === collectionId
+        ? applyRuleEnabledState(rule, rule.id === targetRuleId, updatedAt)
+        : rule
+    ))
+  } else {
+    return {
+      error: {
+        code: 'UNKNOWN_ACTION',
+        message: 'Rule action is not allowed.'
+      }
+    }
+  }
+
+  await setState(state)
+  return { ok: true, rules: state.rules }
+}
+
+async function requestAiBridgeRuleAction(action, payload) {
+  const state = await getState()
+  const result = createPendingAiRuleAction(action, payload, {
+    rules: state.rules,
+    collections: state.collections,
+    hasPendingImport: Boolean(getPendingAiImport())
+  })
+  if (!result.error) {
+    broadcastAiBridgeAction()
   }
   return result
 }
@@ -630,6 +718,7 @@ const aiBridgeConnection = createAiBridgeConnection({
   markWaiting: markAiBridgeWaiting,
   getCommandContext: getAiBridgeCommandContext,
   importBundle: proposeAiBridgeImport,
+  requestRuleAction: requestAiBridgeRuleAction,
   onSessionChange: broadcastAiBridgeSession
 })
 
@@ -1555,17 +1644,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return
       case 'aiBridge:startSession': {
         cancelPendingAiImport()
+        cancelPendingAiRuleAction()
         const aiBridgeSession = startAiBridgeSession()
         aiBridgeConnection.sync()
         sendResponse({ aiBridgeSession })
         broadcastAiBridgeImport()
+        broadcastAiBridgeAction()
         return
       }
       case 'aiBridge:revokeSession': {
         aiBridgeConnection.disconnect()
         cancelPendingAiImport()
+        cancelPendingAiRuleAction()
         sendResponse({ aiBridgeSession: revokeAiBridgeSession() })
         broadcastAiBridgeImport()
+        broadcastAiBridgeAction()
         return
       }
       case 'aiBridge:getPendingImport':
@@ -1581,6 +1674,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const result = cancelPendingAiImport(message.pendingImportId || '')
         sendResponse({ ...result, pendingImport: getPendingAiImport() })
         broadcastAiBridgeImport()
+        return
+      }
+      case 'aiBridge:getPendingAction':
+        sendResponse({ pendingAction: getPendingAiRuleAction() })
+        return
+      case 'aiBridge:confirmPendingAction': {
+        const result = await confirmPendingAiRuleAction(message.pendingActionId || '', applyAiBridgeRuleAction)
+        sendResponse({ ...result, pendingAction: getPendingAiRuleAction() })
+        broadcastAiBridgeAction()
+        return
+      }
+      case 'aiBridge:cancelPendingAction': {
+        const result = cancelPendingAiRuleAction(message.pendingActionId || '')
+        sendResponse({ ...result, pendingAction: getPendingAiRuleAction() })
+        broadcastAiBridgeAction()
         return
       }
       case 'debugger:attachActiveTab': {

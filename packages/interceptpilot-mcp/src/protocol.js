@@ -22,7 +22,10 @@ export const ALLOWED_COMMANDS = Object.freeze([
   'get_import_bundle_schema',
   'get_import_bundle_examples',
   'explain_rule_match',
-  'import_bundle'
+  'import_bundle',
+  'request_enable_rule',
+  'request_disable_rule',
+  'request_set_only_active_rule'
 ])
 
 const ALLOWED_COMMAND_SET = new Set(ALLOWED_COMMANDS)

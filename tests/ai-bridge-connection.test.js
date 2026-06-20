@@ -224,6 +224,61 @@ test('AI Bridge connection routes import_bundle command through write proposal h
   })
 })
 
+test('AI Bridge connection routes rule action request commands through proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedActions = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => harness.session,
+    markConnected: () => harness.session,
+    markWaiting: () => harness.session,
+    getCommandContext: async () => ({}),
+    importBundle: async () => {
+      throw new Error('import should not be called')
+    },
+    requestRuleAction: async (action, payload) => {
+      proposedActions.push({ action, payload })
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: 'ai-action-1',
+        action,
+        summary: { ruleId: 'rule-1', ruleName: 'Rule 1' }
+      }
+    },
+    setTimeoutFn: fn => {
+      harness.timers.push(fn)
+      return harness.timers.length
+    },
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-action', type: 'command', command: 'request_enable_rule', payload: { ruleId: 'rule-1' } }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedActions, [{ action: 'enable_rule', payload: { ruleId: 'rule-1' } }])
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-action',
+    type: 'command:result',
+    ok: true,
+    result: {
+      status: 'awaiting_human_confirmation',
+      pendingActionId: 'ai-action-1',
+      action: 'enable_rule',
+      summary: { ruleId: 'rule-1', ruleName: 'Rule 1' }
+    }
+  })
+})
+
 test('AI Bridge connection returns safe error when import_bundle is rejected', async () => {
   FakeWebSocket.instances = []
   const harness = makeHarness({
