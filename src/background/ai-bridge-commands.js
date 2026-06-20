@@ -1,12 +1,16 @@
-import { getVisibleNetworkEntriesForCapture, hasActiveCaptureContext } from '../shared/capture-context.js'
+import { getVisibleLogsForCapture, getVisibleNetworkEntriesForCapture, hasActiveCaptureContext } from '../shared/capture-context.js'
 import {
   sanitizeAiBridgeQueryKeys,
   sanitizeAiBridgeCollection,
+  sanitizeAiBridgeLog,
   sanitizeAiBridgeRequest,
-  sanitizeAiBridgeRule
+  sanitizeAiBridgeRule,
+  sanitizeAiBridgeRuleResult
 } from '../shared/ai-bridge-sanitize.js'
 
 export const MAX_AI_BRIDGE_CAPTURED_REQUESTS = 100
+export const MAX_AI_BRIDGE_SANITIZED_LOGS = 100
+export const MAX_AI_BRIDGE_RECENT_RULE_RESULTS = 100
 
 function getStateRules(state = {}) {
   return Array.isArray(state.rules) ? state.rules : []
@@ -77,6 +81,18 @@ export function listCapturedRequests({ state = {}, networkEntries = [] } = {}) {
   return getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : [])
     .slice(0, MAX_AI_BRIDGE_CAPTURED_REQUESTS)
     .map(entry => sanitizeAiBridgeRequest(entry))
+}
+
+export function listSanitizedLogs({ state = {}, logs = state.logs || [] } = {}) {
+  return getVisibleLogsForCapture(state, Array.isArray(logs) ? logs : [])
+    .slice(0, MAX_AI_BRIDGE_SANITIZED_LOGS)
+    .map(log => sanitizeAiBridgeLog(log))
+}
+
+export function listRecentRuleResults({ state = {}, networkEntries = [] } = {}) {
+  return getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : [])
+    .slice(0, MAX_AI_BRIDGE_RECENT_RULE_RESULTS)
+    .map(entry => sanitizeAiBridgeRuleResult(entry))
 }
 
 export function listCollections({ state = {} } = {}) {

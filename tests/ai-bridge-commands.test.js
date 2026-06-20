@@ -3,11 +3,15 @@ import assert from 'node:assert/strict'
 
 import {
   MAX_AI_BRIDGE_CAPTURED_REQUESTS,
+  MAX_AI_BRIDGE_RECENT_RULE_RESULTS,
+  MAX_AI_BRIDGE_SANITIZED_LOGS,
   getActiveCollection,
   getCurrentTestContext,
   listCapturedRequests,
   listCollections,
-  listRules
+  listRecentRuleResults,
+  listRules,
+  listSanitizedLogs
 } from '../src/background/ai-bridge-commands.js'
 
 const state = {
@@ -127,6 +131,170 @@ test('listCapturedRequests limits the response size for AI Bridge', () => {
   assert.equal(requests[0].id, 'entry-0')
   assert.equal(requests.at(-1).id, `entry-${MAX_AI_BRIDGE_CAPTURED_REQUESTS - 1}`)
   assert.doesNotMatch(JSON.stringify(requests), /secret-/)
+})
+
+test('listSanitizedLogs returns only sanitized logs from the active capture context', () => {
+  const logs = listSanitizedLogs({
+    state,
+    logs: [
+      {
+        id: 'active-log',
+        scope: 'web',
+        level: 'error',
+        message: 'Fetch failed token=secret-token Authorization: Bearer secret',
+        url: 'https://internal.example.test/api/auth?token=secret-token&safe=value',
+        timestamp: '2026-06-20T10:00:00.000Z',
+        tabId: 42,
+        captureSessionId: 'cdp:42:session',
+        networkCycleId: 'cycle-active',
+        stack: 'Error: secret stack',
+        headers: { Authorization: 'Bearer secret' }
+      },
+      {
+        id: 'old-log',
+        scope: 'web',
+        level: 'info',
+        message: 'Old token=old-secret',
+        url: 'https://old.example.test/api?token=old-secret',
+        tabId: 99,
+        captureSessionId: 'old-session'
+      },
+      {
+        id: 'app-log',
+        scope: 'app',
+        level: 'info',
+        message: 'Internal app token=app-secret',
+        tabId: 42,
+        captureSessionId: 'cdp:42:session'
+      }
+    ]
+  })
+
+  assert.equal(logs.length, 1)
+  assert.equal(logs[0].id, 'active-log')
+  assert.equal(logs[0].urlSanitized, 'https://internal.example.test/api/auth')
+  assert.deepEqual(logs[0].queryKeys, ['token', 'safe'])
+  assert.equal(logs[0].sensitiveContentRemoved, true)
+  assert.equal(logs[0].captureSessionId, 'cdp:42:session')
+  assert.equal(logs[0].networkCycleId, 'cycle-active')
+
+  const serialized = JSON.stringify(logs)
+  assert.doesNotMatch(serialized, /secret-token|safe=value|Bearer secret|secret stack|old-secret|app-secret|headers|stack|message":/i)
+})
+
+test('listSanitizedLogs limits the response size for AI Bridge', () => {
+  const logs = Array.from({ length: MAX_AI_BRIDGE_SANITIZED_LOGS + 25 }, (_, index) => ({
+    id: `log-${index}`,
+    scope: 'web',
+    level: 'info',
+    message: `Loaded ${index} token=secret-${index}`,
+    url: `https://internal.example.test/api/logs/${index}?token=secret-${index}`,
+    tabId: 42,
+    captureSessionId: 'cdp:42:session'
+  }))
+
+  const sanitized = listSanitizedLogs({ state, logs })
+
+  assert.equal(sanitized.length, MAX_AI_BRIDGE_SANITIZED_LOGS)
+  assert.equal(sanitized[0].id, 'log-0')
+  assert.equal(sanitized.at(-1).id, `log-${MAX_AI_BRIDGE_SANITIZED_LOGS - 1}`)
+  assert.doesNotMatch(JSON.stringify(sanitized), /secret-/)
+})
+
+test('listRecentRuleResults returns only safe rule result summaries from the active capture context', () => {
+  const results = listRecentRuleResults({
+    state,
+    networkEntries: [
+      {
+        id: 'active-rule-result',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'POST',
+        url: 'https://internal.example.test/api/auth?token=secret-token&safe=value',
+        status: 401,
+        statusText: 'Unauthorized',
+        resourceType: 'Fetch',
+        durationMs: 123,
+        startedAt: 1000,
+        endedAt: 1123,
+        intercepted: true,
+        matchedRuleId: 'rule-auth',
+        matchedRuleName: 'Mock auth',
+        appliedAction: 'mockResponse',
+        requestHeaders: [{ name: 'Authorization', value: 'Bearer secret' }],
+        responseHeaders: [{ name: 'Set-Cookie', value: 'sid=secret' }],
+        requestPostData: '{"password":"secret"}',
+        responseBody: '{"access_token":"secret"}'
+      },
+      {
+        id: 'active-pass-through',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'GET',
+        url: 'https://internal.example.test/api/pass?session=secret-session',
+        status: 200,
+        appliedAction: 'passThrough',
+        intercepted: false
+      },
+      {
+        id: 'stale-rule-result',
+        networkTabId: 99,
+        captureSessionId: 'old-session',
+        method: 'GET',
+        url: 'https://old.example.test/api?token=old-secret',
+        matchedRuleId: 'old-rule',
+        matchedRuleName: 'Old rule'
+      }
+    ]
+  })
+
+  assert.equal(results.length, 2)
+  assert.deepEqual(results[0], {
+    requestId: 'active-rule-result',
+    ruleId: 'rule-auth',
+    ruleName: 'Mock auth',
+    urlSanitized: 'https://internal.example.test/api/auth',
+    urlOrigin: 'https://internal.example.test',
+    urlPath: '/api/auth',
+    hasQuery: true,
+    queryKeys: ['token', 'safe'],
+    method: 'POST',
+    resourceType: 'Fetch',
+    status: 401,
+    statusText: 'Unauthorized',
+    appliedAction: 'mockResponse',
+    intercepted: true,
+    matched: true,
+    startedAt: 1000,
+    endedAt: 1123,
+    durationMs: 123
+  })
+  assert.equal(results[1].matched, false)
+  assert.equal(results[1].intercepted, false)
+
+  const serialized = JSON.stringify(results)
+  assert.doesNotMatch(serialized, /secret-token|safe=value|secret-session|Bearer secret|sid=secret|password|access_token|old-secret|requestHeaders|responseHeaders|requestPostData|responseBody/i)
+})
+
+test('listRecentRuleResults limits the response size for AI Bridge', () => {
+  const networkEntries = Array.from({ length: MAX_AI_BRIDGE_RECENT_RULE_RESULTS + 25 }, (_, index) => ({
+    id: `result-${index}`,
+    networkTabId: 42,
+    captureSessionId: 'cdp:42:session',
+    method: 'GET',
+    url: `https://internal.example.test/api/results/${index}?token=secret-${index}`,
+    matchedRuleId: index % 2 === 0 ? 'rule-auth' : null,
+    matchedRuleName: index % 2 === 0 ? 'Mock auth' : null,
+    appliedAction: index % 2 === 0 ? 'mockResponse' : 'passThrough',
+    intercepted: index % 2 === 0
+  }))
+
+  const results = listRecentRuleResults({ state, networkEntries })
+
+  assert.equal(results.length, MAX_AI_BRIDGE_RECENT_RULE_RESULTS)
+  assert.equal(results[0].requestId, 'result-0')
+  assert.equal(results.at(-1).requestId, `result-${MAX_AI_BRIDGE_RECENT_RULE_RESULTS - 1}`)
+  assert.doesNotMatch(JSON.stringify(results), /secret-/)
 })
 
 test('listCollections includes rule counts and active collection flag', () => {

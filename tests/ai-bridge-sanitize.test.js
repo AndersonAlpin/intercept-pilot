@@ -1,7 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { sanitizeAiBridgeRequest, sanitizeAiBridgeRule } from '../src/shared/ai-bridge-sanitize.js'
+import {
+  sanitizeAiBridgeLog,
+  sanitizeAiBridgeRequest,
+  sanitizeAiBridgeRule,
+  sanitizeAiBridgeRuleResult
+} from '../src/shared/ai-bridge-sanitize.js'
 
 const sensitiveQueryUrl = 'https://private.example.test/api/users?token=tok_123&access_token=access_123&refresh_token=refresh_123&api_key=key_123&secret=secret_123&code=code_123&session=session_123&auth=auth_123&safe=value'
 
@@ -158,4 +163,94 @@ test('sanitizeAiBridgeRule omits response body, response headers and runtime hit
 
   const serialized = JSON.stringify(sanitized)
   assert.doesNotMatch(serialized, /responseBody|responseHeaders|matchCount|lastMatchedAt|secret/)
+})
+
+test('sanitizeAiBridgeLog exposes only safe fields and redacts sensitive message content', () => {
+  const sanitized = sanitizeAiBridgeLog({
+    id: 'log-1',
+    scope: 'web',
+    level: 'error',
+    message: `Fetch failed for https://private.example.test/api/users?token=tok_123&safe=value Authorization: Bearer secret-token password="secret-password" ${'x'.repeat(420)}`,
+    url: 'https://private.example.test/api/users?token=tok_123&safe=value',
+    timestamp: '2026-06-20T10:00:00.000Z',
+    tabId: 42,
+    captureSessionId: 'cdp:42:session',
+    networkCycleId: 'cycle-1',
+    stack: 'Error: secret stack at private.js:1',
+    payload: { token: 'secret' },
+    headers: { Authorization: 'Bearer secret-token' }
+  })
+
+  assert.deepEqual(Object.keys(sanitized).sort(), [
+    'captureSessionId',
+    'hasQuery',
+    'id',
+    'level',
+    'messageSanitized',
+    'messageTruncated',
+    'networkCycleId',
+    'queryKeys',
+    'scope',
+    'sensitiveContentRemoved',
+    'timestamp',
+    'urlOrigin',
+    'urlPath',
+    'urlSanitized'
+  ].sort())
+  assert.equal(sanitized.urlSanitized, 'https://private.example.test/api/users')
+  assert.equal(sanitized.urlOrigin, 'https://private.example.test')
+  assert.equal(sanitized.urlPath, '/api/users')
+  assert.equal(sanitized.hasQuery, true)
+  assert.deepEqual(sanitized.queryKeys, ['token', 'safe'])
+  assert.equal(sanitized.messageTruncated, true)
+  assert.equal(sanitized.sensitiveContentRemoved, true)
+
+  const serialized = JSON.stringify(sanitized)
+  assert.doesNotMatch(serialized, /tok_123|safe=value|secret-token|secret-password|secret stack|payload|headers|Authorization|Bearer/i)
+})
+
+test('sanitizeAiBridgeRuleResult exposes safe rule result fields without headers, bodies or query values', () => {
+  const sanitized = sanitizeAiBridgeRuleResult({
+    id: 'request-1',
+    method: 'POST',
+    url: 'https://private.example.test/api/auth?token=tok_123&safe=value',
+    resourceType: 'Fetch',
+    status: 401,
+    statusText: 'Unauthorized',
+    startedAt: 1000,
+    endedAt: 1125,
+    durationMs: 125,
+    intercepted: true,
+    matchedRuleId: 'rule-auth',
+    matchedRuleName: 'Mock auth',
+    appliedAction: 'mockResponse',
+    requestHeaders: [{ name: 'Authorization', value: 'Bearer secret-token' }],
+    responseHeaders: [{ name: 'Set-Cookie', value: 'sid=secret' }],
+    requestPostData: '{"password":"secret"}',
+    responseBody: '{"access_token":"secret"}'
+  })
+
+  assert.deepEqual(sanitized, {
+    requestId: 'request-1',
+    ruleId: 'rule-auth',
+    ruleName: 'Mock auth',
+    urlSanitized: 'https://private.example.test/api/auth',
+    urlOrigin: 'https://private.example.test',
+    urlPath: '/api/auth',
+    hasQuery: true,
+    queryKeys: ['token', 'safe'],
+    method: 'POST',
+    resourceType: 'Fetch',
+    status: 401,
+    statusText: 'Unauthorized',
+    appliedAction: 'mockResponse',
+    intercepted: true,
+    matched: true,
+    startedAt: 1000,
+    endedAt: 1125,
+    durationMs: 125
+  })
+
+  const serialized = JSON.stringify(sanitized)
+  assert.doesNotMatch(serialized, /tok_123|safe=value|Authorization|Set-Cookie|Bearer|password|access_token|requestHeaders|responseHeaders|requestPostData|responseBody/i)
 })

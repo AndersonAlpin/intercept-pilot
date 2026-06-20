@@ -10,6 +10,8 @@ function hasHeaders(headers) {
   return Array.isArray(headers) && headers.length > 0
 }
 
+const MAX_SANITIZED_LOG_MESSAGE_LENGTH = 300
+
 export function sanitizeAiBridgeQueryKeys(query) {
   return String(query || '')
     .replace(/^\?/, '')
@@ -56,6 +58,39 @@ function sanitizeUrl(url) {
   }
 }
 
+function truncateMessage(message) {
+  const text = toStringValue(message)
+  if (text.length <= MAX_SANITIZED_LOG_MESSAGE_LENGTH) {
+    return {
+      text,
+      truncated: false
+    }
+  }
+
+  return {
+    text: `${text.slice(0, MAX_SANITIZED_LOG_MESSAGE_LENGTH)}...`,
+    truncated: true
+  }
+}
+
+function sanitizeMessage(message) {
+  const raw = toStringValue(message)
+  let sanitized = raw
+
+  sanitized = sanitized.replace(/https?:\/\/[^\s"'<>]+/g, match => sanitizeUrl(match).urlSanitized || '[url removed]')
+  sanitized = sanitized.replace(/\b(authorization|set-cookie|cookie)\s*:\s*[^\s,;]+(?:\s+[^\s,;]+)?/gi, '[redacted]')
+  sanitized = sanitized.replace(/\b(bearer)\s+[a-z0-9._~+/-]+/gi, '[redacted]')
+  sanitized = sanitized.replace(/\b(token|access_token|refresh_token|api_key|secret|password|session|code|auth)\s*=\s*("[^"]*"|'[^']*'|[^\s,;&]+)/gi, '$1=[redacted]')
+  sanitized = sanitized.replace(/"((?:access_)?token|refresh_token|api_key|secret|password|session|code|auth)"\s*:\s*"[^"]*"/gi, '"$1":"[redacted]"')
+
+  const truncated = truncateMessage(sanitized)
+  return {
+    text: truncated.text,
+    truncated: truncated.truncated,
+    sensitiveContentRemoved: sanitized !== raw
+  }
+}
+
 export function sanitizeAiBridgeRequest(entry = {}) {
   const urlParts = sanitizeUrl(entry.url)
   return {
@@ -82,6 +117,27 @@ export function sanitizeAiBridgeRequest(entry = {}) {
   }
 }
 
+export function sanitizeAiBridgeLog(log = {}) {
+  const urlParts = sanitizeUrl(log.url)
+  const message = sanitizeMessage(log.message)
+  return {
+    id: toStringValue(log.id),
+    scope: toStringValue(log.scope),
+    level: toStringValue(log.level),
+    messageSanitized: message.text,
+    urlSanitized: urlParts.urlSanitized,
+    urlOrigin: urlParts.urlOrigin,
+    urlPath: urlParts.urlPath,
+    timestamp: log.timestamp ?? null,
+    captureSessionId: log.captureSessionId ?? null,
+    networkCycleId: log.networkCycleId ?? null,
+    messageTruncated: message.truncated,
+    hasQuery: urlParts.hasQuery,
+    queryKeys: urlParts.queryKeys,
+    sensitiveContentRemoved: message.sensitiveContentRemoved
+  }
+}
+
 export function sanitizeAiBridgeCollection(collection = {}, options = {}) {
   return {
     id: toStringValue(collection.id),
@@ -91,6 +147,32 @@ export function sanitizeAiBridgeCollection(collection = {}, options = {}) {
     order: Number(collection.order ?? 0),
     ruleCount: Number(options.ruleCount || 0),
     active: Boolean(options.active)
+  }
+}
+
+export function sanitizeAiBridgeRuleResult(entry = {}) {
+  const urlParts = sanitizeUrl(entry.url)
+  const ruleId = entry.matchedRuleId ?? null
+  const ruleName = entry.matchedRuleName ?? null
+  return {
+    requestId: toStringValue(entry.id),
+    ruleId,
+    ruleName,
+    urlSanitized: urlParts.urlSanitized,
+    urlOrigin: urlParts.urlOrigin,
+    urlPath: urlParts.urlPath,
+    hasQuery: urlParts.hasQuery,
+    queryKeys: urlParts.queryKeys,
+    method: toStringValue(entry.method),
+    resourceType: toStringValue(entry.resourceType),
+    status: entry.status ?? null,
+    statusText: toStringValue(entry.statusText),
+    appliedAction: toStringValue(entry.appliedAction),
+    intercepted: Boolean(entry.intercepted),
+    matched: Boolean(ruleId || ruleName),
+    startedAt: entry.startedAt ?? null,
+    endedAt: entry.endedAt ?? null,
+    durationMs: entry.durationMs ?? null
   }
 }
 

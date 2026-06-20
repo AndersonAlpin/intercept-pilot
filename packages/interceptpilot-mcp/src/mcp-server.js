@@ -90,6 +90,8 @@ const MCP_TOOLS = {
   list_captured_requests: createReadOnlyTool('List sanitized captured requests from the active InterceptPilot capture context.'),
   list_collections: createReadOnlyTool('List InterceptPilot collections with safe summary fields.'),
   list_rules: createReadOnlyTool('List InterceptPilot rules with safe summary fields, without response bodies or headers.'),
+  list_sanitized_logs: createReadOnlyTool('List sanitized recent logs from the active InterceptPilot capture context, without headers, bodies, cookies or query values.'),
+  list_recent_rule_results: createReadOnlyTool('List sanitized recent rule result summaries from the active InterceptPilot capture context.'),
   get_active_collection: createReadOnlyTool('Get the active InterceptPilot collection summary.'),
   get_current_test_context: createReadOnlyTool('Get sanitized active capture, tab, collection and rule count context for the current InterceptPilot test.'),
   import_bundle: {

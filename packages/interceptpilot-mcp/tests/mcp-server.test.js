@@ -8,6 +8,8 @@ const EXPECTED_TOOL_NAMES = [
   'list_captured_requests',
   'list_collections',
   'list_rules',
+  'list_sanitized_logs',
+  'list_recent_rule_results',
   'get_active_collection',
   'get_current_test_context',
   'import_bundle'

@@ -4,7 +4,9 @@ import {
   getCurrentTestContext,
   listCapturedRequests,
   listCollections,
-  listRules
+  listRecentRuleResults,
+  listRules,
+  listSanitizedLogs
 } from './ai-bridge-commands.js'
 
 const BRIDGE_SOURCE = 'interceptpilot-extension'
@@ -15,6 +17,8 @@ const ALLOWED_COMMANDS = {
   list_captured_requests: listCapturedRequests,
   list_collections: listCollections,
   list_rules: listRules,
+  list_sanitized_logs: listSanitizedLogs,
+  list_recent_rule_results: listRecentRuleResults,
   get_active_collection: getActiveCollection,
   get_current_test_context: getCurrentTestContext
 }
