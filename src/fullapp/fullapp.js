@@ -2154,10 +2154,6 @@ function bindEvents() {
       input.addEventListener('change', updateSettingsSaveState)
     })
 
-  document.querySelector('.ai-bridge-page__advanced')?.addEventListener('toggle', event => {
-    state.aiBridgeAdvancedOpen = Boolean(event.currentTarget.open)
-  })
-
   async function applyAiBridgeDefaultPermissionMode(mode) {
     const permissions = createAiBridgeDefaultPermissionsForMode(mode)
     const result = await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { aiBridgePermissions: permissions } })
@@ -2190,7 +2186,6 @@ function bindEvents() {
   }
 
   function openAiBridgeCustomPermissions() {
-    state.aiBridgeAdvancedOpen = true
     if (state.aiBridgeSession?.token) state.aiBridgeSessionPermissionsOpen = true
     else state.aiBridgeDefaultPermissionsOpen = true
     render()
@@ -2207,8 +2202,6 @@ function bindEvents() {
       else await applyAiBridgeDefaultPermissionMode(mode)
     })
   })
-
-  $('#ai-bridge-edit-custom-permissions-btn')?.addEventListener('click', openAiBridgeCustomPermissions)
 
   document.querySelectorAll('[data-ai-bridge-default-permission]').forEach(input => {
     input.addEventListener('change', async () => {
@@ -2249,8 +2242,6 @@ function bindEvents() {
       render()
     })
   })
-
-  $('#ai-bridge-session-customize-btn')?.addEventListener('click', openAiBridgeCustomPermissions)
 
   $('#ai-bridge-session-reset-btn')?.addEventListener('click', async () => {
     const payload = createSessionAiBridgePermissions(state.settings?.aiBridgePermissions)

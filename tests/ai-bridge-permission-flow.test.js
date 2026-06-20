@@ -27,11 +27,12 @@ test('Full App can update saved default permissions and current session permissi
   assert.match(fullAppSource, /data-ai-bridge-session-permission/)
 })
 
-test('Full App applies permission presets and opens custom editing explicitly', () => {
+test('Full App applies permission presets and opens custom permissions from the mode card', () => {
   assert.match(fullAppSource, /data-ai-bridge-mode/)
   assert.match(fullAppSource, /createAiBridgeDefaultPermissionsForMode\(mode\)/)
   assert.match(fullAppSource, /createAiBridgeSessionPermissionsForMode\(mode\)/)
   assert.match(fullAppSource, /mode === AI_BRIDGE_PERMISSION_MODES\.custom/)
   assert.match(fullAppSource, /state\.aiBridgeDefaultPermissionsOpen = true/)
   assert.match(fullAppSource, /state\.aiBridgeSessionPermissionsOpen = true/)
+  assert.doesNotMatch(fullAppSource, /ai-bridge-edit-custom-permissions-btn/)
 })

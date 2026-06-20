@@ -632,7 +632,8 @@ button,input,select,textarea { font: inherit; color: inherit; }
   padding: 0 16px 16px;
 }
 .ai-bridge-page__permission-block,
-.ai-bridge-session-permissions {
+.ai-bridge-session-permissions,
+.ai-bridge-page__advanced-permissions {
   display: grid;
   gap: 12px;
 }
@@ -654,7 +655,10 @@ button,input,select,textarea { font: inherit; color: inherit; }
 }
 .ai-bridge-permission-group {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+}
+.ai-bridge-permission-group + .ai-bridge-permission-group {
+  margin-top: 8px;
 }
 .ai-bridge-permission-group h4 {
   margin: 0;
@@ -664,10 +668,10 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .ai-bridge-permission-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px 12px;
+  gap: 10px 14px;
 }
 .ai-bridge-permission-toggle {
-  align-items: flex-start;
+  align-items: center;
   min-width: 0;
 }
 .settings-ai-bridge__config {

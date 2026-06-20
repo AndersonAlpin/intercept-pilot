@@ -69,7 +69,7 @@ test('AI Bridge assisted preset keeps data hidden and only releases assisted act
   assert.equal(getAiBridgeDefaultPermissionMode(defaults), AI_BRIDGE_PERMISSION_MODES.assisted)
 })
 
-test('AI Bridge advanced debug preset enables every advanced permission', () => {
+test('AI Bridge advanced preset enables every advanced permission', () => {
   const defaults = createAiBridgeDefaultPermissionsForMode(AI_BRIDGE_PERMISSION_MODES.advanced)
   const session = createAiBridgeSessionPermissionsForMode(AI_BRIDGE_PERMISSION_MODES.advanced)
 

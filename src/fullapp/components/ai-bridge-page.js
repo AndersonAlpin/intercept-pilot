@@ -72,6 +72,7 @@ function getActionSummary(permissions = {}) {
   const total = ACTION_PERMISSION_ROWS.length
   const enabled = countEnabled(permissions, ACTION_PERMISSION_ROWS.map(([, sessionKey]) => sessionKey))
   if (!enabled) return t('fullapp.aiBridgeActionsNone')
+  if (enabled === 1 && permissions.allowRuleActionsThisSession) return t('fullapp.aiBridgeActionsRuleActions')
   if (enabled === total) return t('fullapp.aiBridgeActionsAll')
   return t('fullapp.aiBridgeActionsSome')
 }
@@ -159,10 +160,9 @@ function renderStatusSection(session) {
   `
 }
 
-function renderPresetSummary(permissions, mode) {
+function renderModeSummary(permissions, mode) {
   return `
     <div class="ai-bridge-preset-summary">
-      <p>${escapeHtml(t(`fullapp.aiBridgeMode${mode[0].toUpperCase()}${mode.slice(1)}Summary`))}</p>
       <div class="ai-bridge-summary-grid">
         ${renderSummaryItem(t('fullapp.aiBridgeSensitiveDataSummary'), getSensitiveDataSummary(permissions))}
         ${renderSummaryItem(t('fullapp.aiBridgeActionSummary'), getActionSummary(permissions))}
@@ -170,74 +170,58 @@ function renderPresetSummary(permissions, mode) {
       ${mode === AI_BRIDGE_PERMISSION_MODES.advanced
         ? `<p class="ai-bridge-page__warning">${escapeHtml(t('fullapp.aiBridgeAdvancedModeWarning'))}</p>`
         : ''}
-      ${renderButton({ id: 'ai-bridge-edit-custom-permissions-btn', label: t('fullapp.aiBridgeEditCustomPermissions'), variant: 'secondary' })}
     </div>
   `
 }
 
-function renderSessionPermissions(session, defaultPermissions, effectiveMode, options = {}) {
-  if (session.status === AI_BRIDGE_STATUS.disabled) {
-    return `<p class="ai-bridge-page__muted">${escapeHtml(t('fullapp.aiBridgeSessionPermissionsUnavailable'))}</p>`
-  }
+function renderAdvancedPermissions(session, settings) {
+  const defaultPermissions = normalizeAiBridgeDefaultPermissions(settings.aiBridgePermissions)
+  const hasSession = session.status !== AI_BRIDGE_STATUS.disabled
+  const permissions = hasSession ? normalizeAiBridgeSessionPermissions(session.permissions) : defaultPermissions
+  const mode = hasSession ? 'session' : 'default'
 
-  const permissions = normalizeAiBridgeSessionPermissions(session.permissions)
   return `
-    <div class="ai-bridge-session-permissions">
-      <div class="ai-bridge-session-permissions__header">
-        <strong>${escapeHtml(getSessionSummary(session, defaultPermissions))}</strong>
-        <div class="ai-bridge-page__actions">
-          ${renderButton({ id: 'ai-bridge-session-customize-btn', label: t('fullapp.aiBridgeCustomizeSession'), variant: 'secondary' })}
-          ${renderButton({ id: 'ai-bridge-session-reset-btn', label: t('fullapp.aiBridgeRestoreSessionDefaults'), variant: 'secondary' })}
+    <section class="ai-bridge-page__section ai-bridge-page__advanced-permissions">
+      <div class="ai-bridge-page__section-header">
+        <div>
+          <h3>${escapeHtml(t('fullapp.aiBridgeAdvancedPermissionsTitle'))}</h3>
         </div>
       </div>
-      ${effectiveMode === AI_BRIDGE_PERMISSION_MODES.custom
+      <p class="ai-bridge-page__warning">${escapeHtml(t('fullapp.aiBridgePermissionsWarning'))}</p>
+      ${hasSession
         ? `
-          ${renderPermissionGroup(t('fullapp.aiBridgePermissionDataGroup'), DATA_PERMISSION_ROWS, permissions, 'session')}
-          ${renderPermissionGroup(t('fullapp.aiBridgePermissionActionsGroup'), ACTION_PERMISSION_ROWS, permissions, 'session')}
+          <div class="ai-bridge-session-permissions__header">
+            <strong>${escapeHtml(getSessionSummary(session, defaultPermissions))}</strong>
+            <div class="ai-bridge-page__actions">
+              ${renderButton({ id: 'ai-bridge-session-reset-btn', label: t('fullapp.aiBridgeRestoreSessionDefaults'), variant: 'secondary' })}
+            </div>
+          </div>
         `
         : ''}
-    </div>
+      ${renderPermissionGroup(t('fullapp.aiBridgePermissionDataGroup'), DATA_PERMISSION_ROWS, permissions, mode)}
+      ${renderPermissionGroup(t('fullapp.aiBridgePermissionActionsGroup'), ACTION_PERMISSION_ROWS, permissions, mode)}
+    </section>
   `
 }
 
-function renderAdvancedPermissions(session, settings, options = {}) {
+function renderModeDetails(session, settings, options = {}) {
   const defaultPermissions = normalizeAiBridgeDefaultPermissions(settings.aiBridgePermissions)
   const sessionPermissions = normalizeAiBridgeSessionPermissions(session.permissions)
   const effectiveMode = getEffectiveMode(session, defaultPermissions, options)
   const activePermissions = session.status === AI_BRIDGE_STATUS.disabled
     ? createSessionAiBridgePermissions(defaultPermissions)
     : sessionPermissions
-  const openAttr = options.advancedOpen ? ' open' : ''
+
   return `
-    <details class="ai-bridge-page__advanced"${openAttr}>
-      <summary id="ai-bridge-advanced-toggle">${escapeHtml(t('fullapp.aiBridgeAdvancedPermissionsToggle'))}</summary>
-      <div class="ai-bridge-page__advanced-body">
-        <section class="ai-bridge-page__permission-block">
-          <div class="ai-bridge-page__section-header">
-            <div>
-              <h3>${escapeHtml(session.status === AI_BRIDGE_STATUS.disabled ? t('fullapp.aiBridgeDefaultPermissionsTitle') : t('fullapp.aiBridgeActiveModeTitle'))}</h3>
-              <p>${escapeHtml(session.status === AI_BRIDGE_STATUS.disabled ? t('fullapp.aiBridgeDefaultPermissionsShortDescription') : t('fullapp.aiBridgeActiveModeDescription'))}</p>
-            </div>
-          </div>
-          ${effectiveMode === AI_BRIDGE_PERMISSION_MODES.custom && session.status === AI_BRIDGE_STATUS.disabled
-            ? `
-              <p class="ai-bridge-page__warning">${escapeHtml(t('fullapp.aiBridgePermissionsWarning'))}</p>
-              ${renderPermissionGroup(t('fullapp.aiBridgePermissionDataGroup'), DATA_PERMISSION_ROWS, defaultPermissions, 'default')}
-              ${renderPermissionGroup(t('fullapp.aiBridgePermissionActionsGroup'), ACTION_PERMISSION_ROWS, defaultPermissions, 'default')}
-            `
-            : renderPresetSummary(activePermissions, effectiveMode)}
-        </section>
-        <section class="ai-bridge-page__permission-block">
-          <div class="ai-bridge-page__section-header">
-            <div>
-              <h3>${escapeHtml(t('fullapp.aiBridgeSessionPermissionsTitle'))}</h3>
-              <p>${escapeHtml(t('fullapp.aiBridgeSessionPermissionsDescription'))}</p>
-            </div>
-          </div>
-          ${renderSessionPermissions(session, defaultPermissions, effectiveMode, options)}
-        </section>
+    <section class="ai-bridge-page__section ai-bridge-page__mode-details">
+      <div class="ai-bridge-page__section-header">
+        <div>
+          <h3>${escapeHtml(t('fullapp.aiBridgeActiveModeTitle'))}</h3>
+          <p>${escapeHtml(t(`fullapp.aiBridgeMode${effectiveMode[0].toUpperCase()}${effectiveMode.slice(1)}Summary`))}</p>
+        </div>
       </div>
-    </details>
+      ${renderModeSummary(activePermissions, effectiveMode)}
+    </section>
   `
 }
 
@@ -260,7 +244,8 @@ export function renderAiBridgePage(state = {}, options = {}) {
           </div>
           ${renderModeCards(effectiveMode)}
         </section>
-        ${renderAdvancedPermissions(session, state.settings || {}, options)}
+        ${renderModeDetails(session, state.settings || {}, options)}
+        ${renderAdvancedPermissions(session, state.settings || {})}
       </div>
     `,
     className: 'ai-bridge-panel'
