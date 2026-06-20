@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  MAX_AI_BRIDGE_CAPTURED_REQUESTS,
   getActiveCollection,
   listCapturedRequests,
   listCollections,
@@ -108,6 +109,23 @@ test('listCapturedRequests returns only sanitized entries from the active captur
   const serialized = JSON.stringify(requests)
   assert.doesNotMatch(serialized, /secret-token|secret-session|Bearer secret|sid=secret|password|access_token|old-secret/)
   assert.doesNotMatch(serialized, /"requestHeaders":|"responseHeaders":|"requestPostData":|"responseBody":/)
+})
+
+test('listCapturedRequests limits the response size for AI Bridge', () => {
+  const networkEntries = Array.from({ length: MAX_AI_BRIDGE_CAPTURED_REQUESTS + 25 }, (_, index) => ({
+    id: `entry-${index}`,
+    networkTabId: 42,
+    captureSessionId: 'cdp:42:session',
+    method: 'GET',
+    url: `https://internal.example.test/api/items/${index}?token=secret-${index}`
+  }))
+
+  const requests = listCapturedRequests({ state, networkEntries })
+
+  assert.equal(requests.length, MAX_AI_BRIDGE_CAPTURED_REQUESTS)
+  assert.equal(requests[0].id, 'entry-0')
+  assert.equal(requests.at(-1).id, `entry-${MAX_AI_BRIDGE_CAPTURED_REQUESTS - 1}`)
+  assert.doesNotMatch(JSON.stringify(requests), /secret-/)
 })
 
 test('listCollections includes rule counts and active collection flag', () => {

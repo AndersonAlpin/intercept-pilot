@@ -12,10 +12,12 @@ import {
 } from './protocol.js'
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000
+const DEFAULT_MAX_PENDING_REQUESTS = 25
 const NOT_CONNECTED_MESSAGE = 'InterceptPilot extension is not connected. Open InterceptPilot settings and start an AI Bridge session.'
 const TIMEOUT_MESSAGE = 'InterceptPilot did not respond in time.'
 const DISCONNECTED_MESSAGE = 'InterceptPilot extension disconnected.'
 const COMMAND_NOT_ALLOWED_MESSAGE = 'Command is not allowed.'
+const TOO_MANY_PENDING_MESSAGE = 'Too many pending InterceptPilot requests.'
 
 function createDefaultLogger() {
   return {
@@ -47,6 +49,7 @@ export function createExtensionBridge(options = {}) {
     port = BRIDGE_PORT,
     expectedToken = '',
     requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+    maxPendingRequests = DEFAULT_MAX_PENDING_REQUESTS,
     idGenerator,
     logger = createDefaultLogger(),
     setTimeoutFn = setTimeout,
@@ -168,6 +171,9 @@ export function createExtensionBridge(options = {}) {
     }
     if (!isConnected()) {
       return Promise.reject(createSafeError(NOT_CONNECTED_MESSAGE))
+    }
+    if (pending.size >= maxPendingRequests) {
+      return Promise.reject(createSafeError(TOO_MANY_PENDING_MESSAGE))
     }
 
     const id = nextRequestId()

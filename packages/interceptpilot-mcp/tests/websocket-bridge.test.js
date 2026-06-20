@@ -124,6 +124,16 @@ test('bridge accepts extension hello and sends ack without logging token', () =>
   assert.doesNotMatch(JSON.stringify(logs), /pairing-token-123/)
 })
 
+test('bridge rejects extension hello with an old token without logging token values', () => {
+  const { bridge, logs } = makeBridge({ expectedToken: 'new-token-456' })
+  const socket = connectExtension(bridge, 'old-token-123')
+
+  assert.equal(bridge.isConnected(), false)
+  assert.equal(socket.closed, true)
+  assert.doesNotMatch(JSON.stringify(socket.sent), /old-token-123|new-token-456/)
+  assert.doesNotMatch(JSON.stringify(logs), /old-token-123|new-token-456/)
+})
+
 test('bridge forwards allowed command and resolves by matching id', async () => {
   const { bridge } = makeBridge({ idGenerator: () => 'req_test' })
   const socket = connectExtension(bridge)
@@ -140,6 +150,31 @@ test('bridge forwards allowed command and resolves by matching id', async () => 
   socket.receive(JSON.stringify({ id: 'req_test', type: 'command:result', ok: true, result: ['ok'] }))
 
   assert.deepEqual(await pending, ['ok'])
+})
+
+test('bridge rejects new commands when too many requests are pending', async () => {
+  let requestSeq = 0
+  const { bridge } = makeBridge({
+    idGenerator: () => {
+      requestSeq += 1
+      return `req_${requestSeq}`
+    },
+    maxPendingRequests: 1
+  })
+  const socket = connectExtension(bridge)
+
+  const first = bridge.callCommand('list_rules', {})
+  assert.equal(bridge.getPendingCount(), 1)
+
+  await assert.rejects(
+    bridge.callCommand('list_collections', {}),
+    /Too many pending InterceptPilot requests/
+  )
+  assert.equal(bridge.getPendingCount(), 1)
+
+  socket.receive(JSON.stringify({ id: 'req_1', type: 'command:result', ok: true, result: ['ok'] }))
+  assert.deepEqual(await first, ['ok'])
+  assert.equal(bridge.getPendingCount(), 0)
 })
 
 test('bridge timeout rejects safely and clears pending request', async () => {

@@ -5,6 +5,8 @@ import {
   sanitizeAiBridgeRule
 } from '../shared/ai-bridge-sanitize.js'
 
+export const MAX_AI_BRIDGE_CAPTURED_REQUESTS = 100
+
 function getStateRules(state = {}) {
   return Array.isArray(state.rules) ? state.rules : []
 }
@@ -29,6 +31,7 @@ function countRulesByCollection(rules = []) {
 
 export function listCapturedRequests({ state = {}, networkEntries = [] } = {}) {
   return getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : [])
+    .slice(0, MAX_AI_BRIDGE_CAPTURED_REQUESTS)
     .map(entry => sanitizeAiBridgeRequest(entry))
 }
 

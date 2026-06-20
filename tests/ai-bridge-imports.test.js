@@ -70,6 +70,24 @@ test('AI import controller rejects oversized bundles safely', () => {
   })
 })
 
+test('AI import controller rejects a new proposal while another is pending', () => {
+  const controller = createAiBridgeImportController({
+    idGenerator: () => 'ai-import-1'
+  })
+
+  const first = controller.createPendingImport({ bundleJson: collectionBundleJson })
+  const second = controller.createPendingImport({ bundleJson: collectionBundleJson })
+
+  assert.equal(first.status, 'awaiting_human_confirmation')
+  assert.deepEqual(second, {
+    error: {
+      code: 'PENDING_IMPORT_EXISTS',
+      message: 'Another import proposal is already pending.'
+    }
+  })
+  assert.equal(controller.getPendingImport().id, 'ai-import-1')
+})
+
 test('AI import controller cancels pending proposal without applying bundle', async () => {
   const applied = []
   const controller = createAiBridgeImportController({

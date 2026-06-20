@@ -53,6 +53,10 @@ export function createAiBridgeImportController(options = {}) {
   }
 
   function createPendingImport(payload = {}, context = {}) {
+    if (pendingImport) {
+      return createSafeImportError('PENDING_IMPORT_EXISTS', 'Another import proposal is already pending.')
+    }
+
     const bundleJson = String(payload.bundleJson || '')
     if (!bundleJson.trim()) {
       return createSafeImportError('INVALID_PAYLOAD', 'bundleJson must be a JSON string.')

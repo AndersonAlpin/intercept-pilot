@@ -1563,14 +1563,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ aiBridgeSession: getAiBridgeSession() })
         return
       case 'aiBridge:startSession': {
+        cancelPendingAiImport()
         const aiBridgeSession = startAiBridgeSession()
         aiBridgeConnection.sync()
         sendResponse({ aiBridgeSession })
+        broadcastAiBridgeImport()
         return
       }
       case 'aiBridge:revokeSession': {
         aiBridgeConnection.disconnect()
+        cancelPendingAiImport()
         sendResponse({ aiBridgeSession: revokeAiBridgeSession() })
+        broadcastAiBridgeImport()
         return
       }
       case 'aiBridge:getPendingImport':
