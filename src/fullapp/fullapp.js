@@ -2242,7 +2242,6 @@ function bindEvents() {
         aiBridgePermissions: normalizeAiBridgeDefaultPermissions(result.aiBridgePermissions || permissions)
       }
       state.aiBridgeDefaultPermissionsOpen = true
-      toastSuccess(t('fullapp.aiBridgeDefaultPermissionsSaved'))
       render()
     })
   })

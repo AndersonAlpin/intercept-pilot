@@ -69,3 +69,10 @@ test('AI Bridge permission cards are clickable and expose hover focus states', (
   assert.match(fullAppCss, /\.ai-bridge-permission-item:hover \{/)
   assert.match(fullAppCss, /\.ai-bridge-permission-item:focus-within \{/)
 })
+
+test('AI Bridge manual permission toggles do not emit repeated success toasts', () => {
+  const defaultToggleBlock = fullAppSource.match(/document\.querySelectorAll\('\[data-ai-bridge-default-permission\]'\)[\s\S]*?document\.querySelectorAll\('\[data-ai-bridge-session-permission\]'\)/)?.[0] || ''
+
+  assert.match(defaultToggleBlock, /state\.aiBridgeDefaultPermissionsOpen = true/)
+  assert.doesNotMatch(defaultToggleBlock, /toastSuccess/)
+})
