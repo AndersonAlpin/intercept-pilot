@@ -19,6 +19,8 @@ export const ALLOWED_COMMANDS = Object.freeze([
   'list_recent_rule_results',
   'get_active_collection',
   'get_current_test_context',
+  'get_import_bundle_schema',
+  'get_import_bundle_examples',
   'import_bundle'
 ])
 

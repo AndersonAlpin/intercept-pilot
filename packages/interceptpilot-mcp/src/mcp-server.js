@@ -1,9 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 
+import { getImportBundleExamples, getImportBundleSchema } from './import-bundle-schema.js'
 import { ALLOWED_COMMANDS, isAllowedCommand } from './protocol.js'
 
-const IMPORT_BUNDLE_INPUT_DESCRIPTION = 'InterceptPilot import bundle JSON string. The extension will create a pending proposal and wait for user confirmation.'
+const IMPORT_BUNDLE_INPUT_DESCRIPTION = 'A JSON string containing an InterceptPilot import bundle. It can be either a single rule bundle with type "interceptpilot.rule" or a collection bundle with type "interceptpilot.collection". The extension will create a pending proposal and wait for user confirmation.'
 const EMPTY_JSON_INPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false
@@ -86,16 +87,29 @@ function createReadOnlyTool(description) {
   }
 }
 
+function createStaticReadOnlyTool(description, getResult) {
+  return {
+    description,
+    jsonInputSchema: EMPTY_JSON_INPUT_SCHEMA,
+    registeredInputSchema: {},
+    buildPayload: createEmptyPayload,
+    formatResult: createTextResult,
+    getResult
+  }
+}
+
 const MCP_TOOLS = {
-  list_captured_requests: createReadOnlyTool('List sanitized captured requests from the active InterceptPilot capture context.'),
-  list_collections: createReadOnlyTool('List InterceptPilot collections with safe summary fields.'),
-  list_rules: createReadOnlyTool('List InterceptPilot rules with safe summary fields, without response bodies or headers.'),
-  list_sanitized_logs: createReadOnlyTool('List sanitized recent logs from the active InterceptPilot capture context, without headers, bodies, cookies or query values.'),
-  list_recent_rule_results: createReadOnlyTool('List sanitized recent rule result summaries from the active InterceptPilot capture context.'),
-  get_active_collection: createReadOnlyTool('Get the active InterceptPilot collection summary.'),
-  get_current_test_context: createReadOnlyTool('Get sanitized active capture, tab, collection and rule count context for the current InterceptPilot test.'),
+  list_captured_requests: createReadOnlyTool('List sanitized requests captured in the active InterceptPilot capture context. Useful for identifying endpoints to mock. Does not include headers, bodies, cookies, Authorization values, or query parameter values.'),
+  list_collections: createReadOnlyTool('List InterceptPilot collections with safe summary fields and rule counts. Useful for understanding available scenario groups. Does not include headers, bodies, cookies, tokens, or query parameter values.'),
+  list_rules: createReadOnlyTool('List InterceptPilot rules with sanitized match/action summaries. Useful for understanding existing mocks and failures. Does not include response bodies, raw headers, cookies, Authorization values, or query parameter values.'),
+  list_sanitized_logs: createReadOnlyTool('List sanitized recent logs from the active InterceptPilot capture context. Useful for diagnosing page or capture issues. Does not include raw stack traces, headers, bodies, cookies, Authorization values, or query parameter values.'),
+  list_recent_rule_results: createReadOnlyTool('List sanitized recent rule result summaries from the active InterceptPilot capture context. Useful for seeing which rules matched, which action applied, and whether requests were intercepted. Does not include headers, bodies, cookies, Authorization values, or query parameter values.'),
+  get_active_collection: createReadOnlyTool('Get the active InterceptPilot collection summary and rule counts. Useful before proposing scenarios for the current collection. Does not include headers, bodies, cookies, tokens, or query parameter values.'),
+  get_current_test_context: createReadOnlyTool('Get the current sanitized InterceptPilot test context, including capture status, capture mode, active tab origin/path, active collection summary, rule counts, and AI Bridge status. Does not include full URLs with query values, headers, bodies, cookies, or tab title.'),
+  get_import_bundle_schema: createStaticReadOnlyTool('Return the static InterceptPilot import bundle schema, supported bundle types, allowed enum values, and guidance for creating rule or collection bundles. Does not require the extension to be connected and does not alter state.', getImportBundleSchema),
+  get_import_bundle_examples: createStaticReadOnlyTool('Return safe static examples of InterceptPilot rule and collection import bundles. Useful as references before calling import_bundle. Does not require the extension to be connected and does not alter state.', getImportBundleExamples),
   import_bundle: {
-    description: 'Send an InterceptPilot import bundle to the extension as a pending proposal. The user must confirm it in the Full App before anything is applied.',
+    description: 'Send an InterceptPilot rule or collection import bundle to the extension as a pending proposal. Supports bundles with type "interceptpilot.rule" or "interceptpilot.collection". The user must confirm it in the Full App before anything is applied.',
     jsonInputSchema: IMPORT_BUNDLE_JSON_INPUT_SCHEMA,
     registeredInputSchema: {
       bundleJson: z.string().min(1).describe(IMPORT_BUNDLE_INPUT_DESCRIPTION)
@@ -126,6 +140,10 @@ export function createToolCallHandler({ bridge }) {
       }
 
       const payload = tool.buildPayload(args)
+      if (tool.getResult) {
+        return tool.formatResult(tool.getResult(payload))
+      }
+
       const result = await bridge.callCommand(name, payload)
       if (result?.error) throw new Error(result.error.message || 'InterceptPilot MCP tool failed.')
       return tool.formatResult(result)

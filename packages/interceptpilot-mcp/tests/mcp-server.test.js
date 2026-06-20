@@ -12,7 +12,13 @@ const EXPECTED_TOOL_NAMES = [
   'list_recent_rule_results',
   'get_active_collection',
   'get_current_test_context',
+  'get_import_bundle_schema',
+  'get_import_bundle_examples',
   'import_bundle'
+]
+const STATIC_TOOL_NAMES = [
+  'get_import_bundle_schema',
+  'get_import_bundle_examples'
 ]
 
 test('MCP server exposes the allowed InterceptPilot tools', () => {
@@ -41,8 +47,12 @@ test('MCP read-only tools do not require input', () => {
 test('MCP import_bundle tool declares bundleJson input', () => {
   const tool = getMcpToolDefinitions().find(item => item.name === 'import_bundle')
 
+  assert.match(tool.description, /interceptpilot\.rule/)
+  assert.match(tool.description, /interceptpilot\.collection/)
   assert.deepEqual(tool.inputSchema.required, ['bundleJson'])
   assert.equal(tool.inputSchema.properties.bundleJson.type, 'string')
+  assert.match(tool.inputSchema.properties.bundleJson.description, /interceptpilot\.rule/)
+  assert.match(tool.inputSchema.properties.bundleJson.description, /interceptpilot\.collection/)
   assert.equal(tool.inputSchema.additionalProperties, false)
 })
 
@@ -99,7 +109,7 @@ test('MCP all read-only tools ignore programmatic arguments', async () => {
   }
 
   assert.deepEqual(calls, EXPECTED_TOOL_NAMES
-    .filter(name => name !== 'import_bundle')
+    .filter(name => name !== 'import_bundle' && !STATIC_TOOL_NAMES.includes(name))
     .map(command => ({ command, payload: {} })))
 })
 
@@ -161,4 +171,85 @@ test('MCP import_bundle returns a safe error when extension rejects the bundle',
 
   assert.equal(result.isError, true)
   assert.match(result.content[0].text, /Import bundle JSON is invalid/)
+})
+
+test('MCP get_import_bundle_schema returns static schema details without extension connection', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        throw new Error('Extension should not be called')
+      }
+    }
+  })
+
+  const result = await handleToolCall('get_import_bundle_schema', { ignored: true })
+  const schema = JSON.parse(result.content[0].text)
+
+  assert.equal(result.isError, undefined)
+  assert.deepEqual(calls, [])
+  assert.equal(schema.schemaVersion, 1)
+  assert.deepEqual(schema.supportedTypes, ['interceptpilot.rule', 'interceptpilot.collection'])
+  assert.deepEqual(schema.allowedValues.matchType, ['contains', 'equals', 'regex', 'glob'])
+  assert.deepEqual(schema.allowedValues.resourceType, ['ANY', 'XHR', 'Fetch', 'Document', 'Script', 'Image', 'Stylesheet', 'Other'])
+  assert.equal(schema.ruleBundleShape.type, 'interceptpilot.rule')
+  assert.equal(schema.collectionBundleShape.type, 'interceptpilot.collection')
+  const guidance = schema.guidance.join(' ')
+  assert.match(guidance, /resourceType "ANY"/)
+  assert.match(guidance, /failRequest only for network-level failures/)
+  assert.match(guidance, /Location header/)
+})
+
+test('MCP get_import_bundle_examples returns safe rule and collection examples locally', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        throw new Error('Extension should not be called')
+      }
+    }
+  })
+
+  const result = await handleToolCall('get_import_bundle_examples', {})
+  const examples = JSON.parse(result.content[0].text)
+
+  assert.equal(result.isError, undefined)
+  assert.deepEqual(calls, [])
+  assert.equal(examples.length, 5)
+  assert.equal(examples.some(example => example.bundle.type === 'interceptpilot.rule'), true)
+  assert.equal(examples.some(example => example.bundle.type === 'interceptpilot.collection'), true)
+  assert.equal(examples.some(example => example.bundle.rule?.action?.type === 'failRequest'), true)
+  assert.equal(examples.some(example => example.bundle.rule?.action?.type === 'delayOnly'), true)
+
+  const everyRule = examples.flatMap(example => (
+    example.bundle.type === 'interceptpilot.collection'
+      ? example.bundle.rules
+      : [example.bundle.rule]
+  ))
+
+  for (const rule of everyRule) {
+    assert.equal(rule.match.resourceType, 'ANY')
+    if (Object.hasOwn(rule.action, 'responseBody')) {
+      assert.equal(typeof rule.action.responseBody, 'string')
+    }
+  }
+
+  assert.doesNotMatch(JSON.stringify(examples), /pandavideo|Authorization|Cookie|Bearer|token=/i)
+})
+
+test('MCP extension-backed tools still return clear disconnected errors', async () => {
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async () => {
+        throw new Error('InterceptPilot extension is not connected. Open InterceptPilot settings and start an AI Bridge session.')
+      }
+    }
+  })
+
+  const result = await handleToolCall('list_rules', {})
+
+  assert.equal(result.isError, true)
+  assert.match(result.content[0].text, /extension is not connected/)
 })
