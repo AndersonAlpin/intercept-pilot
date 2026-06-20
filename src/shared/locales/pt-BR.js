@@ -215,7 +215,7 @@ const ptBR = {
     aiBridgeConnectionTitle: 'Status da conexão',
     aiBridgeDescription: 'Conecte o InterceptPilot a agentes de IA locais para analisar contexto de testes, consultar requests, logs e regras, propor importações e executar ações assistidas conforme as permissões configuradas.',
     aiBridgeStatusDisabled: 'Desligado',
-    aiBridgeStatusWaiting: 'Aguardando bridge local',
+    aiBridgeStatusWaiting: 'Aguardando conexão',
     aiBridgeStatusConnected: 'Conectado',
     aiBridgeStartSession: 'Iniciar sessão',
     aiBridgeRevokeSession: 'Revogar sessão',

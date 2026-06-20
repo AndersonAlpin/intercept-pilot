@@ -342,7 +342,7 @@ const en = {
     aiBridgeConnectionTitle: 'Connection status',
     aiBridgeDescription: 'Connect InterceptPilot to local AI agents to analyze test context, inspect requests, logs and rules, propose imports, and run assisted actions according to the configured permissions.',
     aiBridgeStatusDisabled: 'Disabled',
-    aiBridgeStatusWaiting: 'Waiting for local bridge',
+    aiBridgeStatusWaiting: 'Waiting for connection',
     aiBridgeStatusConnected: 'Connected',
     aiBridgeStartSession: 'Start session',
     aiBridgeRevokeSession: 'Revoke session',

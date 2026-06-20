@@ -124,9 +124,10 @@ test('AI Bridge waiting status hides MCP configuration by default and shows warn
 
   const html = renderAiBridgePage(waitingState())
 
-  assert.match(html, /data-state="warning" data-ai-bridge-status="waiting"[\s\S]*Aguardando bridge local/)
+  assert.match(html, /data-state="warning" data-ai-bridge-status="waiting"[\s\S]*Aguardando conexão/)
   assert.match(html, /Conecte o InterceptPilot a agentes de IA locais para analisar contexto de testes, consultar requests, logs e regras, propor importações e executar ações assistidas conforme as permissões configuradas\./)
   assert.match(html, /Aguardando conexão do bridge local\. Use a configuração desta sessão no seu cliente MCP\./)
+  assert.doesNotMatch(html, /data-ai-bridge-status="waiting"[\s\S]*Aguardando bridge local/)
   assert.doesNotMatch(html, /Inicie o pacote MCP usando a configuração desta sessão/)
   assert.match(html, /id="settings-ai-bridge-revoke-btn"/)
   assert.match(html, /id="settings-ai-bridge-copy-config-btn"/)
