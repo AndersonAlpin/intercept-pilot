@@ -894,7 +894,8 @@ function parseCrossExtensionLabels(code) {
   return 'unknown'
 }
 
-async function importRuleBundle(bundle) {
+async function importRuleBundle(bundle, options = {}) {
+  const { silentSuccess = false } = options
   if (!bundle?.rule) {
     toastError(t('toasts.ruleImportError'))
     return false
@@ -920,7 +921,7 @@ async function importRuleBundle(bundle) {
     toastError(t('toasts.ruleImportError'))
     return false
   }
-  toastSuccess(t('toasts.ruleImported'))
+  if (!silentSuccess) toastSuccess(t('toasts.ruleImported'))
   await refreshState()
   return true
 }
@@ -937,7 +938,8 @@ function buildImportedRulePayload(rule, overrides = {}) {
   }
 }
 
-async function importCollectionBundleAsCopy(bundle) {
+async function importCollectionBundleAsCopy(bundle, options = {}) {
+  const { silentSuccess = false } = options
   if (!bundle?.collection || !Array.isArray(bundle.rules)) {
     toastError(t('toasts.collectionImportError'))
     return false
@@ -968,12 +970,13 @@ async function importCollectionBundleAsCopy(bundle) {
     })
     await sendMessage({ type: MSG.RULES_CREATE, payload: rulePayload })
   }
-  toastSuccess(t('toasts.collectionImported'))
+  if (!silentSuccess) toastSuccess(t('toasts.collectionImported'))
   await refreshState()
   return true
 }
 
-async function importCollectionBundleAsUpdate(bundle, existingCollection) {
+async function importCollectionBundleAsUpdate(bundle, existingCollection, options = {}) {
+  const { silentSuccess = false } = options
   if (!existingCollection || !bundle?.collection || !Array.isArray(bundle.rules)) {
     toastError(t('toasts.collectionImportError'))
     return false
@@ -997,7 +1000,7 @@ async function importCollectionBundleAsUpdate(bundle, existingCollection) {
     return false
   }
 
-  toastSuccess(t('toasts.collectionUpdated'))
+  if (!silentSuccess) toastSuccess(t('toasts.collectionUpdated'))
   await refreshState()
   return true
 }
@@ -1022,20 +1025,20 @@ async function chooseCollectionImportStrategy(existingCollection) {
   })
 }
 
-async function importCollectionBundle(bundle) {
+async function importCollectionBundle(bundle, options = {}) {
   const existingCollection = findCollectionConflictById(bundle, state.collections)
   const strategy = await chooseCollectionImportStrategy(existingCollection)
   if (!strategy) return false
-  if (strategy === 'update') return importCollectionBundleAsUpdate(bundle, existingCollection)
-  return importCollectionBundleAsCopy(bundle)
+  if (strategy === 'update') return importCollectionBundleAsUpdate(bundle, existingCollection, options)
+  return importCollectionBundleAsCopy(bundle, options)
 }
 
-async function importParsedBundle(bundle) {
+async function importParsedBundle(bundle, options = {}) {
   if (bundle.type === BUNDLE_TYPE_RULE) {
-    return importRuleBundle(bundle)
+    return importRuleBundle(bundle, options)
   }
   if (bundle.type === BUNDLE_TYPE_COLLECTION) {
-    return importCollectionBundle(bundle)
+    return importCollectionBundle(bundle, options)
   }
   toastError(t('toasts.unsupportedType'))
   return false
@@ -1083,7 +1086,7 @@ async function confirmAiBridgePendingImport() {
     return
   }
 
-  const ok = await importParsedBundle(pendingImport.bundle)
+  const ok = await importParsedBundle(pendingImport.bundle, { silentSuccess: true })
   if (!ok) return
 
   const result = await sendMessage({
