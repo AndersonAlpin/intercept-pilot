@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { createToolCallHandler, getMcpToolDefinitions } from '../src/mcp-server.js'
+import { createToolCallHandler, getMcpToolDefinitions, getMcpToolNames } from '../src/mcp-server.js'
 import { ALLOWED_COMMANDS } from '../src/protocol.js'
 
 const EXPECTED_TOOL_NAMES = [
@@ -13,11 +13,14 @@ const EXPECTED_TOOL_NAMES = [
 ]
 
 test('MCP server exposes the allowed InterceptPilot tools', () => {
+  assert.deepEqual(getMcpToolNames(), EXPECTED_TOOL_NAMES)
   assert.deepEqual(getMcpToolDefinitions().map(tool => tool.name), EXPECTED_TOOL_NAMES)
 })
 
 test('MCP tool definitions stay synchronized with the protocol allowlist', () => {
-  assert.deepEqual(getMcpToolDefinitions().map(tool => tool.name), ALLOWED_COMMANDS)
+  assert.deepEqual(getMcpToolNames().filter(name => !ALLOWED_COMMANDS.includes(name)), [])
+  assert.deepEqual(ALLOWED_COMMANDS.filter(name => !getMcpToolNames().includes(name)), [])
+  assert.deepEqual(getMcpToolNames(), ALLOWED_COMMANDS)
 })
 
 test('MCP read-only tools do not require input', () => {
@@ -40,7 +43,7 @@ test('MCP import_bundle tool declares bundleJson input', () => {
   assert.equal(tool.inputSchema.additionalProperties, false)
 })
 
-test('MCP tool handler forwards allowed tool calls through the bridge', async () => {
+test('MCP read-only tool handlers always forward empty payloads', async () => {
   const calls = []
   const handleToolCall = createToolCallHandler({
     bridge: {
@@ -51,7 +54,7 @@ test('MCP tool handler forwards allowed tool calls through the bridge', async ()
     }
   })
 
-  const result = await handleToolCall('list_rules', {})
+  const result = await handleToolCall('list_rules', { unexpected: 'ignored' })
 
   assert.deepEqual(calls, [{ command: 'list_rules', payload: {} }])
   assert.deepEqual(result, {
@@ -75,6 +78,26 @@ test('MCP tool handler rejects unknown tools safely', async () => {
 
   assert.equal(result.isError, true)
   assert.match(result.content[0].text, /Unknown InterceptPilot MCP tool/)
+})
+
+test('MCP all read-only tools ignore programmatic arguments', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        return []
+      }
+    }
+  })
+
+  for (const name of EXPECTED_TOOL_NAMES.filter(toolName => toolName !== 'import_bundle')) {
+    await handleToolCall(name, { extra: true, bundleJson: 'ignored' })
+  }
+
+  assert.deepEqual(calls, EXPECTED_TOOL_NAMES
+    .filter(name => name !== 'import_bundle')
+    .map(command => ({ command, payload: {} })))
 })
 
 test('MCP import_bundle forwards bundleJson through the bridge', async () => {

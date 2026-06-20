@@ -20,8 +20,8 @@ const IMPORT_BUNDLE_JSON_INPUT_SCHEMA = {
   additionalProperties: false
 }
 
-function normalizeToolArguments(args = {}) {
-  return args && typeof args === 'object' ? args : {}
+function createEmptyPayload() {
+  return {}
 }
 
 function createTextResult(result) {
@@ -81,7 +81,7 @@ function createReadOnlyTool(description) {
     description,
     jsonInputSchema: EMPTY_JSON_INPUT_SCHEMA,
     registeredInputSchema: {},
-    buildPayload: normalizeToolArguments,
+    buildPayload: createEmptyPayload,
     formatResult: createTextResult
   }
 }
@@ -100,6 +100,10 @@ const MCP_TOOLS = {
     buildPayload: buildImportBundlePayload,
     formatResult: createImportProposalResult
   }
+}
+
+export function getMcpToolNames() {
+  return Object.keys(MCP_TOOLS)
 }
 
 export function getMcpToolDefinitions() {
