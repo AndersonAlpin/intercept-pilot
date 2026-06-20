@@ -56,38 +56,7 @@ test('protocol creates local command messages with stable shape', () => {
   })
 })
 
-test('protocol validates extension hello without exposing token', () => {
-  const result = validateHelloMessage({
-    type: 'hello',
-    source: 'interceptpilot-extension',
-    token: 'pairing-token-123',
-    version: BRIDGE_PROTOCOL_VERSION
-  })
-
-  assert.equal(result.ok, true)
-  assert.deepEqual(validateHelloMessage({ type: 'hello', token: '' }), {
-    ok: false,
-    error: 'Invalid InterceptPilot hello message.'
-  })
-  assert.doesNotMatch(JSON.stringify(result), /pairing-token-123/)
-})
-
-test('protocol rejects hello when expected token does not match', () => {
-  const result = validateHelloMessage({
-    type: 'hello',
-    source: 'interceptpilot-extension',
-    token: 'pairing-token-123',
-    version: BRIDGE_PROTOCOL_VERSION
-  }, { expectedToken: 'different-token' })
-
-  assert.deepEqual(result, {
-    ok: false,
-    error: 'Invalid InterceptPilot hello message.'
-  })
-  assert.doesNotMatch(JSON.stringify(result), /pairing-token-123|different-token/)
-})
-
-test('protocol validates hello using the preferred key field', () => {
+test('protocol validates extension hello using the connection key without exposing it', () => {
   const result = validateHelloMessage({
     type: 'hello',
     source: 'interceptpilot-extension',
@@ -96,18 +65,11 @@ test('protocol validates hello using the preferred key field', () => {
   }, { expectedKey: 'stable-key-123' })
 
   assert.equal(result.ok, true)
+  assert.deepEqual(validateHelloMessage({ type: 'hello', key: '' }), {
+    ok: false,
+    error: 'Invalid InterceptPilot hello message.'
+  })
   assert.doesNotMatch(JSON.stringify(result), /stable-key-123/)
-})
-
-test('protocol still accepts the legacy token alias against expectedKey', () => {
-  const result = validateHelloMessage({
-    type: 'hello',
-    source: 'interceptpilot-extension',
-    token: 'stable-key-123',
-    version: BRIDGE_PROTOCOL_VERSION
-  }, { expectedKey: 'stable-key-123' })
-
-  assert.equal(result.ok, true)
 })
 
 test('protocol rejects hello when the key does not match the expected key', () => {

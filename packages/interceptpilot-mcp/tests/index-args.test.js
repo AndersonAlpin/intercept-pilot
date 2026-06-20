@@ -10,9 +10,9 @@ test('parseCliArgs reads the preferred --key flag', () => {
   assert.equal(options.key, 'stable-key-123')
 })
 
-test('parseCliArgs still accepts --token as a temporary alias', () => {
+test('parseCliArgs ignores an unknown flag and keeps the empty key default', () => {
   const options = parseCliArgs(['--token', 'legacy-token-456'])
-  assert.equal(options.key, 'legacy-token-456')
+  assert.equal(options.key, '')
   assert.equal(options.port, BRIDGE_PORT)
 })
 

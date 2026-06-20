@@ -26,7 +26,7 @@
 
 - The stable credential is a **connection key**, never a "token", in the new model. Use `connectionKey` (internal), `aiBridgeConnectionKey` (settings), `--key` (CLI / copied config), and a `key` field on the WebSocket `hello`.
 - Do **not** introduce new `token` names for the stable key. The per-session token is removed as the primary mechanism: the transient session no longer carries any credential field.
-- **Compatibility:** the MCP package still accepts `--token` (and a `token` hello field / `expectedToken` option) as a temporary alias so existing clients keep working. The config copied by the UI uses `--key`.
+- **No alias:** the project is pre-prod, so there is no `--token` / `token` hello / `expectedToken` backward-compat alias. The credential is `--key` (CLI / copied config), `key` (hello field), `expectedKey` (bridge option) only.
 
 ## Definitions (target behavior)
 

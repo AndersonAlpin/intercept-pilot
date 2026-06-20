@@ -38,13 +38,13 @@ function makeBridge(options = {}) {
   return { bridge, logs }
 }
 
-function connectExtension(bridge, token = 'pairing-token-123') {
+function connectExtension(bridge, key = 'stable-key-123') {
   const socket = new FakeSocket()
   bridge.handleSocket(socket)
   socket.receive(JSON.stringify({
     type: 'hello',
     source: 'interceptpilot-extension',
-    token,
+    key,
     version: 1
   }))
   return socket
@@ -111,7 +111,7 @@ test('bridge forwards import_bundle command with bundleJson payload', async () =
   assert.deepEqual(await pending, { status: 'awaiting_human_confirmation', pendingImportId: 'ai-import-1' })
 })
 
-test('bridge accepts extension hello and sends ack without logging token', () => {
+test('bridge accepts extension hello and sends ack without logging the key', () => {
   const { bridge, logs } = makeBridge()
   const socket = connectExtension(bridge)
 
@@ -121,17 +121,17 @@ test('bridge accepts extension hello and sends ack without logging token', () =>
     ok: true,
     version: 1
   })
-  assert.doesNotMatch(JSON.stringify(logs), /pairing-token-123/)
+  assert.doesNotMatch(JSON.stringify(logs), /stable-key-123/)
 })
 
-test('bridge rejects extension hello with an old token without logging token values', () => {
-  const { bridge, logs } = makeBridge({ expectedToken: 'new-token-456' })
-  const socket = connectExtension(bridge, 'old-token-123')
+test('bridge rejects extension hello with an old key without logging key values', () => {
+  const { bridge, logs } = makeBridge({ expectedKey: 'new-key-456' })
+  const socket = connectExtension(bridge, 'old-key-123')
 
   assert.equal(bridge.isConnected(), false)
   assert.equal(socket.closed, true)
-  assert.doesNotMatch(JSON.stringify(socket.sent), /old-token-123|new-token-456/)
-  assert.doesNotMatch(JSON.stringify(logs), /old-token-123|new-token-456/)
+  assert.doesNotMatch(JSON.stringify(socket.sent), /old-key-123|new-key-456/)
+  assert.doesNotMatch(JSON.stringify(logs), /old-key-123|new-key-456/)
 })
 
 test('bridge forwards allowed command and resolves by matching id', async () => {

@@ -51,7 +51,6 @@ export function createExtensionBridge(options = {}) {
     WebSocketServerCtor = WebSocketServer,
     port = BRIDGE_PORT,
     expectedKey = '',
-    expectedToken = '',
     requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
     maxPendingRequests = DEFAULT_MAX_PENDING_REQUESTS,
     heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS,
@@ -63,8 +62,7 @@ export function createExtensionBridge(options = {}) {
     clearIntervalFn = clearInterval
   } = options
 
-  // `expectedKey` is preferred; `expectedToken` stays as a temporary alias.
-  const expectedConnectionKey = String(expectedKey || expectedToken || '')
+  const expectedConnectionKey = String(expectedKey || '')
 
   let server = null
   let activeSocket = null

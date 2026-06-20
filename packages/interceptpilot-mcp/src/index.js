@@ -18,8 +18,7 @@ export function parseCliArgs(argv = []) {
     if (arg === '--port' && argv[i + 1]) {
       options.port = Number(argv[i + 1]) || BRIDGE_PORT
       i += 1
-    } else if ((arg === '--key' || arg === '--token') && argv[i + 1]) {
-      // `--key` is preferred; `--token` stays as a temporary alias.
+    } else if (arg === '--key' && argv[i + 1]) {
       options.key = String(argv[i + 1] || '')
       i += 1
     }

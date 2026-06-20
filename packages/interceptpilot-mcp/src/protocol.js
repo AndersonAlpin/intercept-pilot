@@ -68,9 +68,8 @@ export function parseBridgeMessage(raw) {
 }
 
 export function validateHelloMessage(message = {}, options = {}) {
-  // The stable credential is `key`; `token` is kept as a temporary backward-compatible alias.
-  const key = String(message.key || message.token || '')
-  const expectedKey = String(options.expectedKey || options.expectedToken || '')
+  const key = String(message.key || '')
+  const expectedKey = String(options.expectedKey || '')
   const ok = message.type === MESSAGE_TYPES.hello
     && message.source === BRIDGE_SOURCE
     && Number(message.version) === BRIDGE_PROTOCOL_VERSION
