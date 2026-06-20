@@ -612,12 +612,19 @@ async function getFullState() {
 async function getAiBridgeCommandContext() {
   const state = await getState()
   const effectiveCandidate = getEffectiveCandidateTab()
+  const compatActiveTabId = getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null)
+  const activeCaptureTab = runtimeState.attachedTabId
+    ? await getAttachedTabRef()
+    : await getCompatTabRef(compatActiveTabId)
   return {
     state: {
       ...state,
       attachedTabId: runtimeState.attachedTabId,
-      compatActiveTabId: getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null),
-      networkMeta: getNetworkCycleMeta()
+      compatActiveTabId,
+      networkMeta: getNetworkCycleMeta(),
+      activeCaptureTab,
+      captureMode: state.settings?.captureMode || 'auto',
+      aiBridgeStatus: getAiBridgeSession().status
     },
     networkEntries: runtimeState.networkEntries
   }

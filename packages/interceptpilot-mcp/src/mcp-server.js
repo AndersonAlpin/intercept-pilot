@@ -91,6 +91,7 @@ const MCP_TOOLS = {
   list_collections: createReadOnlyTool('List InterceptPilot collections with safe summary fields.'),
   list_rules: createReadOnlyTool('List InterceptPilot rules with safe summary fields, without response bodies or headers.'),
   get_active_collection: createReadOnlyTool('Get the active InterceptPilot collection summary.'),
+  get_current_test_context: createReadOnlyTool('Get sanitized active capture, tab, collection and rule count context for the current InterceptPilot test.'),
   import_bundle: {
     description: 'Send an InterceptPilot import bundle to the extension as a pending proposal. The user must confirm it in the Full App before anything is applied.',
     jsonInputSchema: IMPORT_BUNDLE_JSON_INPUT_SCHEMA,

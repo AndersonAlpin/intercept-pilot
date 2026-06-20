@@ -315,6 +315,31 @@ test('AI Bridge connection executes allowed read-only commands with sanitized re
   assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
 })
 
+test('AI Bridge connection executes current test context command with sanitized results', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-context', type: 'command', command: 'get_current_test_context', payload: { ignored: true } }))
+  await Promise.resolve()
+
+  const response = JSON.parse(socket.sent.at(-1))
+  assert.equal(response.id, 'req-context')
+  assert.equal(response.type, 'command:result')
+  assert.equal(response.ok, true)
+  assert.equal(response.result.capture.active, true)
+  assert.equal(response.result.activeCollection.id, 'collection-1')
+  assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
+})
+
 test('AI Bridge connection closes socket and cancels reconnect on disconnect', () => {
   FakeWebSocket.instances = []
   const harness = makeHarness({

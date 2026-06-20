@@ -1,6 +1,7 @@
 import { AI_BRIDGE_STATUS, DEFAULT_AI_BRIDGE_PORT } from '../shared/ai-bridge-state.js'
 import {
   getActiveCollection,
+  getCurrentTestContext,
   listCapturedRequests,
   listCollections,
   listRules
@@ -14,7 +15,8 @@ const ALLOWED_COMMANDS = {
   list_captured_requests: listCapturedRequests,
   list_collections: listCollections,
   list_rules: listRules,
-  get_active_collection: getActiveCollection
+  get_active_collection: getActiveCollection,
+  get_current_test_context: getCurrentTestContext
 }
 
 const WRITE_PROPOSAL_COMMANDS = new Set(['import_bundle'])

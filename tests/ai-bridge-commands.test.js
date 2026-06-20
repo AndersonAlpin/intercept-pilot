@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   MAX_AI_BRIDGE_CAPTURED_REQUESTS,
   getActiveCollection,
+  getCurrentTestContext,
   listCapturedRequests,
   listCollections,
   listRules
@@ -202,4 +203,114 @@ test('getActiveCollection returns sanitized active collection summary', () => {
     enabledRuleCount: 0,
     disabledRuleCount: 1
   })
+})
+
+test('getCurrentTestContext returns sanitized capture, tab, collection and rule counts', () => {
+  const context = getCurrentTestContext({
+    state: {
+      ...state,
+      captureMode: 'full',
+      aiBridgeStatus: 'connected',
+      activeTab: {
+        id: 42,
+        url: 'https://app.example.test/checkout?token=secret-token&email=user@example.test',
+        title: 'Checkout secret page'
+      }
+    }
+  })
+
+  assert.deepEqual(context, {
+    capture: {
+      active: true,
+      mode: 'full'
+    },
+    tab: {
+      origin: 'https://app.example.test',
+      path: '/checkout',
+      hasQuery: true,
+      queryKeys: ['token', 'email'],
+      hashPath: '',
+      hasHashQuery: false,
+      hashQueryKeys: []
+    },
+    activeCollection: {
+      id: 'collection-auth',
+      name: 'Auth',
+      enabled: false
+    },
+    rules: {
+      total: 2,
+      activeCollectionTotal: 1,
+      activeCollectionEnabled: 0,
+      activeCollectionDisabled: 1
+    },
+    aiBridge: {
+      status: 'connected'
+    }
+  })
+
+  const serialized = JSON.stringify(context)
+  assert.doesNotMatch(serialized, /secret-token|user@example|Checkout secret|tabId|Authorization|cookies|headers|body/i)
+})
+
+test('getCurrentTestContext returns sanitized SPA hash route without hash query values', () => {
+  const context = getCurrentTestContext({
+    state: {
+      ...state,
+      aiBridgeStatus: 'connected',
+      activeTab: {
+        id: 42,
+        url: 'https://app.example.test/?beta=1#/security/anti-download?token=secret-token&email=user@example.test',
+        title: 'Security secret page'
+      }
+    }
+  })
+
+  assert.deepEqual(context.tab, {
+    origin: 'https://app.example.test',
+    path: '/',
+    hasQuery: true,
+    queryKeys: ['beta'],
+    hashPath: '/security/anti-download',
+    hasHashQuery: true,
+    hashQueryKeys: ['token', 'email']
+  })
+
+  const serialized = JSON.stringify(context)
+  assert.doesNotMatch(serialized, /beta=1|secret-token|user@example|Security secret|#\/security|token=|email=/)
+})
+
+test('getCurrentTestContext handles missing capture context without exposing private URLs', () => {
+  const context = getCurrentTestContext({
+    state: {
+      collections: [],
+      rules: [],
+      settings: {},
+      activeTab: {
+        id: 7,
+        url: 'https://private.example.test/path?token=secret'
+      },
+      aiBridgeStatus: 'waiting'
+    }
+  })
+
+  assert.deepEqual(context, {
+    capture: {
+      active: false,
+      mode: 'auto'
+    },
+    tab: null,
+    activeCollection: null,
+    rules: {
+      total: 0,
+      activeCollectionTotal: 0,
+      activeCollectionEnabled: 0,
+      activeCollectionDisabled: 0
+    },
+    aiBridge: {
+      status: 'waiting'
+    }
+  })
+
+  assert.doesNotMatch(JSON.stringify(context), /private|secret/)
 })

@@ -1,4 +1,4 @@
-import { getVisibleNetworkEntriesForCapture } from '../shared/capture-context.js'
+import { getVisibleNetworkEntriesForCapture, hasActiveCaptureContext } from '../shared/capture-context.js'
 import {
   sanitizeAiBridgeCollection,
   sanitizeAiBridgeRequest,
@@ -17,6 +17,53 @@ function getStateCollections(state = {}) {
 
 function getActiveCollectionId(state = {}) {
   return String(state.settings?.activeCollectionId || '')
+}
+
+function getCaptureMode(state = {}) {
+  const mode = String(state.captureMode || state.settings?.captureMode || 'auto')
+  if (mode === 'cdp' || mode === 'full') return 'full'
+  if (mode === 'compat' || mode === 'light') return 'light'
+  return 'auto'
+}
+
+function sanitizeTabContext(tab = {}) {
+  if (!tab?.url) return null
+  const urlParts = sanitizeAiBridgeRequest({ url: tab.url })
+  const hashParts = sanitizeHashRoute(tab.url)
+  return {
+    origin: urlParts.urlOrigin,
+    path: urlParts.urlPath,
+    hasQuery: urlParts.hasQuery,
+    queryKeys: urlParts.queryKeys,
+    ...hashParts
+  }
+}
+
+function sanitizeHashRoute(url) {
+  const raw = String(url || '')
+  const hashIndex = raw.indexOf('#')
+  if (hashIndex < 0) {
+    return {
+      hashPath: '',
+      hasHashQuery: false,
+      hashQueryKeys: []
+    }
+  }
+
+  const hash = raw.slice(hashIndex + 1)
+  const [hashWithoutQuery, query = ''] = hash.split('?')
+  const hashPath = hashWithoutQuery.startsWith('/') ? hashWithoutQuery : `/${hashWithoutQuery}`.replace(/\/+$/, '')
+  const hashQueryKeys = query
+    .split('&')
+    .map(part => part.split('=')[0])
+    .map(part => decodeURIComponent(part || '').trim())
+    .filter(Boolean)
+
+  return {
+    hashPath,
+    hasHashQuery: hashQueryKeys.length > 0,
+    hashQueryKeys
+  }
 }
 
 function countRulesByCollection(rules = []) {
@@ -62,5 +109,35 @@ export function getActiveCollection({ state = {} } = {}) {
     ruleCount: activeRules.length,
     enabledRuleCount: activeRules.filter(rule => rule.enabled !== false).length,
     disabledRuleCount: activeRules.filter(rule => rule.enabled === false).length
+  }
+}
+
+export function getCurrentTestContext({ state = {} } = {}) {
+  const rules = getStateRules(state)
+  const activeCollection = getActiveCollection({ state })
+  const activeCapture = hasActiveCaptureContext(state)
+
+  return {
+    capture: {
+      active: activeCapture,
+      mode: getCaptureMode(state)
+    },
+    tab: activeCapture ? sanitizeTabContext(state.activeCaptureTab || state.activeTab) : null,
+    activeCollection: activeCollection.collection
+      ? {
+          id: activeCollection.collection.id,
+          name: activeCollection.collection.name,
+          enabled: activeCollection.collection.enabled
+        }
+      : null,
+    rules: {
+      total: rules.length,
+      activeCollectionTotal: activeCollection.ruleCount,
+      activeCollectionEnabled: activeCollection.enabledRuleCount,
+      activeCollectionDisabled: activeCollection.disabledRuleCount
+    },
+    aiBridge: {
+      status: String(state.aiBridgeStatus || 'disabled')
+    }
   }
 }

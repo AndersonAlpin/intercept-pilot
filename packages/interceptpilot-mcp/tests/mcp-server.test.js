@@ -9,6 +9,7 @@ const EXPECTED_TOOL_NAMES = [
   'list_collections',
   'list_rules',
   'get_active_collection',
+  'get_current_test_context',
   'import_bundle'
 ]
 
