@@ -13,18 +13,18 @@ import {
 } from '../../shared/ai-bridge-permissions.js'
 
 const DATA_PERMISSION_ROWS = [
-  ['allowQueryValuesByDefault', 'allowQueryValuesThisSession', 'aiBridgePermissionQueryValues'],
-  ['allowRequestHeadersByDefault', 'allowRequestHeadersThisSession', 'aiBridgePermissionRequestHeaders'],
-  ['allowResponseHeadersByDefault', 'allowResponseHeadersThisSession', 'aiBridgePermissionResponseHeaders'],
-  ['allowRequestBodyByDefault', 'allowRequestBodyThisSession', 'aiBridgePermissionRequestBody'],
-  ['allowResponseBodyByDefault', 'allowResponseBodyThisSession', 'aiBridgePermissionResponseBody'],
-  ['allowDetailedLogsByDefault', 'allowDetailedLogsThisSession', 'aiBridgePermissionDetailedLogs']
+  ['allowQueryValuesByDefault', 'allowQueryValuesThisSession', 'aiBridgePermissionQueryValues', 'aiBridgePermissionQueryValuesDescription'],
+  ['allowRequestHeadersByDefault', 'allowRequestHeadersThisSession', 'aiBridgePermissionRequestHeaders', 'aiBridgePermissionRequestHeadersDescription'],
+  ['allowResponseHeadersByDefault', 'allowResponseHeadersThisSession', 'aiBridgePermissionResponseHeaders', 'aiBridgePermissionResponseHeadersDescription'],
+  ['allowRequestBodyByDefault', 'allowRequestBodyThisSession', 'aiBridgePermissionRequestBody', 'aiBridgePermissionRequestBodyDescription'],
+  ['allowResponseBodyByDefault', 'allowResponseBodyThisSession', 'aiBridgePermissionResponseBody', 'aiBridgePermissionResponseBodyDescription'],
+  ['allowDetailedLogsByDefault', 'allowDetailedLogsThisSession', 'aiBridgePermissionDetailedLogs', 'aiBridgePermissionDetailedLogsDescription']
 ]
 
 const ACTION_PERMISSION_ROWS = [
-  ['allowImportBundleApplyByDefault', 'allowImportBundleApplyThisSession', 'aiBridgePermissionImportApply'],
-  ['allowRuleActionsByDefault', 'allowRuleActionsThisSession', 'aiBridgePermissionRuleActions'],
-  ['allowCapturedTabReloadByDefault', 'allowCapturedTabReloadThisSession', 'aiBridgePermissionCapturedTabReload']
+  ['allowImportBundleApplyByDefault', 'allowImportBundleApplyThisSession', 'aiBridgePermissionImportApply', 'aiBridgePermissionImportApplyDescription'],
+  ['allowRuleActionsByDefault', 'allowRuleActionsThisSession', 'aiBridgePermissionRuleActions', 'aiBridgePermissionRuleActionsDescription'],
+  ['allowCapturedTabReloadByDefault', 'allowCapturedTabReloadThisSession', 'aiBridgePermissionCapturedTabReload', 'aiBridgePermissionCapturedTabReloadDescription']
 ]
 
 const ALL_PERMISSION_ROWS = [...DATA_PERMISSION_ROWS, ...ACTION_PERMISSION_ROWS]
@@ -78,17 +78,25 @@ function renderModeCards(current) {
 }
 
 function renderPermissionSwitches(rows, permissions, mode) {
-  return rows.map(([defaultKey, sessionKey, labelKey]) => {
+  return rows.map(([defaultKey, sessionKey, labelKey, descriptionKey]) => {
     const key = mode === 'session' ? sessionKey : defaultKey
-    return renderSwitch({
+    return `
+      <div class="ai-bridge-permission-item">
+        <div class="ai-bridge-permission-item__copy">
+          <strong>${escapeHtml(t(`fullapp.${labelKey}`))}</strong>
+          <span>${escapeHtml(t(`fullapp.${descriptionKey}`))}</span>
+        </div>
+        ${renderSwitch({
       id: `ai-bridge-${mode}-${permissionIdSuffix(key)}`,
       checked: Boolean(permissions[key]),
-      label: t(`fullapp.${labelKey}`),
+      ariaLabel: t(`fullapp.${labelKey}`),
       className: 'settings-toggle ai-bridge-permission-toggle',
       attrs: {
         [`data-ai-bridge-${mode}-permission`]: key
       }
-    })
+    })}
+      </div>
+    `
   }).join('')
 }
 
