@@ -5,6 +5,7 @@ import {
   MAX_AI_BRIDGE_CAPTURED_REQUESTS,
   MAX_AI_BRIDGE_RECENT_RULE_RESULTS,
   MAX_AI_BRIDGE_SANITIZED_LOGS,
+  explainRuleMatchCommand,
   getActiveCollection,
   getCurrentTestContext,
   listCapturedRequests,
@@ -295,6 +296,48 @@ test('listRecentRuleResults limits the response size for AI Bridge', () => {
   assert.equal(results[0].requestId, 'result-0')
   assert.equal(results.at(-1).requestId, `result-${MAX_AI_BRIDGE_RECENT_RULE_RESULTS - 1}`)
   assert.doesNotMatch(JSON.stringify(results), /secret-/)
+})
+
+test('explainRuleMatchCommand compares a rule with a captured request using payload ids', () => {
+  const result = explainRuleMatchCommand({
+    state: {
+      ...state,
+      rules: [
+        {
+          id: 'rule-auth',
+          collectionId: 'collection-auth',
+          name: 'Mock auth',
+          enabled: true,
+          priority: 200,
+          match: { urlPattern: '/auth', matchType: 'contains', method: 'POST', resourceType: 'Fetch' },
+          action: { type: 'mockResponse', responseBody: '{"token":"secret"}' }
+        }
+      ]
+    },
+    networkEntries: [
+      {
+        id: 'request-auth',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'POST',
+        url: 'https://internal.example.test/api/auth?token=secret-token',
+        resourceType: 'XHR',
+        requestHeaders: [{ name: 'Authorization', value: 'Bearer secret' }],
+        responseBody: '{"access_token":"secret"}'
+      }
+    ],
+    payload: {
+      ruleId: 'rule-auth',
+      requestId: 'request-auth'
+    }
+  })
+
+  assert.equal(result.rule.id, 'rule-auth')
+  assert.equal(result.request.id, 'request-auth')
+  assert.equal(result.matched, false)
+  assert.equal(result.checks.find(check => check.name === 'resourceType').passed, false)
+  assert.match(result.suggestions.join(' '), /Use resourceType ANY/)
+  assert.doesNotMatch(JSON.stringify(result), /secret-token|Authorization|Bearer|access_token|responseBody|requestHeaders/)
 })
 
 test('listCollections includes rule counts and active collection flag', () => {

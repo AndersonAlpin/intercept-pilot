@@ -1,5 +1,6 @@
 import { AI_BRIDGE_STATUS, DEFAULT_AI_BRIDGE_PORT } from '../shared/ai-bridge-state.js'
 import {
+  explainRuleMatchCommand,
   getActiveCollection,
   getCurrentTestContext,
   listCapturedRequests,
@@ -19,6 +20,7 @@ const ALLOWED_COMMANDS = {
   list_rules: listRules,
   list_sanitized_logs: listSanitizedLogs,
   list_recent_rule_results: listRecentRuleResults,
+  explain_rule_match: explainRuleMatchCommand,
   get_active_collection: getActiveCollection,
   get_current_test_context: getCurrentTestContext
 }
@@ -126,7 +128,10 @@ export function createAiBridgeConnection(options = {}) {
         id,
         type: 'command:result',
         ok: true,
-        result: ALLOWED_COMMANDS[command](context)
+        result: ALLOWED_COMMANDS[command]({
+          ...context,
+          payload: message.payload || {}
+        })
       })
     } catch {
       sendCommandError(id, {

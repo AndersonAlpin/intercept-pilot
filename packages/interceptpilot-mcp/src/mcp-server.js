@@ -5,6 +5,8 @@ import { getImportBundleExamples, getImportBundleSchema } from './import-bundle-
 import { ALLOWED_COMMANDS, isAllowedCommand } from './protocol.js'
 
 const IMPORT_BUNDLE_INPUT_DESCRIPTION = 'A JSON string containing an InterceptPilot import bundle. It can be either a single rule bundle with type "interceptpilot.rule" or a collection bundle with type "interceptpilot.collection". The extension will create a pending proposal and wait for user confirmation.'
+const RULE_ID_INPUT_DESCRIPTION = 'The InterceptPilot rule id to compare against a captured request.'
+const REQUEST_ID_INPUT_DESCRIPTION = 'The captured request/network entry id to compare against the rule.'
 const EMPTY_JSON_INPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false
@@ -18,6 +20,21 @@ const IMPORT_BUNDLE_JSON_INPUT_SCHEMA = {
     }
   },
   required: ['bundleJson'],
+  additionalProperties: false
+}
+const EXPLAIN_RULE_MATCH_JSON_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    ruleId: {
+      type: 'string',
+      description: RULE_ID_INPUT_DESCRIPTION
+    },
+    requestId: {
+      type: 'string',
+      description: REQUEST_ID_INPUT_DESCRIPTION
+    }
+  },
+  required: ['ruleId', 'requestId'],
   additionalProperties: false
 }
 
@@ -54,6 +71,18 @@ function buildImportBundlePayload(args = {}) {
     throw new Error('bundleJson must be a JSON string.')
   }
   return { bundleJson }
+}
+
+function buildExplainRuleMatchPayload(args = {}) {
+  const ruleId = args?.ruleId
+  const requestId = args?.requestId
+  if (typeof ruleId !== 'string' || !ruleId.trim() || typeof requestId !== 'string' || !requestId.trim()) {
+    throw new Error('ruleId and requestId are required strings.')
+  }
+  return {
+    ruleId,
+    requestId
+  }
 }
 
 function createImportProposalResult(result = {}) {
@@ -108,6 +137,16 @@ const MCP_TOOLS = {
   get_current_test_context: createReadOnlyTool('Get the current sanitized InterceptPilot test context, including capture status, capture mode, active tab origin/path, active collection summary, rule counts, and AI Bridge status. Does not include full URLs with query values, headers, bodies, cookies, or tab title.'),
   get_import_bundle_schema: createStaticReadOnlyTool('Return the static InterceptPilot import bundle schema, supported bundle types, allowed enum values, and guidance for creating rule or collection bundles. Does not require the extension to be connected and does not alter state.', getImportBundleSchema),
   get_import_bundle_examples: createStaticReadOnlyTool('Return safe static examples of InterceptPilot rule and collection import bundles. Useful as references before calling import_bundle. Does not require the extension to be connected and does not alter state.', getImportBundleExamples),
+  explain_rule_match: {
+    description: 'Compare an InterceptPilot rule with a captured request and return a sanitized diagnostic explaining why the rule matches or why it likely did not apply. Does not expose headers, bodies, cookies, Authorization values, or query parameter values.',
+    jsonInputSchema: EXPLAIN_RULE_MATCH_JSON_INPUT_SCHEMA,
+    registeredInputSchema: {
+      ruleId: z.string().min(1).describe(RULE_ID_INPUT_DESCRIPTION),
+      requestId: z.string().min(1).describe(REQUEST_ID_INPUT_DESCRIPTION)
+    },
+    buildPayload: buildExplainRuleMatchPayload,
+    formatResult: createTextResult
+  },
   import_bundle: {
     description: 'Send an InterceptPilot rule or collection import bundle to the extension as a pending proposal. Supports bundles with type "interceptpilot.rule" or "interceptpilot.collection". The user must confirm it in the Full App before anything is applied.',
     jsonInputSchema: IMPORT_BUNDLE_JSON_INPUT_SCHEMA,

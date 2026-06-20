@@ -7,6 +7,7 @@ import {
   sanitizeAiBridgeRule,
   sanitizeAiBridgeRuleResult
 } from '../shared/ai-bridge-sanitize.js'
+import { explainRuleMatch } from './ai-bridge-diagnostics.js'
 
 export const MAX_AI_BRIDGE_CAPTURED_REQUESTS = 100
 export const MAX_AI_BRIDGE_SANITIZED_LOGS = 100
@@ -93,6 +94,10 @@ export function listRecentRuleResults({ state = {}, networkEntries = [] } = {}) 
   return getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : [])
     .slice(0, MAX_AI_BRIDGE_RECENT_RULE_RESULTS)
     .map(entry => sanitizeAiBridgeRuleResult(entry))
+}
+
+export function explainRuleMatchCommand({ state = {}, networkEntries = [], payload = {} } = {}) {
+  return explainRuleMatch({ state, networkEntries, payload })
 }
 
 export function listCollections({ state = {} } = {}) {

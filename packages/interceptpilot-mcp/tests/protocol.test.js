@@ -21,6 +21,7 @@ test('protocol exposes only allowed MVP commands', () => {
     'get_current_test_context',
     'get_import_bundle_schema',
     'get_import_bundle_examples',
+    'explain_rule_match',
     'import_bundle'
   ])
   assert.equal(isAllowedCommand('list_rules'), true)
@@ -29,6 +30,7 @@ test('protocol exposes only allowed MVP commands', () => {
   assert.equal(isAllowedCommand('get_current_test_context'), true)
   assert.equal(isAllowedCommand('get_import_bundle_schema'), true)
   assert.equal(isAllowedCommand('get_import_bundle_examples'), true)
+  assert.equal(isAllowedCommand('explain_rule_match'), true)
   assert.equal(isAllowedCommand('import_bundle'), true)
   assert.equal(isAllowedCommand('enable_rule'), false)
   assert.equal(isAllowedCommand('set_capture_mode'), false)

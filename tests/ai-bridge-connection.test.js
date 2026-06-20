@@ -340,6 +340,39 @@ test('AI Bridge connection executes current test context command with sanitized 
   assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
 })
 
+test('AI Bridge connection forwards explain_rule_match payload to read-only command', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({
+    id: 'req-diagnostic',
+    type: 'command',
+    command: 'explain_rule_match',
+    payload: {
+      ruleId: 'rule-1',
+      requestId: 'entry-1'
+    }
+  }))
+  await Promise.resolve()
+
+  const response = JSON.parse(socket.sent.at(-1))
+  assert.equal(response.id, 'req-diagnostic')
+  assert.equal(response.type, 'command:result')
+  assert.equal(response.ok, true)
+  assert.equal(response.result.rule?.id || null, null)
+  assert.match(response.result.summary, /Rule was not found/)
+  assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
+})
+
 test('AI Bridge connection closes socket and cancels reconnect on disconnect', () => {
   FakeWebSocket.instances = []
   const harness = makeHarness({

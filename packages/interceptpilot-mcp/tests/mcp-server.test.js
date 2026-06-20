@@ -14,11 +14,16 @@ const EXPECTED_TOOL_NAMES = [
   'get_current_test_context',
   'get_import_bundle_schema',
   'get_import_bundle_examples',
+  'explain_rule_match',
   'import_bundle'
 ]
 const STATIC_TOOL_NAMES = [
   'get_import_bundle_schema',
   'get_import_bundle_examples'
+]
+const REQUIRED_INPUT_TOOL_NAMES = [
+  'import_bundle',
+  'explain_rule_match'
 ]
 
 test('MCP server exposes the allowed InterceptPilot tools', () => {
@@ -33,15 +38,25 @@ test('MCP tool definitions stay synchronized with the protocol allowlist', () =>
 })
 
 test('MCP read-only tools do not require input', () => {
-  const tools = getMcpToolDefinitions().filter(tool => tool.name !== 'import_bundle')
+  const tools = getMcpToolDefinitions().filter(tool => !REQUIRED_INPUT_TOOL_NAMES.includes(tool.name))
 
-  assert.deepEqual(tools.map(tool => tool.name), EXPECTED_TOOL_NAMES.filter(name => name !== 'import_bundle'))
+  assert.deepEqual(tools.map(tool => tool.name), EXPECTED_TOOL_NAMES.filter(name => !REQUIRED_INPUT_TOOL_NAMES.includes(name)))
   for (const tool of tools) {
     assert.deepEqual(tool.inputSchema, {
       type: 'object',
       additionalProperties: false
     })
   }
+})
+
+test('MCP explain_rule_match tool declares ruleId and requestId inputs', () => {
+  const tool = getMcpToolDefinitions().find(item => item.name === 'explain_rule_match')
+
+  assert.match(tool.description, /Compare an InterceptPilot rule with a captured request/)
+  assert.deepEqual(tool.inputSchema.required, ['ruleId', 'requestId'])
+  assert.equal(tool.inputSchema.properties.ruleId.type, 'string')
+  assert.equal(tool.inputSchema.properties.requestId.type, 'string')
+  assert.equal(tool.inputSchema.additionalProperties, false)
 })
 
 test('MCP import_bundle tool declares bundleJson input', () => {
@@ -104,13 +119,54 @@ test('MCP all read-only tools ignore programmatic arguments', async () => {
     }
   })
 
-  for (const name of EXPECTED_TOOL_NAMES.filter(toolName => toolName !== 'import_bundle')) {
+  for (const name of EXPECTED_TOOL_NAMES.filter(toolName => !REQUIRED_INPUT_TOOL_NAMES.includes(toolName))) {
     await handleToolCall(name, { extra: true, bundleJson: 'ignored' })
   }
 
   assert.deepEqual(calls, EXPECTED_TOOL_NAMES
-    .filter(name => name !== 'import_bundle' && !STATIC_TOOL_NAMES.includes(name))
+    .filter(name => !REQUIRED_INPUT_TOOL_NAMES.includes(name) && !STATIC_TOOL_NAMES.includes(name))
     .map(command => ({ command, payload: {} })))
+})
+
+test('MCP explain_rule_match forwards ruleId and requestId through the bridge', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        return {
+          matched: false,
+          confidence: 'high',
+          summary: 'Rule expects resourceType Fetch, but the request was XHR.'
+        }
+      }
+    }
+  })
+
+  const result = await handleToolCall('explain_rule_match', {
+    ruleId: 'rule-auth',
+    requestId: 'request-auth',
+    ignored: 'value'
+  })
+
+  assert.deepEqual(calls, [{ command: 'explain_rule_match', payload: { ruleId: 'rule-auth', requestId: 'request-auth' } }])
+  assert.equal(result.content[0].type, 'text')
+  assert.match(result.content[0].text, /resourceType Fetch/)
+})
+
+test('MCP explain_rule_match returns a safe error for invalid payload', async () => {
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async () => {
+        throw new Error('should not be called')
+      }
+    }
+  })
+
+  const result = await handleToolCall('explain_rule_match', { ruleId: 'rule-auth' })
+
+  assert.equal(result.isError, true)
+  assert.match(result.content[0].text, /ruleId and requestId are required/)
 })
 
 test('MCP import_bundle forwards bundleJson through the bridge', async () => {
