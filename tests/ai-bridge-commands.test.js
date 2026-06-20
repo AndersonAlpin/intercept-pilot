@@ -260,7 +260,7 @@ test('getCurrentTestContext returns sanitized SPA hash route without hash query 
       aiBridgeStatus: 'connected',
       activeTab: {
         id: 42,
-        url: 'https://app.example.test/?beta=1#/security/anti-download?token=secret-token&email=user@example.test',
+        url: 'https://app.example.test/?beta=1&bare-query-secret#/security/anti-download?bare-hash-secret&token=secret-token&email=user@example.test',
         title: 'Security secret page'
       }
     }
@@ -277,7 +277,7 @@ test('getCurrentTestContext returns sanitized SPA hash route without hash query 
   })
 
   const serialized = JSON.stringify(context)
-  assert.doesNotMatch(serialized, /beta=1|secret-token|user@example|Security secret|#\/security|token=|email=/)
+  assert.doesNotMatch(serialized, /beta=1|bare-query-secret|bare-hash-secret|secret-token|user@example|Security secret|#\/security|token=|email=/)
 })
 
 test('getCurrentTestContext handles missing capture context without exposing private URLs', () => {

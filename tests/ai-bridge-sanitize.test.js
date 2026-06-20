@@ -34,6 +34,23 @@ test('sanitizeAiBridgeRequest removes query values and keeps only query keys', (
   assert.doesNotMatch(serialized, /tok_123|access_123|refresh_123|key_123|secret_123|code_123|session_123|auth_123|safe=value/)
 })
 
+test('sanitizeAiBridgeRequest does not expose bare query tokens as query keys', () => {
+  const sanitized = sanitizeAiBridgeRequest({
+    id: 'entry-bare-query',
+    method: 'GET',
+    url: 'https://pilot-staging.example.test/ai/chat/usage?4f9b867746ccaa455553285dad8dd0cad6158fe48a24aab98f97461e68e60f91&safe=value&debug',
+    requestHeaders: [],
+    responseHeaders: []
+  })
+
+  assert.equal(sanitized.urlSanitized, 'https://pilot-staging.example.test/ai/chat/usage')
+  assert.equal(sanitized.hasQuery, true)
+  assert.deepEqual(sanitized.queryKeys, ['safe'])
+
+  const serialized = JSON.stringify(sanitized)
+  assert.doesNotMatch(serialized, /4f9b867746ccaa455553285dad8dd0cad6158fe48a24aab98f97461e68e60f91|safe=value|debug/)
+})
+
 test('sanitizeAiBridgeRequest never exposes sensitive header values or raw headers', () => {
   const sanitized = sanitizeAiBridgeRequest({
     id: 'entry-headers',

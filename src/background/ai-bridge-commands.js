@@ -1,5 +1,6 @@
 import { getVisibleNetworkEntriesForCapture, hasActiveCaptureContext } from '../shared/capture-context.js'
 import {
+  sanitizeAiBridgeQueryKeys,
   sanitizeAiBridgeCollection,
   sanitizeAiBridgeRequest,
   sanitizeAiBridgeRule
@@ -53,15 +54,11 @@ function sanitizeHashRoute(url) {
   const hash = raw.slice(hashIndex + 1)
   const [hashWithoutQuery, query = ''] = hash.split('?')
   const hashPath = hashWithoutQuery.startsWith('/') ? hashWithoutQuery : `/${hashWithoutQuery}`.replace(/\/+$/, '')
-  const hashQueryKeys = query
-    .split('&')
-    .map(part => part.split('=')[0])
-    .map(part => decodeURIComponent(part || '').trim())
-    .filter(Boolean)
+  const hashQueryKeys = sanitizeAiBridgeQueryKeys(query)
 
   return {
     hashPath,
-    hasHashQuery: hashQueryKeys.length > 0,
+    hasHashQuery: query.length > 0,
     hashQueryKeys
   }
 }

@@ -10,6 +10,16 @@ function hasHeaders(headers) {
   return Array.isArray(headers) && headers.length > 0
 }
 
+export function sanitizeAiBridgeQueryKeys(query) {
+  return String(query || '')
+    .replace(/^\?/, '')
+    .split('&')
+    .filter(part => part.includes('='))
+    .map(part => part.split('=')[0])
+    .map(part => decodeURIComponent(part || '').trim())
+    .filter(Boolean)
+}
+
 function sanitizeUrl(url) {
   const raw = toStringValue(url).trim()
   if (!raw) {
@@ -28,24 +38,20 @@ function sanitizeUrl(url) {
       urlSanitized: `${parsed.origin}${parsed.pathname}`,
       urlOrigin: parsed.origin,
       urlPath: parsed.pathname || '/',
-      queryKeys: Array.from(parsed.searchParams.keys()),
-      hasQuery: parsed.searchParams.toString().length > 0
+      queryKeys: sanitizeAiBridgeQueryKeys(parsed.search),
+      hasQuery: parsed.search.length > 1
     }
   } catch {
     const [withoutHash] = raw.split('#')
     const [withoutQuery, query = ''] = withoutHash.split('?')
-    const queryKeys = query
-      .split('&')
-      .map(part => part.split('=')[0])
-      .map(part => decodeURIComponent(part || '').trim())
-      .filter(Boolean)
+    const queryKeys = sanitizeAiBridgeQueryKeys(query)
 
     return {
       urlSanitized: withoutQuery,
       urlOrigin: '',
       urlPath: withoutQuery,
       queryKeys,
-      hasQuery: queryKeys.length > 0
+      hasQuery: query.length > 0
     }
   }
 }
