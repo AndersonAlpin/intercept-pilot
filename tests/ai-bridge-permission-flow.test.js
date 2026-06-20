@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 
 const backgroundSource = readFileSync(new URL('../src/background/background.js', import.meta.url), 'utf8')
 const fullAppSource = readFileSync(new URL('../src/fullapp/fullapp.js', import.meta.url), 'utf8')
+const fullAppCss = readFileSync(new URL('../src/fullapp/fullapp.css', import.meta.url), 'utf8')
 
 test('AI Bridge start session copies saved default permissions into the session', () => {
   const startBlock = backgroundSource.match(/case 'aiBridge:startSession': \{[\s\S]*?return\n\s+\}/)?.[0] || ''
@@ -51,4 +52,20 @@ test('Full App clears expanded MCP configuration when the AI Bridge session ends
 
   assert.match(revokeBlock, /state\.aiBridgeConfigVisible = false/)
   assert.match(aiBridgeStateBlock, /state\.aiBridgeConfigVisible = false/)
+})
+
+test('Full App preserves scroll position when re-rendering the same page', () => {
+  assert.match(fullAppSource, /let lastRenderedPage = null/)
+  assert.match(fullAppSource, /function captureScrollSnapshot\(\)/)
+  assert.match(fullAppSource, /dataPanelTop: dataPanelScroll\?\.scrollTop/)
+  assert.match(fullAppSource, /function restoreScrollSnapshot\(snapshot\)/)
+  assert.match(fullAppSource, /snapshot\.page !== state\.page/)
+  assert.match(fullAppSource, /restoreScrollSnapshot\(scrollSnapshot\)/)
+  assert.match(fullAppSource, /lastRenderedPage = state\.page/)
+})
+
+test('AI Bridge permission cards are clickable and expose hover focus states', () => {
+  assert.match(fullAppCss, /\.ai-bridge-permission-item \{[\s\S]*cursor: pointer;/)
+  assert.match(fullAppCss, /\.ai-bridge-permission-item:hover \{/)
+  assert.match(fullAppCss, /\.ai-bridge-permission-item:focus-within \{/)
 })

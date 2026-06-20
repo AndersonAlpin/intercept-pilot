@@ -2,7 +2,7 @@ import { escapeHtml } from '../../shared/utils.js'
 import { t } from '../../shared/i18n.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { renderDataPanel } from '../../shared/ui/data-panel.js'
-import { renderSwitch } from '../../shared/ui/toggle.js'
+import { renderAttrs } from '../../shared/ui/dom.js'
 import { AI_BRIDGE_STATUS, buildAiBridgeMcpConfigText, normalizeAiBridgeSessionState } from '../../shared/ai-bridge-state.js'
 import {
   AI_BRIDGE_PERMISSION_MODES,
@@ -80,22 +80,26 @@ function renderModeCards(current) {
 function renderPermissionSwitches(rows, permissions, mode) {
   return rows.map(([defaultKey, sessionKey, labelKey, descriptionKey]) => {
     const key = mode === 'session' ? sessionKey : defaultKey
+    const id = `ai-bridge-${mode}-${permissionIdSuffix(key)}`
+    const descriptionId = `${id}-description`
+    const inputAttrs = renderAttrs({
+      id,
+      type: 'checkbox',
+      checked: Boolean(permissions[key]),
+      'aria-describedby': descriptionId,
+      [`data-ai-bridge-${mode}-permission`]: key
+    })
     return `
-      <div class="ai-bridge-permission-item">
+      <label class="ai-bridge-permission-item" for="${escapeHtml(id)}">
         <div class="ai-bridge-permission-item__copy">
           <strong>${escapeHtml(t(`fullapp.${labelKey}`))}</strong>
-          <span>${escapeHtml(t(`fullapp.${descriptionKey}`))}</span>
+          <span id="${escapeHtml(descriptionId)}">${escapeHtml(t(`fullapp.${descriptionKey}`))}</span>
         </div>
-        ${renderSwitch({
-      id: `ai-bridge-${mode}-${permissionIdSuffix(key)}`,
-      checked: Boolean(permissions[key]),
-      ariaLabel: t(`fullapp.${labelKey}`),
-      className: 'settings-toggle ai-bridge-permission-toggle',
-      attrs: {
-        [`data-ai-bridge-${mode}-permission`]: key
-      }
-    })}
-      </div>
+        <span class="switch settings-toggle ai-bridge-permission-toggle">
+          <input ${inputAttrs} />
+          <span class="switch-track" aria-hidden="true"></span>
+        </span>
+      </label>
     `
   }).join('')
 }

@@ -164,6 +164,7 @@ let pendingNetworkPress = null
 let pendingNetworkPressTimer = null
 let pendingLogPress = null
 let pendingLogPressTimer = null
+let lastRenderedPage = null
 
 function getPageTitleLabel(page = state.page) {
   const labels = {
@@ -220,6 +221,24 @@ function restoreFocusSnapshot(snapshot) {
       el.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd)
     } catch {}
   }
+}
+
+function captureScrollSnapshot() {
+  const appContent = document.querySelector('.app-content')
+  const dataPanelScroll = document.querySelector('.data-panel__scroll')
+  return {
+    page: lastRenderedPage,
+    appContentTop: appContent?.scrollTop ?? 0,
+    dataPanelTop: dataPanelScroll?.scrollTop ?? 0
+  }
+}
+
+function restoreScrollSnapshot(snapshot) {
+  if (!snapshot || snapshot.page !== state.page) return
+  const appContent = document.querySelector('.app-content')
+  const dataPanelScroll = document.querySelector('.data-panel__scroll')
+  if (appContent) appContent.scrollTop = snapshot.appContentTop
+  if (dataPanelScroll) dataPanelScroll.scrollTop = snapshot.dataPanelTop
 }
 
 function updateDataPanelScrollState(root = document) {
@@ -627,6 +646,7 @@ function renderPage() {
 function render() {
   const root = $('#app')
   const focusSnapshot = captureFocusSnapshot()
+  const scrollSnapshot = captureScrollSnapshot()
   const isSplitScrollPage = state.page === 'network' || state.page === 'logs' || state.page === 'rules' || state.page === 'collections' || state.page === 'diagnostics'
   const selectedLog = state.selectedLogId ? findLogById(state.selectedLogId) : null
   updateDocumentTitle()
@@ -653,7 +673,9 @@ function render() {
   bindSelectMenus()
   bindEvents()
   restoreFocusSnapshot(focusSnapshot)
+  restoreScrollSnapshot(scrollSnapshot)
   updateDataPanelScrollState(root)
+  lastRenderedPage = state.page
 }
 
 function bindTopbarEvents() {

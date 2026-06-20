@@ -130,9 +130,10 @@ test('AI Bridge advanced permissions render as a vertical list', () => {
 
   const html = renderAiBridgePage(disabledState())
 
-  assert.match(html, /<div class="ai-bridge-permission-list">\s*<div class="ai-bridge-permission-item">/)
-  assert.match(html, /<div class="ai-bridge-permission-item__copy">\s*<strong>Expor valores de query string<\/strong>\s*<span>Permite enviar valores dos parâmetros da URL\.<\/span>/)
-  assert.match(html, /aria-label="Expor valores de query string"/)
+  assert.match(html, /<div class="ai-bridge-permission-list">\s*<label class="ai-bridge-permission-item" for="ai-bridge-default-allow-query-values">/)
+  assert.match(html, /<div class="ai-bridge-permission-item__copy">\s*<strong>Expor valores de query string<\/strong>\s*<span id="ai-bridge-default-allow-query-values-description">Permite enviar valores dos parâmetros da URL\.<\/span>/)
+  assert.match(html, /aria-describedby="ai-bridge-default-allow-query-values-description"/)
+  assert.match(html, /<span class="switch settings-toggle ai-bridge-permission-toggle">\s*<input/)
 })
 
 test('AI Bridge disabled status is compact and does not expose MCP configuration', () => {
