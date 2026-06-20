@@ -3,50 +3,21 @@ import { z } from 'zod'
 
 import { ALLOWED_COMMANDS, isAllowedCommand } from './protocol.js'
 
-const TOOL_DESCRIPTIONS = {
-  list_captured_requests: 'List sanitized captured requests from the active InterceptPilot capture context.',
-  list_collections: 'List InterceptPilot collections with safe summary fields.',
-  list_rules: 'List InterceptPilot rules with safe summary fields, without response bodies or headers.',
-  get_active_collection: 'Get the active InterceptPilot collection summary.',
-  import_bundle: 'Send an InterceptPilot import bundle to the extension as a pending proposal. The user must confirm it in the Full App before anything is applied.'
+const IMPORT_BUNDLE_INPUT_DESCRIPTION = 'InterceptPilot import bundle JSON string. The extension will create a pending proposal and wait for user confirmation.'
+const EMPTY_JSON_INPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false
 }
-
-const IMPORT_BUNDLE_INPUT_SCHEMA = {
-  bundleJson: z.string().min(1).describe('InterceptPilot import bundle JSON string. The extension will create a pending proposal and wait for user confirmation.')
-}
-
-function getToolJsonInputSchema(name) {
-  if (name !== 'import_bundle') {
-    return {
-      type: 'object',
-      additionalProperties: false
+const IMPORT_BUNDLE_JSON_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    bundleJson: {
+      type: 'string',
+      description: IMPORT_BUNDLE_INPUT_DESCRIPTION
     }
-  }
-
-  return {
-    type: 'object',
-    properties: {
-      bundleJson: {
-        type: 'string',
-        description: 'InterceptPilot import bundle JSON string. The extension will create a pending proposal and wait for user confirmation.'
-      }
-    },
-    required: ['bundleJson'],
-    additionalProperties: false
-  }
-}
-
-function getRegisteredInputSchema(name) {
-  if (name === 'import_bundle') return IMPORT_BUNDLE_INPUT_SCHEMA
-  return {}
-}
-
-export function getMcpToolDefinitions() {
-  return ALLOWED_COMMANDS.map(name => ({
-    name,
-    description: TOOL_DESCRIPTIONS[name],
-    inputSchema: getToolJsonInputSchema(name)
-  }))
+  },
+  required: ['bundleJson'],
+  additionalProperties: false
 }
 
 function normalizeToolArguments(args = {}) {
@@ -76,16 +47,12 @@ function createSafeToolError(error) {
   }
 }
 
-function validateImportBundleArgs(args = {}) {
+function buildImportBundlePayload(args = {}) {
   const bundleJson = args?.bundleJson
   if (typeof bundleJson !== 'string' || !bundleJson.trim()) {
-    return {
-      error: 'bundleJson must be a JSON string.'
-    }
+    throw new Error('bundleJson must be a JSON string.')
   }
-  return {
-    payload: { bundleJson }
-  }
+  return { bundleJson }
 }
 
 function createImportProposalResult(result = {}) {
@@ -109,23 +76,52 @@ function createImportProposalResult(result = {}) {
   }
 }
 
+function createReadOnlyTool(description) {
+  return {
+    description,
+    jsonInputSchema: EMPTY_JSON_INPUT_SCHEMA,
+    registeredInputSchema: {},
+    buildPayload: normalizeToolArguments,
+    formatResult: createTextResult
+  }
+}
+
+const MCP_TOOLS = {
+  list_captured_requests: createReadOnlyTool('List sanitized captured requests from the active InterceptPilot capture context.'),
+  list_collections: createReadOnlyTool('List InterceptPilot collections with safe summary fields.'),
+  list_rules: createReadOnlyTool('List InterceptPilot rules with safe summary fields, without response bodies or headers.'),
+  get_active_collection: createReadOnlyTool('Get the active InterceptPilot collection summary.'),
+  import_bundle: {
+    description: 'Send an InterceptPilot import bundle to the extension as a pending proposal. The user must confirm it in the Full App before anything is applied.',
+    jsonInputSchema: IMPORT_BUNDLE_JSON_INPUT_SCHEMA,
+    registeredInputSchema: {
+      bundleJson: z.string().min(1).describe(IMPORT_BUNDLE_INPUT_DESCRIPTION)
+    },
+    buildPayload: buildImportBundlePayload,
+    formatResult: createImportProposalResult
+  }
+}
+
+export function getMcpToolDefinitions() {
+  return Object.entries(MCP_TOOLS).map(([name, tool]) => ({
+    name,
+    description: tool.description,
+    inputSchema: tool.jsonInputSchema
+  }))
+}
+
 export function createToolCallHandler({ bridge }) {
   return async function handleToolCall(name, args = {}) {
-    if (!isAllowedCommand(name)) {
-      throw new Error('Unknown InterceptPilot MCP tool.')
-    }
-
     try {
-      if (name === 'import_bundle') {
-        const validation = validateImportBundleArgs(args)
-        if (validation.error) throw new Error(validation.error)
-        const result = await bridge.callCommand(name, validation.payload)
-        if (result?.error) throw new Error(result.error.message || 'InterceptPilot import proposal failed.')
-        return createImportProposalResult(result)
+      const tool = MCP_TOOLS[name]
+      if (!tool || !isAllowedCommand(name)) {
+        throw new Error('Unknown InterceptPilot MCP tool.')
       }
 
-      const result = await bridge.callCommand(name, normalizeToolArguments(args))
-      return createTextResult(result)
+      const payload = tool.buildPayload(args)
+      const result = await bridge.callCommand(name, payload)
+      if (result?.error) throw new Error(result.error.message || 'InterceptPilot MCP tool failed.')
+      return tool.formatResult(result)
     } catch (error) {
       return createSafeToolError(error)
     }
@@ -143,7 +139,7 @@ export function createMcpServer({ bridge }) {
     server.registerTool(tool.name, {
       title: tool.name,
       description: tool.description,
-      inputSchema: getRegisteredInputSchema(tool.name)
+      inputSchema: MCP_TOOLS[tool.name].registeredInputSchema
     }, args => handleToolCall(tool.name, args))
   }
 

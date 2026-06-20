@@ -2,15 +2,34 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { createToolCallHandler, getMcpToolDefinitions } from '../src/mcp-server.js'
+import { ALLOWED_COMMANDS } from '../src/protocol.js'
+
+const EXPECTED_TOOL_NAMES = [
+  'list_captured_requests',
+  'list_collections',
+  'list_rules',
+  'get_active_collection',
+  'import_bundle'
+]
 
 test('MCP server exposes the allowed InterceptPilot tools', () => {
-  assert.deepEqual(getMcpToolDefinitions().map(tool => tool.name), [
-    'list_captured_requests',
-    'list_collections',
-    'list_rules',
-    'get_active_collection',
-    'import_bundle'
-  ])
+  assert.deepEqual(getMcpToolDefinitions().map(tool => tool.name), EXPECTED_TOOL_NAMES)
+})
+
+test('MCP tool definitions stay synchronized with the protocol allowlist', () => {
+  assert.deepEqual(getMcpToolDefinitions().map(tool => tool.name), ALLOWED_COMMANDS)
+})
+
+test('MCP read-only tools do not require input', () => {
+  const tools = getMcpToolDefinitions().filter(tool => tool.name !== 'import_bundle')
+
+  assert.deepEqual(tools.map(tool => tool.name), EXPECTED_TOOL_NAMES.filter(name => name !== 'import_bundle'))
+  for (const tool of tools) {
+    assert.deepEqual(tool.inputSchema, {
+      type: 'object',
+      additionalProperties: false
+    })
+  }
 })
 
 test('MCP import_bundle tool declares bundleJson input', () => {
@@ -52,10 +71,10 @@ test('MCP tool handler rejects unknown tools safely', async () => {
     }
   })
 
-  await assert.rejects(
-    handleToolCall('enable_rule', {}),
-    /Unknown InterceptPilot MCP tool/
-  )
+  const result = await handleToolCall('enable_rule', {})
+
+  assert.equal(result.isError, true)
+  assert.match(result.content[0].text, /Unknown InterceptPilot MCP tool/)
 })
 
 test('MCP import_bundle forwards bundleJson through the bridge', async () => {
