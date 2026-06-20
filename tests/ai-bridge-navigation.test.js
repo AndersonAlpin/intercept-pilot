@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs'
 
 import { setLocale } from '../src/shared/i18n.js'
 import { renderSidebar } from '../src/fullapp/components/sidebar.js'
-import { renderAiBridgeSettingsSection } from '../src/fullapp/components/ai-bridge-settings-section.js'
 
 const fullAppSource = readFileSync(new URL('../src/fullapp/fullapp.js', import.meta.url), 'utf8')
 
@@ -23,11 +22,7 @@ test('Full App routes page=ai-bridge to the dedicated AI Bridge page', () => {
   assert.match(fullAppSource, /if \(state\.page === 'ai-bridge'\)/)
 })
 
-test('Settings keeps only the short AI Bridge shortcut', () => {
-  setLocale('en')
-  const html = renderAiBridgeSettingsSection()
-
-  assert.match(html, /id="settings-ai-bridge-open-btn"/)
-  assert.doesNotMatch(html, /data-ai-bridge-default-permission=/)
-  assert.doesNotMatch(html, /settings-ai-bridge-config/)
+test('Settings page no longer renders an AI Bridge shortcut block', () => {
+  assert.doesNotMatch(fullAppSource, /renderAiBridgeSettingsSection/)
+  assert.doesNotMatch(fullAppSource, /settings-ai-bridge-open-btn/)
 })

@@ -36,3 +36,19 @@ test('Full App applies permission presets and opens custom permissions from the 
   assert.match(fullAppSource, /state\.aiBridgeSessionPermissionsOpen = true/)
   assert.doesNotMatch(fullAppSource, /ai-bridge-edit-custom-permissions-btn/)
 })
+
+test('Full App toggles MCP configuration visibility without changing the copied payload', () => {
+  assert.match(fullAppSource, /aiBridgeConfigVisible: false/)
+  assert.match(fullAppSource, /configVisible: state\.aiBridgeConfigVisible/)
+  assert.match(fullAppSource, /settings-ai-bridge-toggle-config-btn/)
+  assert.match(fullAppSource, /state\.aiBridgeConfigVisible = !state\.aiBridgeConfigVisible/)
+  assert.match(fullAppSource, /copyTextToClipboard\(configText\)/)
+})
+
+test('Full App clears expanded MCP configuration when the AI Bridge session ends', () => {
+  const revokeBlock = fullAppSource.match(/\$\(('#settings-ai-bridge-revoke-btn'|"#settings-ai-bridge-revoke-btn")\)\?\.addEventListener\('click'[\s\S]*?\n  \}\)/)?.[0] || ''
+  const aiBridgeStateBlock = fullAppSource.match(/if \(message\?\.type === 'state:aiBridge'\) \{[\s\S]*?\n  \}/)?.[0] || ''
+
+  assert.match(revokeBlock, /state\.aiBridgeConfigVisible = false/)
+  assert.match(aiBridgeStateBlock, /state\.aiBridgeConfigVisible = false/)
+})

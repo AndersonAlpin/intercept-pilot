@@ -388,27 +388,6 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .ai-bridge-proposal-modal__footer {
   justify-content: flex-end;
 }
-.settings-ai-bridge__permissions {
-  display: grid;
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,.08);
-}
-.settings-ai-bridge__permissions h4 {
-  margin: 0;
-  font-size: 14px;
-}
-.settings-ai-bridge__warning {
-  margin: 0;
-  color: var(--warning);
-  font-size: 13px;
-  line-height: 1.4;
-}
-.settings-ai-bridge__permission-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 8px 12px;
-}
 .import-dropzone {
   flex: 1;
   min-height: 280px;
@@ -490,31 +469,6 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .settings-wide { grid-column: 1 / -1; }
 .settings-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.settings-ai-bridge {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-  display: grid;
-  gap: 12px;
-}
-.settings-ai-bridge__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.settings-ai-bridge__header h3 { margin: 0 0 4px; font-size: 15px; }
-.settings-ai-bridge__header .muted { margin: 0; max-width: 720px; }
-.settings-ai-bridge__notice {
-  margin: 0;
-  color: var(--text-muted);
-  line-height: 1.45;
-}
-.settings-ai-bridge__actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 .ai-bridge-page {
   display: grid;
   gap: 14px;
@@ -553,6 +507,33 @@ button,input,select,textarea { font: inherit; color: inherit; }
   display: grid;
   gap: 12px;
 }
+.ai-bridge-page__status-badge {
+  flex: 0 0 auto;
+  min-width: max-content;
+  white-space: nowrap;
+  text-align: center;
+}
+.ai-bridge-page__status-badge[data-state="success"] {
+  border-color: rgba(34, 197, 94, .48);
+  background: rgba(34, 197, 94, .12);
+  color: #bbf7d0;
+}
+.ai-bridge-page__status-badge[data-state="warning"] {
+  border-color: rgba(245, 158, 11, .5);
+  background: rgba(245, 158, 11, .12);
+  color: #fde68a;
+}
+.ai-bridge-page__status-badge[data-state="danger"] {
+  border-color: rgba(248, 113, 113, .48);
+  background: rgba(248, 113, 113, .12);
+  color: #fecaca;
+}
+.ai-bridge-page__config-help {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
 .ai-bridge-page__config {
   margin: 0;
   max-height: 180px;
@@ -567,14 +548,12 @@ button,input,select,textarea { font: inherit; color: inherit; }
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.ai-bridge-mode-grid,
-.ai-bridge-summary-grid {
+.ai-bridge-mode-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
-.ai-bridge-mode-card,
-.ai-bridge-summary-item {
+.ai-bridge-mode-card {
   min-width: 0;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 8px;
@@ -602,14 +581,12 @@ button,input,select,textarea { font: inherit; color: inherit; }
   border-color: rgba(91, 130, 255, .55);
   background: rgba(91, 130, 255, .1);
 }
-.ai-bridge-mode-card strong,
-.ai-bridge-summary-item strong {
+.ai-bridge-mode-card strong {
   display: block;
   color: var(--text);
   font-size: 13px;
 }
-.ai-bridge-mode-card span,
-.ai-bridge-summary-item span {
+.ai-bridge-mode-card span {
   display: block;
   margin-top: 4px;
   color: var(--text-muted);
@@ -673,20 +650,6 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .ai-bridge-permission-toggle {
   align-items: center;
   min-width: 0;
-}
-.settings-ai-bridge__config {
-  margin: 0;
-  max-height: 220px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-  padding: 12px;
-  color: var(--text);
-  font-size: 12px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 .input,.select,.textarea { width: 100%; min-height: 38px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); padding: 9px 10px; }
 .select-menu { position: relative; min-width: 0; }

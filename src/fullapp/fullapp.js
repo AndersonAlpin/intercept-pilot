@@ -45,7 +45,6 @@ import { renderNetworkInspectorModal, renderInspectorBody, expectsNoBody } from 
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { renderReleaseNotesModal } from './components/release-notes-modal.js'
 import { renderRuleMoveModal } from './components/rule-move-modal.js'
-import { renderAiBridgeSettingsSection } from './components/ai-bridge-settings-section.js'
 import { renderAiBridgePage } from './components/ai-bridge-page.js'
 import { renderAiBridgeProposalModal } from './components/ai-bridge-proposal-modal.js'
 import { getReleaseNotesMenuState, hasReleaseNotesForVersion } from '../shared/release-notes.js'
@@ -57,7 +56,6 @@ import {
   AI_BRIDGE_PERMISSION_MODES,
   createAiBridgeDefaultPermissionsForMode,
   createAiBridgeSessionPermissionsForMode,
-  createSessionAiBridgePermissions,
   normalizeAiBridgeDefaultPermissions,
   normalizeAiBridgePermissionsPatch
 } from '../shared/ai-bridge-permissions.js'
@@ -142,6 +140,7 @@ const state = {
   aiBridgeAdvancedOpen: false,
   aiBridgeDefaultPermissionsOpen: false,
   aiBridgeSessionPermissionsOpen: false,
+  aiBridgeConfigVisible: false,
   networkFilterHydrated: false
 }
 
@@ -589,7 +588,6 @@ function renderSettingsPage() {
         ${renderSwitch({ id: 'settings-auto-attach', checked: state.settings.autoAttach, label: t('fullapp.autoAttach'), className: 'settings-toggle' })}
         ${renderSwitch({ id: 'settings-auto-reload', checked: state.settings.autoReloadAfterRuleChange, label: t('fullapp.autoReloadAfterRuleChange'), className: 'settings-toggle' })}
       </div>
-      ${renderAiBridgeSettingsSection()}
   `
 
   return renderDataPanel({
@@ -618,7 +616,8 @@ function renderPage() {
     return renderAiBridgePage(state, {
       advancedOpen: state.aiBridgeAdvancedOpen,
       defaultPermissionsOpen: state.aiBridgeDefaultPermissionsOpen,
-      sessionPermissionsOpen: state.aiBridgeSessionPermissionsOpen
+      sessionPermissionsOpen: state.aiBridgeSessionPermissionsOpen,
+      configVisible: state.aiBridgeConfigVisible
     })
   }
   if (state.page === 'settings') return renderSettingsPage()
@@ -2243,19 +2242,6 @@ function bindEvents() {
     })
   })
 
-  $('#ai-bridge-session-reset-btn')?.addEventListener('click', async () => {
-    const payload = createSessionAiBridgePermissions(state.settings?.aiBridgePermissions)
-    const result = await sendMessage({ type: MSG.AI_BRIDGE_UPDATE_SESSION_PERMISSIONS, payload })
-    if (result?.error) {
-      toastError(translateBackendError(result.error))
-      render()
-      return
-    }
-    state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
-    state.aiBridgeSessionPermissionsOpen = false
-    render()
-  })
-
   const ignoreInput = $('#settings-network-ignore-input')
   ignoreInput?.addEventListener('keydown', event => {
     if (event.key === 'Enter' || event.key === ';') {
@@ -2316,8 +2302,6 @@ function bindEvents() {
     toastSuccess(t('fullapp.settingsSaved'))
   })
 
-  $('#settings-ai-bridge-open-btn')?.addEventListener('click', () => openFullPage('ai-bridge'))
-
   $('#settings-ai-bridge-start-btn')?.addEventListener('click', async () => {
     const result = await sendMessage({ type: MSG.AI_BRIDGE_START_SESSION })
     if (result?.error) {
@@ -2326,6 +2310,7 @@ function bindEvents() {
     }
     state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
     state.aiBridgeSessionPermissionsOpen = false
+    state.aiBridgeConfigVisible = false
     render()
   })
 
@@ -2337,6 +2322,12 @@ function bindEvents() {
     }
     state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
     state.aiBridgeSessionPermissionsOpen = false
+    state.aiBridgeConfigVisible = false
+    render()
+  })
+
+  $('#settings-ai-bridge-toggle-config-btn')?.addEventListener('click', () => {
+    state.aiBridgeConfigVisible = !state.aiBridgeConfigVisible
     render()
   })
 
@@ -2390,7 +2381,10 @@ chrome.runtime.onMessage.addListener(message => {
   }
   if (message?.type === 'state:aiBridge') {
     state.aiBridgeSession = message.aiBridgeSession || createAiBridgeSessionState()
-    if (!state.aiBridgeSession.token) state.aiBridgeSessionPermissionsOpen = false
+    if (!state.aiBridgeSession.token) {
+      state.aiBridgeSessionPermissionsOpen = false
+      state.aiBridgeConfigVisible = false
+    }
     if (state.page === 'settings' || state.page === 'ai-bridge') render()
   }
   if (message?.type === 'state:aiBridgeImport') {
