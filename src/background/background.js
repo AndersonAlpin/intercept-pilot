@@ -2,7 +2,9 @@ import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
 import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, deleteCollections, saveRule, deleteRule, deleteRules, moveRulesToCollection, updateRuleEnabled, updateSettings, setLogs, getReleaseNotesState, markReleaseNotesSeen } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, tryPrettyJson, uid } from '../shared/utils.js'
-import { makeRule } from '../shared/models.js'
+import { makeCollection, makeRule } from '../shared/models.js'
+import { BUNDLE_TYPE_COLLECTION, BUNDLE_TYPE_RULE, getUniqueName } from '../shared/export.js'
+import { findCollectionConflictById } from '../shared/import-bundles.js'
 import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureAttachedDomainsReady, ensureRehydrated, isAttachedSource, sendAttachedCommand } from './debugger.js'
 import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
@@ -14,7 +16,8 @@ import {
   markAiBridgeConnected,
   markAiBridgeWaiting,
   revokeAiBridgeSession,
-  startAiBridgeSession
+  startAiBridgeSession,
+  updateAiBridgeSessionPermissions
 } from './ai-bridge-session.js'
 import { createAiBridgeConnection } from './ai-bridge-connection.js'
 import { cancelPendingAiImport, confirmPendingAiImport, createPendingAiImport, getPendingAiImport } from './ai-bridge-imports.js'
@@ -34,6 +37,10 @@ function broadcastAiBridgeImport(pendingImport = getPendingAiImport()) {
 
 function broadcastAiBridgeAction(pendingAction = getPendingAiRuleAction()) {
   broadcast({ type: 'state:aiBridgeAction', pendingAction })
+}
+
+function broadcastAiBridgeApplied(kind, summary = {}) {
+  broadcast({ type: 'state:aiBridgeApplied', kind, summary })
 }
 
 async function notifyCompatModeChanged(captureMode) {
@@ -615,9 +622,107 @@ async function getAiBridgeCommandContext() {
       networkMeta: getNetworkCycleMeta(),
       activeCaptureTab,
       captureMode: state.settings?.captureMode || 'auto',
-      aiBridgeStatus: getAiBridgeSession().status
+      aiBridgeStatus: getAiBridgeSession().status,
+      aiBridgePermissions: getAiBridgeSession().permissions || {}
     },
     networkEntries: runtimeState.networkEntries
+  }
+}
+
+function buildImportedAiRulePayload(rule, overrides = {}) {
+  return {
+    ...rule,
+    ...overrides,
+    action: {
+      ...rule.action,
+      applyResponseBody: rule.action?.applyResponseBody ?? true,
+      applyResponseHeaders: rule.action?.applyResponseHeaders ?? false
+    }
+  }
+}
+
+async function applyAiBridgeImportBundle(bundle = {}) {
+  const state = await getState()
+  if (bundle.type === BUNDLE_TYPE_RULE) {
+    const activeCollectionId = state.settings.activeCollectionId
+    const existingNames = state.rules
+      .filter(rule => rule.collectionId === activeCollectionId)
+      .map(rule => rule.name)
+    const payload = buildImportedAiRulePayload(bundle.rule || {}, {
+      id: null,
+      collectionId: activeCollectionId,
+      name: getUniqueName(bundle.rule?.name || 'Untitled', existingNames)
+    })
+    const rules = await saveRule(payload)
+    return {
+      ok: true,
+      rules,
+      summary: {
+        type: bundle.type,
+        ruleName: payload.name,
+        ruleCount: 1
+      }
+    }
+  }
+
+  if (bundle.type === BUNDLE_TYPE_COLLECTION) {
+    const existingCollection = findCollectionConflictById(bundle, state.collections)
+    if (existingCollection) {
+      const result = await replaceCollectionContents({
+        ...existingCollection,
+        name: bundle.collection?.name,
+        description: bundle.collection?.description,
+        enabled: bundle.collection?.enabled !== false
+      }, (bundle.rules || []).map(rule => buildImportedAiRulePayload(rule, {
+        collectionId: existingCollection.id
+      })))
+      return {
+        ok: true,
+        ...result,
+        summary: {
+          type: bundle.type,
+          collectionName: bundle.collection?.name || existingCollection.name,
+          ruleCount: Array.isArray(bundle.rules) ? bundle.rules.length : 0
+        }
+      }
+    }
+
+    const collectionName = getUniqueName(bundle.collection?.name || 'Imported collection', state.collections.map(item => item.name))
+    const collection = makeCollection({
+      name: collectionName,
+      description: bundle.collection?.description,
+      enabled: bundle.collection?.enabled !== false,
+      order: state.collections.length
+    })
+    await saveCollection(collection)
+    const usedNames = []
+    for (const rule of Array.isArray(bundle.rules) ? bundle.rules : []) {
+      const ruleName = getUniqueName(rule.name, usedNames)
+      usedNames.push(ruleName)
+      await saveRule(buildImportedAiRulePayload(rule, {
+        id: null,
+        collectionId: collection.id,
+        name: ruleName
+      }))
+    }
+    const nextState = await getState()
+    return {
+      ok: true,
+      collections: nextState.collections,
+      rules: nextState.rules,
+      summary: {
+        type: bundle.type,
+        collectionName,
+        ruleCount: Array.isArray(bundle.rules) ? bundle.rules.length : 0
+      }
+    }
+  }
+
+  return {
+    error: {
+      code: 'INVALID_BUNDLE',
+      message: 'Import bundle is not supported.'
+    }
   }
 }
 
@@ -632,7 +737,21 @@ async function proposeAiBridgeImport(payload) {
   }
   const state = await getState()
   const result = createPendingAiImport(payload, { collections: state.collections })
+  if (!result.error && getAiBridgeSession().permissions?.allowImportBundleApplyThisSession) {
+    const confirmed = await confirmPendingAiImport(result.pendingImportId, applyAiBridgeImportBundle)
+    broadcastAiBridgeImport()
+    if (confirmed?.error) return confirmed
+    await pushLog({ level: 'info', scope: 'ai-bridge', message: 'AI Bridge import_bundle applied by session permission.' })
+    broadcastAiBridgeApplied('import_bundle', confirmed.summary || result.summary)
+    return {
+      status: 'applied',
+      approval: 'session_permission',
+      action: 'import_bundle',
+      summary: confirmed.summary || result.summary
+    }
+  }
   if (!result.error) {
+    result.approval = 'modal_required'
     broadcastAiBridgeImport()
   }
   return result
@@ -706,7 +825,22 @@ async function requestAiBridgeRuleAction(action, payload) {
     collections: state.collections,
     hasPendingImport: Boolean(getPendingAiImport())
   })
+  if (!result.error && getAiBridgeSession().permissions?.allowRuleActionsThisSession) {
+    const confirmed = await confirmPendingAiRuleAction(result.pendingActionId, applyAiBridgeRuleAction)
+    broadcastAiBridgeAction()
+    if (confirmed?.error) return confirmed
+    await pushLog({ level: 'info', scope: 'ai-bridge', message: `AI Bridge rule action ${action} applied by session permission.` })
+    broadcastAiBridgeApplied(action, result.summary)
+    return {
+      status: 'applied',
+      approval: 'session_permission',
+      action,
+      summary: result.summary,
+      rules: confirmed.rules
+    }
+  }
   if (!result.error) {
+    result.approval = 'modal_required'
     broadcastAiBridgeAction()
   }
   return result
@@ -1643,9 +1777,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ aiBridgeSession: getAiBridgeSession() })
         return
       case 'aiBridge:startSession': {
+        const state = await getState()
         cancelPendingAiImport()
         cancelPendingAiRuleAction()
-        const aiBridgeSession = startAiBridgeSession()
+        const aiBridgeSession = startAiBridgeSession(state.settings?.aiBridgePermissions)
         aiBridgeConnection.sync()
         sendResponse({ aiBridgeSession })
         broadcastAiBridgeImport()
@@ -1659,6 +1794,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ aiBridgeSession: revokeAiBridgeSession() })
         broadcastAiBridgeImport()
         broadcastAiBridgeAction()
+        return
+      }
+      case 'aiBridge:updateSessionPermissions': {
+        const aiBridgeSession = updateAiBridgeSessionPermissions(message.payload || {})
+        sendResponse({ aiBridgeSession })
+        broadcastAiBridgeSession(aiBridgeSession)
         return
       }
       case 'aiBridge:getPendingImport':

@@ -1,3 +1,5 @@
+import { createSessionAiBridgePermissions, normalizeAiBridgeSessionPermissions } from './ai-bridge-permissions.js'
+
 export const AI_BRIDGE_STATUS = {
   disabled: 'disabled',
   waiting: 'waiting',
@@ -12,7 +14,8 @@ export function createAiBridgeSessionState(seed = {}) {
     token: '',
     port: Number(seed.port || DEFAULT_AI_BRIDGE_PORT),
     startedAt: null,
-    connectedAt: null
+    connectedAt: null,
+    permissions: null
   }
 }
 
@@ -27,7 +30,10 @@ export function normalizeAiBridgeSessionState(session = {}) {
     token: status === AI_BRIDGE_STATUS.disabled ? '' : token,
     port: Number(session.port || DEFAULT_AI_BRIDGE_PORT),
     startedAt: session.startedAt || null,
-    connectedAt: session.connectedAt || null
+    connectedAt: session.connectedAt || null,
+    permissions: status === AI_BRIDGE_STATUS.disabled
+      ? null
+      : normalizeAiBridgeSessionPermissions(session.permissions || createSessionAiBridgePermissions())
   }
 }
 

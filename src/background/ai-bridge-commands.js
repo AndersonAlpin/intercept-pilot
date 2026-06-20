@@ -32,9 +32,13 @@ function getCaptureMode(state = {}) {
   return 'auto'
 }
 
-function sanitizeTabContext(tab = {}) {
+function getAiBridgePermissions(state = {}) {
+  return state.aiBridgePermissions || {}
+}
+
+function sanitizeTabContext(tab = {}, permissions = {}) {
   if (!tab?.url) return null
-  const urlParts = sanitizeAiBridgeRequest({ url: tab.url })
+  const urlParts = sanitizeAiBridgeRequest({ url: tab.url }, permissions)
   const hashParts = sanitizeHashRoute(tab.url)
   return {
     origin: urlParts.urlOrigin,
@@ -79,21 +83,24 @@ function countRulesByCollection(rules = []) {
 }
 
 export function listCapturedRequests({ state = {}, networkEntries = [] } = {}) {
+  const permissions = getAiBridgePermissions(state)
   return getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : [])
     .slice(0, MAX_AI_BRIDGE_CAPTURED_REQUESTS)
-    .map(entry => sanitizeAiBridgeRequest(entry))
+    .map(entry => sanitizeAiBridgeRequest(entry, permissions))
 }
 
 export function listSanitizedLogs({ state = {}, logs = state.logs || [] } = {}) {
+  const permissions = getAiBridgePermissions(state)
   return getVisibleLogsForCapture(state, Array.isArray(logs) ? logs : [])
     .slice(0, MAX_AI_BRIDGE_SANITIZED_LOGS)
-    .map(log => sanitizeAiBridgeLog(log))
+    .map(log => sanitizeAiBridgeLog(log, permissions))
 }
 
 export function listRecentRuleResults({ state = {}, networkEntries = [] } = {}) {
+  const permissions = getAiBridgePermissions(state)
   return getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : [])
     .slice(0, MAX_AI_BRIDGE_RECENT_RULE_RESULTS)
-    .map(entry => sanitizeAiBridgeRuleResult(entry))
+    .map(entry => sanitizeAiBridgeRuleResult(entry, permissions))
 }
 
 export function explainRuleMatchCommand({ state = {}, networkEntries = [], payload = {} } = {}) {
@@ -134,13 +141,14 @@ export function getCurrentTestContext({ state = {} } = {}) {
   const rules = getStateRules(state)
   const activeCollection = getActiveCollection({ state })
   const activeCapture = hasActiveCaptureContext(state)
+  const permissions = getAiBridgePermissions(state)
 
   return {
     capture: {
       active: activeCapture,
       mode: getCaptureMode(state)
     },
-    tab: activeCapture ? sanitizeTabContext(state.activeCaptureTab || state.activeTab) : null,
+    tab: activeCapture ? sanitizeTabContext(state.activeCaptureTab || state.activeTab, permissions) : null,
     activeCollection: activeCollection.collection
       ? {
           id: activeCollection.collection.id,

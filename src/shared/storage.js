@@ -2,6 +2,7 @@ import { DEFAULT_COLLECTION_ID, DEFAULT_SETTINGS, STORAGE_KEYS } from './constan
 import { clone, parseNetworkIgnorePatterns } from './utils.js'
 import { makeCollection, makeDefaultCollection, makeRule } from './models.js'
 import { normalizeLocale, resolveLocale } from './i18n.js'
+import { normalizeAiBridgeDefaultPermissions } from './ai-bridge-permissions.js'
 
 async function rawGet(keys) {
   return chrome.storage.local.get(keys)
@@ -70,6 +71,7 @@ function normalizeSettings(stored, collections) {
     }
   }
   settings.networkIgnorePatterns = parseNetworkIgnorePatterns(settings.networkIgnorePatterns)
+  settings.aiBridgePermissions = normalizeAiBridgeDefaultPermissions(settings.aiBridgePermissions)
   delete settings.lastSeenReleaseNotesVersion
   delete settings.lastSeenReleaseNotesAt
   if (!collections.some(c => c.id === settings.activeCollectionId)) {
@@ -344,6 +346,9 @@ export async function updateSettings(patch = {}) {
   state.settings = { ...state.settings, ...patch }
   if ('language' in patch) {
     state.settings.language = normalizeLocale(patch.language) || resolveLocale()
+  }
+  if ('aiBridgePermissions' in patch) {
+    state.settings.aiBridgePermissions = normalizeAiBridgeDefaultPermissions(patch.aiBridgePermissions)
   }
   await setState(state)
   return state.settings

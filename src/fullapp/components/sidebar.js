@@ -18,6 +18,7 @@ export function renderSidebar(currentPage, options = {}) {
     ['logs', t('navigation.logs')],
     ['import-export', t('navigation.importExport')],
     ['diagnostics', t('navigation.diagnostics')],
+    ['ai-bridge', t('navigation.aiBridge')],
     ['settings', t('navigation.settings')]
   ]
   const releaseNotes = options.releaseNotes || {}

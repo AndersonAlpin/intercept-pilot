@@ -31,6 +31,38 @@ test('AI Bridge session controller generates a token for each started session', 
   assert.notEqual(first.token, second.token)
 })
 
+test('AI Bridge session starts with permissions copied from saved defaults', () => {
+  const controller = createAiBridgeSessionController({
+    tokenGenerator: () => 'token-a',
+    now: () => '2026-06-19T12:00:00.000Z'
+  })
+
+  const session = controller.startSession({
+    allowQueryValuesByDefault: true,
+    allowRuleActionsByDefault: true
+  })
+
+  assert.equal(session.permissions.allowQueryValuesThisSession, true)
+  assert.equal(session.permissions.allowRuleActionsThisSession, true)
+  assert.equal(session.permissions.allowRequestBodyThisSession, false)
+})
+
+test('AI Bridge session permission updates do not mutate saved defaults', () => {
+  const defaults = { allowQueryValuesByDefault: false }
+  const controller = createAiBridgeSessionController({
+    tokenGenerator: () => 'token-a',
+    now: () => '2026-06-19T12:00:00.000Z'
+  })
+
+  controller.startSession(defaults)
+  const updated = controller.updateSessionPermissions({
+    allowQueryValuesThisSession: true
+  })
+
+  assert.equal(updated.permissions.allowQueryValuesThisSession, true)
+  assert.deepEqual(defaults, { allowQueryValuesByDefault: false })
+})
+
 test('AI Bridge session controller revokes token and returns to disabled', () => {
   const controller = createAiBridgeSessionController({
     tokenGenerator: () => 'token-a',
@@ -42,6 +74,7 @@ test('AI Bridge session controller revokes token and returns to disabled', () =>
 
   assert.equal(revoked.status, AI_BRIDGE_STATUS.disabled)
   assert.equal(revoked.token, '')
+  assert.equal(revoked.permissions, null)
   assert.equal(controller.getSession().status, AI_BRIDGE_STATUS.disabled)
 })
 

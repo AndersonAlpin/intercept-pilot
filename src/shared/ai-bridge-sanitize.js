@@ -1,3 +1,5 @@
+import { normalizeAiBridgeSessionPermissions } from './ai-bridge-permissions.js'
+
 function toStringValue(value) {
   return String(value ?? '')
 }
@@ -11,6 +13,8 @@ function hasHeaders(headers) {
 }
 
 const MAX_SANITIZED_LOG_MESSAGE_LENGTH = 300
+const MAX_AI_BRIDGE_RELEASED_VALUE_LENGTH = 1000
+const MAX_AI_BRIDGE_RELEASED_HEADERS = 50
 
 export function sanitizeAiBridgeQueryKeys(query) {
   return String(query || '')
@@ -22,15 +26,55 @@ export function sanitizeAiBridgeQueryKeys(query) {
     .filter(Boolean)
 }
 
-function sanitizeUrl(url) {
+function truncateReleasedValue(value) {
+  const text = toStringValue(value)
+  if (text.length <= MAX_AI_BRIDGE_RELEASED_VALUE_LENGTH) {
+    return {
+      text,
+      truncated: false
+    }
+  }
+  return {
+    text: text.slice(0, MAX_AI_BRIDGE_RELEASED_VALUE_LENGTH),
+    truncated: true
+  }
+}
+
+function parseQueryValues(url) {
   const raw = toStringValue(url).trim()
+  const values = {}
+  try {
+    const parsed = new URL(raw)
+    parsed.searchParams.forEach((value, key) => {
+      if (!key) return
+      values[key] = value
+    })
+    return values
+  } catch {
+    const [withoutHash] = raw.split('#')
+    const [, query = ''] = withoutHash.split('?')
+    for (const part of query.split('&')) {
+      if (!part.includes('=')) continue
+      const [rawKey, ...rawValueParts] = part.split('=')
+      const key = decodeURIComponent(rawKey || '').trim()
+      if (!key) continue
+      values[key] = decodeURIComponent(rawValueParts.join('=') || '')
+    }
+    return values
+  }
+}
+
+function sanitizeUrl(url, permissions = {}) {
+  const raw = toStringValue(url).trim()
+  const allowQueryValues = Boolean(permissions.allowQueryValuesThisSession)
   if (!raw) {
     return {
       urlSanitized: '',
       urlOrigin: '',
       urlPath: '',
       queryKeys: [],
-      hasQuery: false
+      hasQuery: false,
+      ...(allowQueryValues ? { queryValues: {} } : {})
     }
   }
 
@@ -41,7 +85,8 @@ function sanitizeUrl(url) {
       urlOrigin: parsed.origin,
       urlPath: parsed.pathname || '/',
       queryKeys: sanitizeAiBridgeQueryKeys(parsed.search),
-      hasQuery: parsed.search.length > 1
+      hasQuery: parsed.search.length > 1,
+      ...(allowQueryValues ? { queryValues: parseQueryValues(raw) } : {})
     }
   } catch {
     const [withoutHash] = raw.split('#')
@@ -53,9 +98,36 @@ function sanitizeUrl(url) {
       urlOrigin: '',
       urlPath: withoutQuery,
       queryKeys,
-      hasQuery: query.length > 0
+      hasQuery: query.length > 0,
+      ...(allowQueryValues ? { queryValues: parseQueryValues(raw) } : {})
     }
   }
+}
+
+function sanitizeHeaders(headers = []) {
+  if (!Array.isArray(headers)) return []
+  return headers.slice(0, MAX_AI_BRIDGE_RELEASED_HEADERS).map(header => {
+    const value = truncateReleasedValue(header?.value)
+    return {
+      name: toStringValue(header?.name),
+      value: value.text,
+      truncated: value.truncated
+    }
+  })
+}
+
+function sanitizeBody(value) {
+  const truncated = truncateReleasedValue(value)
+  return {
+    text: truncated.text,
+    truncated: truncated.truncated,
+    releasedByPermission: true
+  }
+}
+
+function buildPermissionsApplied(flags = {}) {
+  const applied = Object.fromEntries(Object.entries(flags).filter(([, value]) => Boolean(value)))
+  return Object.keys(applied).length ? { permissionsApplied: applied } : {}
 }
 
 function truncateMessage(message) {
@@ -91,8 +163,13 @@ function sanitizeMessage(message) {
   }
 }
 
-export function sanitizeAiBridgeRequest(entry = {}) {
-  const urlParts = sanitizeUrl(entry.url)
+export function sanitizeAiBridgeRequest(entry = {}, rawPermissions = {}) {
+  const permissions = normalizeAiBridgeSessionPermissions(rawPermissions)
+  const urlParts = sanitizeUrl(entry.url, permissions)
+  const requestHeadersAllowed = permissions.allowRequestHeadersThisSession && hasHeaders(entry.requestHeaders)
+  const responseHeadersAllowed = permissions.allowResponseHeadersThisSession && hasHeaders(entry.responseHeaders)
+  const requestBodyAllowed = permissions.allowRequestBodyThisSession && hasContent(entry.requestPostData)
+  const responseBodyAllowed = permissions.allowResponseBodyThisSession && hasContent(entry.responseBody)
   return {
     id: toStringValue(entry.id),
     method: toStringValue(entry.method),
@@ -113,13 +190,28 @@ export function sanitizeAiBridgeRequest(entry = {}) {
     requestBodyPresent: hasContent(entry.requestPostData),
     responseBodyPresent: hasContent(entry.responseBody),
     requestBodyTruncated: Boolean(entry.requestPostDataTruncated),
-    responseBodyTruncated: Boolean(entry.responseBodyTruncated)
+    responseBodyTruncated: Boolean(entry.responseBodyTruncated),
+    ...(requestHeadersAllowed ? { requestHeaders: sanitizeHeaders(entry.requestHeaders) } : {}),
+    ...(responseHeadersAllowed ? { responseHeaders: sanitizeHeaders(entry.responseHeaders) } : {}),
+    ...(requestBodyAllowed ? { requestBody: sanitizeBody(entry.requestPostData) } : {}),
+    ...(responseBodyAllowed ? { responseBody: sanitizeBody(entry.responseBody) } : {}),
+    ...buildPermissionsApplied({
+      queryValues: permissions.allowQueryValuesThisSession,
+      requestHeaders: requestHeadersAllowed,
+      responseHeaders: responseHeadersAllowed,
+      requestBody: requestBodyAllowed,
+      responseBody: responseBodyAllowed
+    })
   }
 }
 
-export function sanitizeAiBridgeLog(log = {}) {
-  const urlParts = sanitizeUrl(log.url)
+export function sanitizeAiBridgeLog(log = {}, rawPermissions = {}) {
+  const permissions = normalizeAiBridgeSessionPermissions(rawPermissions)
+  const urlParts = sanitizeUrl(log.url, permissions)
   const message = sanitizeMessage(log.message)
+  const stack = permissions.allowDetailedLogsThisSession && log.stack
+    ? truncateReleasedValue(sanitizeMessage(log.stack).text)
+    : null
   return {
     id: toStringValue(log.id),
     scope: toStringValue(log.scope),
@@ -134,7 +226,13 @@ export function sanitizeAiBridgeLog(log = {}) {
     messageTruncated: message.truncated,
     hasQuery: urlParts.hasQuery,
     queryKeys: urlParts.queryKeys,
-    sensitiveContentRemoved: message.sensitiveContentRemoved
+    sensitiveContentRemoved: message.sensitiveContentRemoved,
+    ...(urlParts.queryValues ? { queryValues: urlParts.queryValues } : {}),
+    ...(stack ? { stackSanitized: stack.text, stackTruncated: stack.truncated } : {}),
+    ...buildPermissionsApplied({
+      queryValues: permissions.allowQueryValuesThisSession,
+      detailedLogs: Boolean(stack)
+    })
   }
 }
 
@@ -150,8 +248,9 @@ export function sanitizeAiBridgeCollection(collection = {}, options = {}) {
   }
 }
 
-export function sanitizeAiBridgeRuleResult(entry = {}) {
-  const urlParts = sanitizeUrl(entry.url)
+export function sanitizeAiBridgeRuleResult(entry = {}, rawPermissions = {}) {
+  const permissions = normalizeAiBridgeSessionPermissions(rawPermissions)
+  const urlParts = sanitizeUrl(entry.url, permissions)
   const ruleId = entry.matchedRuleId ?? null
   const ruleName = entry.matchedRuleName ?? null
   return {
@@ -172,7 +271,11 @@ export function sanitizeAiBridgeRuleResult(entry = {}) {
     matched: Boolean(ruleId || ruleName),
     startedAt: entry.startedAt ?? null,
     endedAt: entry.endedAt ?? null,
-    durationMs: entry.durationMs ?? null
+    durationMs: entry.durationMs ?? null,
+    ...(urlParts.queryValues ? { queryValues: urlParts.queryValues } : {}),
+    ...buildPermissionsApplied({
+      queryValues: permissions.allowQueryValuesThisSession
+    })
   }
 }
 

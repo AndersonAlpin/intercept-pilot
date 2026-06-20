@@ -106,6 +106,23 @@ function buildRuleActionPayload(args = {}) {
 }
 
 function createImportProposalResult(result = {}) {
+  if (result.status === 'applied') {
+    const summary = result.summary || {}
+    return {
+      content: [
+        {
+          type: 'text',
+          text: [
+            'Import bundle applied in InterceptPilot.',
+            'Approval: session_permission.',
+            summary.collectionName ? `Collection: ${summary.collectionName}` : '',
+            summary.ruleName ? `Rule: ${summary.ruleName}` : '',
+            Number.isFinite(Number(summary.ruleCount)) ? `Rules: ${summary.ruleCount}` : ''
+          ].filter(Boolean).join('\n')
+        }
+      ]
+    }
+  }
   const summary = result.summary || {}
   const lines = [
     'Import proposal sent to InterceptPilot.',
@@ -127,6 +144,23 @@ function createImportProposalResult(result = {}) {
 }
 
 function createRuleActionProposalResult(result = {}) {
+  if (result.status === 'applied') {
+    const summary = result.summary || {}
+    return {
+      content: [
+        {
+          type: 'text',
+          text: [
+            'Rule action applied in InterceptPilot.',
+            'Approval: session_permission.',
+            result.action ? `Action: ${result.action}` : '',
+            summary.ruleName ? `Rule: ${summary.ruleName}` : '',
+            summary.collectionName ? `Collection: ${summary.collectionName}` : ''
+          ].filter(Boolean).join('\n')
+        }
+      ]
+    }
+  }
   const summary = result.summary || {}
   const lines = [
     'Rule action proposal sent to InterceptPilot.',

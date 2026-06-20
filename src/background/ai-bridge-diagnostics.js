@@ -24,10 +24,10 @@ function createCheck(name, passed, ruleValue, requestValue, message) {
   }
 }
 
-function sanitizeRuleUrlPattern(pattern) {
+function sanitizeRuleUrlPattern(pattern, permissions = {}) {
   const value = toStringValue(pattern)
   if (!value.includes('?')) return value
-  const sanitized = sanitizeAiBridgeRequest({ url: value })
+  const sanitized = sanitizeAiBridgeRequest({ url: value }, permissions)
   return sanitized.urlSanitized || sanitized.urlPath || value.split('?')[0]
 }
 
@@ -41,8 +41,8 @@ function sanitizeRuleSummary(rule = {}) {
   }
 }
 
-function sanitizeRequestSummary(entry = {}) {
-  const request = sanitizeAiBridgeRequest(entry)
+function sanitizeRequestSummary(entry = {}, permissions = {}) {
+  const request = sanitizeAiBridgeRequest(entry, permissions)
   return {
     id: request.id,
     method: request.method,
@@ -51,7 +51,9 @@ function sanitizeRequestSummary(entry = {}) {
     urlPath: request.urlPath,
     resourceType: request.resourceType,
     hasQuery: request.hasQuery,
-    queryKeys: request.queryKeys
+    queryKeys: request.queryKeys,
+    ...(request.queryValues ? { queryValues: request.queryValues } : {}),
+    ...(request.permissionsApplied ? { permissionsApplied: request.permissionsApplied } : {})
   }
 }
 
@@ -163,13 +165,14 @@ export function explainRuleMatch({ state = {}, networkEntries = [], payload = {}
   const ruleId = toStringValue(payload.ruleId)
   const requestId = toStringValue(payload.requestId)
   const rules = Array.isArray(state.rules) ? state.rules : []
+  const permissions = state.aiBridgePermissions || {}
   const visibleEntries = getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : [])
   const rule = rules.find(item => item.id === ruleId) || null
   const entry = visibleEntries.find(item => item.id === requestId) || null
 
   if (!rule) {
     return missingResult('Rule was not found.', {
-      request: entry ? sanitizeRequestSummary(entry) : null
+      request: entry ? sanitizeRequestSummary(entry, permissions) : null
     })
   }
 
@@ -180,7 +183,7 @@ export function explainRuleMatch({ state = {}, networkEntries = [], payload = {}
     })
   }
 
-  const requestSummary = sanitizeRequestSummary(entry)
+  const requestSummary = sanitizeRequestSummary(entry, permissions)
   const activeCollectionId = getActiveCollectionId(state)
   const activeCollection = getCollection(state, activeCollectionId)
   const ruleCollection = getCollection(state, rule.collectionId)
@@ -232,7 +235,7 @@ export function explainRuleMatch({ state = {}, networkEntries = [], payload = {}
       urlMatch.passed,
       {
         matchType: toStringValue(rule.match?.matchType || 'contains'),
-        urlPattern: sanitizeRuleUrlPattern(rule.match?.urlPattern)
+        urlPattern: sanitizeRuleUrlPattern(rule.match?.urlPattern, permissions)
       },
       requestSummary.urlSanitized,
       urlMatch.message

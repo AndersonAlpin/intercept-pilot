@@ -18,7 +18,8 @@ test('AI Bridge state starts disabled without token or config', () => {
     token: '',
     port: DEFAULT_AI_BRIDGE_PORT,
     startedAt: null,
-    connectedAt: null
+    connectedAt: null,
+    permissions: null
   })
   assert.equal(buildAiBridgeMcpConfigText(state), '')
 })

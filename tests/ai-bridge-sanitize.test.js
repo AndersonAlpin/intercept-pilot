@@ -100,6 +100,37 @@ test('sanitizeAiBridgeRequest exposes only body presence and truncation flags', 
   assert.doesNotMatch(serialized, /password|secret|token/)
 })
 
+test('sanitizeAiBridgeRequest exposes query values, headers and truncated bodies only when permitted', () => {
+  const sanitized = sanitizeAiBridgeRequest({
+    id: 'entry-permitted',
+    method: 'POST',
+    url: 'https://example.test/api?token=secret-token&safe=value',
+    requestHeaders: [{ name: 'Authorization', value: 'Bearer secret-token' }],
+    responseHeaders: [{ name: 'Set-Cookie', value: 'sid=secret-cookie' }],
+    requestPostData: `{"payload":"${'x'.repeat(1200)}"}`,
+    responseBody: `{"result":"${'y'.repeat(1200)}"}`
+  }, {
+    allowQueryValuesThisSession: true,
+    allowRequestHeadersThisSession: true,
+    allowResponseHeadersThisSession: true,
+    allowRequestBodyThisSession: true,
+    allowResponseBodyThisSession: true
+  })
+
+  assert.deepEqual(sanitized.queryValues, { token: 'secret-token', safe: 'value' })
+  assert.deepEqual(sanitized.requestHeaders, [{ name: 'Authorization', value: 'Bearer secret-token', truncated: false }])
+  assert.deepEqual(sanitized.responseHeaders, [{ name: 'Set-Cookie', value: 'sid=secret-cookie', truncated: false }])
+  assert.equal(sanitized.requestBody.releasedByPermission, true)
+  assert.equal(sanitized.requestBody.truncated, true)
+  assert.equal(sanitized.responseBody.releasedByPermission, true)
+  assert.equal(sanitized.responseBody.truncated, true)
+  assert.equal(sanitized.permissionsApplied.queryValues, true)
+  assert.equal(sanitized.permissionsApplied.requestHeaders, true)
+  assert.equal(sanitized.permissionsApplied.responseHeaders, true)
+  assert.equal(sanitized.permissionsApplied.requestBody, true)
+  assert.equal(sanitized.permissionsApplied.responseBody, true)
+})
+
 test('sanitizeAiBridgeRule omits response body, response headers and runtime hit diagnostics', () => {
   const sanitized = sanitizeAiBridgeRule({
     id: 'rule-1',

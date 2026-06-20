@@ -117,6 +117,41 @@ test('listCapturedRequests returns only sanitized entries from the active captur
   assert.doesNotMatch(serialized, /"requestHeaders":|"responseHeaders":|"requestPostData":|"responseBody":/)
 })
 
+test('listCapturedRequests exposes permitted data with explicit permission flags', () => {
+  const requests = listCapturedRequests({
+    state: {
+      ...state,
+      aiBridgePermissions: {
+        allowQueryValuesThisSession: true,
+        allowRequestHeadersThisSession: true,
+        allowResponseBodyThisSession: true
+      }
+    },
+    networkEntries: [
+      {
+        id: 'active-entry',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'POST',
+        url: 'https://internal.example.test/api/auth?token=secret-token&safe=value',
+        requestHeaders: [{ name: 'Authorization', value: 'Bearer secret' }],
+        responseHeaders: [{ name: 'Set-Cookie', value: 'sid=secret' }],
+        requestPostData: '{"password":"secret"}',
+        responseBody: '{"access_token":"secret"}'
+      }
+    ]
+  })
+
+  assert.deepEqual(requests[0].queryValues, { token: 'secret-token', safe: 'value' })
+  assert.deepEqual(requests[0].requestHeaders, [{ name: 'Authorization', value: 'Bearer secret', truncated: false }])
+  assert.equal('responseHeaders' in requests[0], false)
+  assert.equal('requestBody' in requests[0], false)
+  assert.equal(requests[0].responseBody.text, '{"access_token":"secret"}')
+  assert.equal(requests[0].permissionsApplied.queryValues, true)
+  assert.equal(requests[0].permissionsApplied.requestHeaders, true)
+  assert.equal(requests[0].permissionsApplied.responseBody, true)
+})
+
 test('listCapturedRequests limits the response size for AI Bridge', () => {
   const networkEntries = Array.from({ length: MAX_AI_BRIDGE_CAPTURED_REQUESTS + 25 }, (_, index) => ({
     id: `entry-${index}`,

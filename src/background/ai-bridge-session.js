@@ -4,6 +4,7 @@ import {
   createAiBridgeSessionState,
   normalizeAiBridgeSessionState
 } from '../shared/ai-bridge-state.js'
+import { createSessionAiBridgePermissions, normalizeAiBridgePermissionsPatch } from '../shared/ai-bridge-permissions.js'
 
 function randomHexToken(byteLength = 32) {
   const bytes = new Uint8Array(byteLength)
@@ -29,13 +30,14 @@ export function createAiBridgeSessionController(options = {}) {
     getSession() {
       return normalizeAiBridgeSessionState(currentSession)
     },
-    startSession() {
+    startSession(defaultPermissions = {}) {
       currentSession = normalizeAiBridgeSessionState({
         status: AI_BRIDGE_STATUS.waiting,
         token: tokenGenerator(),
         port,
         startedAt: now(),
-        connectedAt: null
+        connectedAt: null,
+        permissions: createSessionAiBridgePermissions(defaultPermissions)
       })
       return this.getSession()
     },
@@ -60,6 +62,17 @@ export function createAiBridgeSessionController(options = {}) {
     revokeSession() {
       currentSession = createAiBridgeSessionState({ port })
       return this.getSession()
+    },
+    updateSessionPermissions(patch = {}) {
+      if (!currentSession.token) return this.getSession()
+      currentSession = normalizeAiBridgeSessionState({
+        ...currentSession,
+        permissions: {
+          ...(currentSession.permissions || createSessionAiBridgePermissions()),
+          ...normalizeAiBridgePermissionsPatch(patch)
+        }
+      })
+      return this.getSession()
     }
   }
 }
@@ -70,8 +83,8 @@ export function getAiBridgeSession() {
   return aiBridgeSessionController.getSession()
 }
 
-export function startAiBridgeSession() {
-  return aiBridgeSessionController.startSession()
+export function startAiBridgeSession(defaultPermissions) {
+  return aiBridgeSessionController.startSession(defaultPermissions)
 }
 
 export function markAiBridgeConnected() {
@@ -84,4 +97,8 @@ export function markAiBridgeWaiting() {
 
 export function revokeAiBridgeSession() {
   return aiBridgeSessionController.revokeSession()
+}
+
+export function updateAiBridgeSessionPermissions(patch) {
+  return aiBridgeSessionController.updateSessionPermissions(patch)
 }
