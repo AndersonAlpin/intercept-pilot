@@ -505,6 +505,35 @@ Critérios de aceite:
 - Nenhuma chave crua aparece na UI.
 - A migração não altera comportamento visual além da organização interna.
 
+## 21. Organizar CSS dos componentes compartilhados
+
+Objetivo: deixar clara a responsabilidade entre CSS global/base, CSS de componentes compartilhados e CSS específico de features ou superfícies.
+
+Contexto:
+
+- `src/shared/base.css` é carregado no Full App e no Sidepanel, mas hoje mistura fundamentos globais com estilos de badge.
+- Helpers em `src/shared/ui/` como button, toggle, select, modal shell, data panel, dropdown, empty state e floating selection bar não têm um CSS compartilhado único.
+- Há duplicação de estilos e variantes entre `src/fullapp/fullapp.css` e `src/sidepanel/sidepanel.css`.
+
+Escopo pendente:
+
+- Investigar se `src/shared/base.css` deve continuar apenas como base global.
+- Decidir onde estilos de componentes compartilhados devem morar.
+- Avaliar criação de um CSS específico para `src/shared/ui/`, como `src/shared/ui/ui.css` ou equivalente.
+- Centralizar variantes reutilizáveis de button, badge, toggle, select, modal, toast e dialogs.
+- Evitar replace manual de CSS para criar variações reutilizáveis.
+- Preservar `base.css` apenas para tokens, reset e fundamentos globais, se essa for a decisão.
+- Migrar incrementalmente sem quebrar Full App e Sidepanel.
+- Adicionar testes ou validações visuais quando possível.
+
+Critérios de aceite:
+
+- Cada componente compartilhado tem responsabilidade clara.
+- Variantes visuais são semânticas.
+- CSS de feature não duplica variante global.
+- `base.css` não vira depósito de CSS aleatório.
+- Full App e Sidepanel usam os mesmos padrões quando aplicável.
+
 ## Priorização recomendada
 
 1. Segurança e privacidade.
@@ -527,6 +556,7 @@ Critérios de aceite:
 18. Organização futura de regras.
 19. Auto-dismiss para notice modals.
 20. Organização de i18n por domínio e fluxo.
+21. Organizar CSS dos componentes compartilhados.
 
 ## Referências históricas
 
