@@ -32,6 +32,118 @@ The codebase intentionally uses vanilla JavaScript, HTML templates, and CSS. The
 - Larger workspace with dashboard, rules, collections, network, logs, import, diagnostics, settings, and update notes.
 - Data-heavy pages use the Data Panel layout pattern.
 
+## AI Bridge / MCP
+
+### Visão geral
+
+AI Bridge é a ponte local entre o InterceptPilot e agentes de IA que suportam MCP. Ele permite que um agente local leia contexto permitido da extensão, consulte dados sanitizados e proponha ações assistidas sem receber acesso bruto ao estado interno.
+
+Hoje a IA pode:
+
+- ler o contexto de teste permitido;
+- consultar requests, logs, resultados de regras, regras e coleções;
+- buscar requests, logs, resultados e regras com filtros;
+- diagnosticar o match entre uma regra e um request capturado;
+- propor importação de regras ou coleções;
+- solicitar ações assistidas em regras e coleções;
+- editar campos seguros de regras e coleções conforme permissões;
+- solicitar reload da aba capturada;
+- validar o resultado depois de uma ação usando as tools de leitura.
+
+### Arquitetura atual
+
+Fluxo atual:
+
+```txt
+AI client
+  -> MCP adapter
+  -> shared local daemon
+  -> extension WebSocket connection
+  -> InterceptPilot background
+  -> Full App / modal global / storage / runtime state
+```
+
+O adapter expõe as tools MCP por stdio para o cliente de IA. Ele se conecta a um daemon local compartilhado, que escuta em `127.0.0.1` e aceita múltiplos adapters usando a mesma stable connection key.
+
+O daemon é único por porta e apenas roteia mensagens entre adapters MCP e a extensão. Ele não decide permissões, não aplica ações, não guarda propostas pendentes e não altera estado da captura.
+
+A extensão é dona de:
+
+- permissões de dados e ações;
+- propostas pendentes;
+- confirmações humanas;
+- estado de captura;
+- storage de regras e coleções;
+- runtime state de requests, logs e resultados;
+- aplicação real das ações.
+
+Se a extensão desconectar, o daemon continua vivo e aceita adapters. Tool calls retornam erro seguro até a extensão reconectar. Adapters já conectados voltam a funcionar depois da reconexão da extensão, sem precisar reiniciar o cliente MCP.
+
+### Modelo de conexão
+
+A stable connection key é a credencial persistente exibida pela página AI Bridge e usada na configuração MCP. Ela não é a sessão.
+
+- `Iniciar` habilita a ponte da extensão com a key atual.
+- `Encerrar` encerra a conexão da extensão com o daemon.
+- `Regenerar chave` cria uma nova stable connection key e invalida configurações MCP antigas.
+- Alterar permissões não invalida a key.
+- Vários chats ou clientes MCP podem usar a mesma key e a mesma porta porque todos falam com o daemon compartilhado.
+- O heartbeat/keepalive fica entre daemon e extensão.
+
+O pacote `interceptpilot-mcp` ainda está privado e com versão `0.0.0`. No estado atual, a configuração local/dev deve apontar para o arquivo local do pacote. A configuração futura com `npx interceptpilot-mcp` depende de publicação.
+
+### Modelo de permissões
+
+Os modos atuais são:
+
+- `Restrito`: dados sensíveis ficam ocultos e ações exigem confirmação.
+- `Assistido`: mantém dados sensíveis ocultos e permite ações de regra sem confirmação.
+- `Avançado`: libera dados sensíveis e ações avançadas sem confirmação, conforme toggles do modo.
+- `Personalizado`: combinação manual de permissões.
+
+As permissões são separadas em permissões de dados e permissões de ações.
+
+Permissões de dados controlam exposição de valores de query string, headers de request, headers de response, body de request, body de response e logs detalhados.
+
+Permissões de ações controlam aplicação de importação sem confirmação, ações de regra/coleção sem confirmação e reload da aba capturada sem confirmação.
+
+O padrão seguro é não expor dados sensíveis e não aplicar ações sem confirmação. Permissões não são a mesma coisa que key ou conexão. A key autentica a conexão local; as permissões determinam o que a IA pode ver ou executar durante o uso.
+
+### Propostas e ações assistidas
+
+Algumas tools criam propostas para confirmação no modal global do Full App. Dependendo da permissão ativa, algumas ações podem ser aplicadas diretamente.
+
+Fluxos atuais:
+
+- importação proposta de regra ou coleção;
+- ativar regra;
+- desativar regra;
+- deixar somente uma regra ativa na coleção;
+- trocar a coleção principal;
+- editar campos seguros de regra;
+- editar campos seguros de coleção;
+- excluir regra;
+- excluir coleção;
+- recarregar a aba capturada.
+
+Edição de regra não permite alteração de `responseBody` ou `responseHeaders` pelo MCP. Deleção de regra e coleção é sempre protegida por proposta e confirmação humana.
+
+### Segurança
+
+Princípios atuais:
+
+- não expor objetos brutos da extensão;
+- sanitizar por padrão;
+- usar allowlist de comandos MCP;
+- não oferecer `getFullState` bruto;
+- não expor headers, bodies, cookies, Authorization ou valores de query sem permissão;
+- não oferecer `clear_logs`;
+- não oferecer `set_capture_mode`;
+- não oferecer reload genérico;
+- não controlar captura/debugger diretamente via MCP;
+- retornar erros seguros quando a extensão está desconectada, a key é inválida ou o comando não é permitido;
+- não mostrar a stable connection key em logs, erros, snackbars ou retornos MCP.
+
 ## Capture flows
 
 ### Full capture
