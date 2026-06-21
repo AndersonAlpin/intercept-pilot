@@ -24,7 +24,9 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .app-sidebar nav { display: flex; flex-direction: column; gap: 6px; }
 .nav-item { width: 100%; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 10px; padding: 10px 12px; color: var(--text-muted); cursor: pointer; transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .nav-item__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-item__suffix { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; }
 .nav-item__badge { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 3px rgba(91, 130, 255, .18); }
+.nav-item__beta-badge { padding: 2px 6px; font-size: 10px; line-height: 1; }
 .nav-item:not(.active):hover { background: rgba(255,255,255,.04); border-color: var(--border); color: var(--text); }
 .nav-item:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91, 130, 255, .25); }
 .nav-item.active { border-color: #314463; background: #17233b; color: var(--text); }

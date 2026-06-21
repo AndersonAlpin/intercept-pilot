@@ -1,6 +1,6 @@
 const ptBR = {
   common: {
-    open: 'Abrir', attach: 'Ativar captura', reattach: 'Reiniciar captura', detach: 'Parar captura', reload: 'Recarregar',
+    open: 'Abrir', attach: 'Ativar captura', reattach: 'Reiniciar captura', detach: 'Parar captura', reload: 'Recarregar', beta: 'Beta',
     enabled: 'ativado', disabled: 'desativado', manage: 'Gerenciar', edit: 'Editar', delete: 'Excluir',
     cancel: 'Cancelar', save: 'Salvar', clear: 'Limpar', refresh: 'Atualizar', create: 'Criar',
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Status',

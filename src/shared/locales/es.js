@@ -1,6 +1,6 @@
 const es = {
   common: {
-    open: 'Abrir', attach: 'Activar captura', reattach: 'Reiniciar captura', detach: 'Detener captura', reload: 'Recargar',
+    open: 'Abrir', attach: 'Activar captura', reattach: 'Reiniciar captura', detach: 'Detener captura', reload: 'Recargar', beta: 'Beta',
     enabled: 'habilitado', disabled: 'deshabilitado', manage: 'Gestionar', edit: 'Editar', delete: 'Eliminar',
     cancel: 'Cancelar', save: 'Guardar', clear: 'Limpiar', refresh: 'Actualizar', create: 'Crear',
     import: 'Importar', export: 'Exportar', diagnostics: 'Diagnóstico', search: 'Buscar', status: 'Estado',

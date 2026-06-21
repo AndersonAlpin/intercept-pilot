@@ -5,6 +5,7 @@ const en = {
     reattach: 'Restart capture',
     detach: 'Stop capture',
     reload: 'Reload',
+    beta: 'Beta',
     enabled: 'enabled',
     disabled: 'disabled',
     manage: 'Manage',

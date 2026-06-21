@@ -13,6 +13,8 @@ test('Full App sidebar renders AI Bridge before Settings', () => {
 
   assert.match(html, /data-page="ai-bridge"/)
   assert.match(html, />AI Bridge</)
+  assert.match(html, /badge secondary nav-item__beta-badge/)
+  assert.match(html, />Beta</)
   assert.ok(html.indexOf('data-page="ai-bridge"') < html.indexOf('data-page="settings"'))
 })
 
