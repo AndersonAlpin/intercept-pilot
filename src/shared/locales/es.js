@@ -320,7 +320,7 @@ const es = {
     aiActionPreviousCollection: 'Colección actual',
     aiActionNextCollection: 'Nueva colección principal',
     aiActionReason: 'Motivo',
-    aiActionConfirm: 'Confirmar acción',
+    aiActionConfirm: 'Confirmar',
     aiActionConfirmDeleteRule: 'Eliminar regla',
     aiActionConfirmDeleteCollection: 'Eliminar colección',
     aiActionDeleteRuleTitle: '¿Eliminar regla?',

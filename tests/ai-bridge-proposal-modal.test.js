@@ -114,7 +114,8 @@ test('AI Bridge proposal modal renders a safe rule action summary', () => {
   assert.doesNotMatch(html, /Coleção: Checkout\./)
   assert.doesNotMatch(html, /Checkout 500, Checkout timeout/)
   assert.doesNotMatch(html, /ai-bridge-proposal-modal__grid/)
-  assert.match(html, /Confirmar ação/)
+  assert.match(html, /Confirmar/)
+  assert.doesNotMatch(html, /Confirmar ação/)
   assert.doesNotMatch(html, /responseBody|Authorization|Cookie|token=/i)
 })
 

@@ -321,7 +321,7 @@ const ptBR = {
     aiActionPreviousCollection: 'Coleção atual',
     aiActionNextCollection: 'Nova coleção principal',
     aiActionReason: 'Motivo',
-    aiActionConfirm: 'Confirmar ação',
+    aiActionConfirm: 'Confirmar',
     aiActionConfirmDeleteRule: 'Excluir regra',
     aiActionConfirmDeleteCollection: 'Excluir coleção',
     aiActionDeleteRuleTitle: 'Excluir regra?',

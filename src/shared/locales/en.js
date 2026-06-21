@@ -448,7 +448,7 @@ const en = {
     aiActionPreviousCollection: 'Current collection',
     aiActionNextCollection: 'New active collection',
     aiActionReason: 'Reason',
-    aiActionConfirm: 'Confirm action',
+    aiActionConfirm: 'Confirm',
     aiActionConfirmDeleteRule: 'Delete rule',
     aiActionConfirmDeleteCollection: 'Delete collection',
     aiActionDeleteRuleTitle: 'Delete rule?',
