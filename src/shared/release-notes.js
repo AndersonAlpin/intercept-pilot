@@ -9,10 +9,9 @@ const RELEASE_NOTES = {
   // },
   '1.3.0': {
     itemKeys: [
-      'releaseNotes.items.aiBridgeBeta',
-      'releaseNotes.items.aiBridgeSharedDaemon',
-      'releaseNotes.items.aiBridgeTools',
-      'releaseNotes.items.aiBridgeAssistedActions',
+      'releaseNotes.items.aiBridgeIntro',
+      'releaseNotes.items.aiBridgeContext',
+      'releaseNotes.items.aiBridgeActions',
       'releaseNotes.items.aiBridgePermissions'
     ]
   }
