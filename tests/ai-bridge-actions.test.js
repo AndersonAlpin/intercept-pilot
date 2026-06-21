@@ -15,7 +15,15 @@ const baseCollections = [
 ]
 
 const baseRules = [
-  { id: 'rule-1', name: 'Checkout 200', collectionId: 'collection-1', enabled: false },
+  {
+    id: 'rule-1',
+    name: 'Checkout 200',
+    collectionId: 'collection-1',
+    enabled: false,
+    priority: 100,
+    match: { urlPattern: '/checkout', matchType: 'contains', method: 'GET', resourceType: 'Fetch' },
+    action: { type: 'mockResponse', statusCode: 200, statusText: 'OK', contentType: 'application/json', delayMs: 0, failReason: 'Failed', responseBody: '{"secret":true}' }
+  },
   { id: 'rule-2', name: 'Checkout 500', collectionId: 'collection-1', enabled: true },
   { id: 'rule-3', name: 'Checkout timeout', collectionId: 'collection-1', enabled: true },
   { id: 'rule-4', name: 'Account 401', collectionId: 'collection-2', enabled: true }
@@ -91,7 +99,7 @@ test('AI rule action controller returns safe errors for invalid action, payload 
   const controller = createController()
   const context = { rules: baseRules, collections: baseCollections }
 
-  assert.deepEqual(controller.createPendingAction('delete_rule', { ruleId: 'rule-1' }, context), {
+  assert.deepEqual(controller.createPendingAction('unknown_action', { ruleId: 'rule-1' }, context), {
     error: { code: 'UNKNOWN_ACTION', message: 'Rule action is not allowed.' }
   })
   assert.deepEqual(controller.createPendingAction(AI_BRIDGE_RULE_ACTIONS.enableRule, {}, context), {
@@ -100,6 +108,113 @@ test('AI rule action controller returns safe errors for invalid action, payload 
   assert.deepEqual(controller.createPendingAction(AI_BRIDGE_RULE_ACTIONS.enableRule, { ruleId: 'missing' }, context), {
     error: { code: 'RULE_NOT_FOUND', message: 'Rule was not found.' }
   })
+})
+
+test('AI rule update proposal includes a safe diff and waits for confirmation', () => {
+  const controller = createController()
+
+  const result = controller.createPendingAction('update_rule', {
+    ruleId: 'rule-1',
+    patch: {
+      match: { resourceType: 'ANY' },
+      priority: 300
+    },
+    reason: 'The captured request is XHR and the rule currently targets Fetch.'
+  }, {
+    rules: baseRules,
+    collections: baseCollections
+  })
+
+  assert.equal(result.status, 'awaiting_human_confirmation')
+  assert.equal(result.action, 'update_rule')
+  assert.deepEqual(result.summary.diff, [
+    { field: 'match.resourceType', before: 'Fetch', after: 'ANY' },
+    { field: 'priority', before: 100, after: 300 }
+  ])
+  assert.equal(result.summary.reason, 'The captured request is XHR and the rule currently targets Fetch.')
+  assert.equal(controller.getPendingAction().summary.ruleId, 'rule-1')
+})
+
+test('AI collection update proposal includes a safe diff and waits for confirmation', () => {
+  const controller = createController()
+
+  const result = controller.createPendingAction('update_collection', {
+    collectionId: 'collection-1',
+    patch: {
+      name: 'Checkout updated',
+      description: 'Regression scenarios'
+    },
+    reason: 'Make the collection purpose clearer.'
+  }, {
+    rules: baseRules,
+    collections: baseCollections
+  })
+
+  assert.equal(result.status, 'awaiting_human_confirmation')
+  assert.equal(result.action, 'update_collection')
+  assert.deepEqual(result.summary.diff, [
+    { field: 'name', before: 'Checkout', after: 'Checkout updated' },
+    { field: 'description', before: '', after: 'Regression scenarios' }
+  ])
+  assert.equal(result.summary.collectionId, 'collection-1')
+})
+
+test('AI update proposals reject unsafe fields without exposing payload details', () => {
+  const controller = createController()
+  const result = controller.createPendingAction('update_rule', {
+    ruleId: 'rule-1',
+    patch: {
+      action: {
+        responseBody: '{"token":"secret"}'
+      }
+    }
+  }, {
+    rules: baseRules,
+    collections: baseCollections
+  })
+
+  assert.deepEqual(result, {
+    error: { code: 'UNSAFE_UPDATE_FIELD', message: 'Requested update field is not allowed.' }
+  })
+  assert.doesNotMatch(JSON.stringify(result), /secret|responseBody|token/)
+})
+
+test('AI delete rule proposal waits for confirmation and summarizes the rule', () => {
+  const controller = createController({ idGenerator: () => 'ai-delete-rule' })
+
+  const result = controller.createPendingAction('delete_rule', { ruleId: 'rule-1' }, {
+    rules: baseRules,
+    collections: baseCollections
+  })
+
+  assert.equal(result.status, 'awaiting_human_confirmation')
+  assert.equal(result.action, 'delete_rule')
+  assert.equal(result.pendingActionId, 'ai-delete-rule')
+  assert.deepEqual(result.summary, {
+    ruleId: 'rule-1',
+    ruleName: 'Checkout 200',
+    collectionId: 'collection-1',
+    collectionName: 'Checkout'
+  })
+})
+
+test('AI delete collection proposal includes affected rule count', () => {
+  const controller = createController({ idGenerator: () => 'ai-delete-collection' })
+
+  const result = controller.createPendingAction('delete_collection', { collectionId: 'collection-1' }, {
+    rules: baseRules,
+    collections: baseCollections
+  })
+
+  assert.equal(result.status, 'awaiting_human_confirmation')
+  assert.equal(result.action, 'delete_collection')
+  assert.equal(result.summary.collectionId, 'collection-1')
+  assert.equal(result.summary.affectedRuleCount, 3)
+  assert.deepEqual(result.summary.affectedRules, [
+    { id: 'rule-1', name: 'Checkout 200' },
+    { id: 'rule-2', name: 'Checkout 500' },
+    { id: 'rule-3', name: 'Checkout timeout' }
+  ])
 })
 
 test('AI rule action controller rejects concurrent pending proposals', () => {

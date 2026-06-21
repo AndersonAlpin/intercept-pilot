@@ -8,6 +8,12 @@ import {
   sanitizeAiBridgeRuleResult
 } from '../shared/ai-bridge-sanitize.js'
 import { explainRuleMatch } from './ai-bridge-diagnostics.js'
+import {
+  searchCapturedRequestsCore,
+  searchRuleResultsCore,
+  searchRulesCore,
+  searchSanitizedLogsCore
+} from './ai-bridge-search.js'
 
 export const MAX_AI_BRIDGE_CAPTURED_REQUESTS = 100
 export const MAX_AI_BRIDGE_SANITIZED_LOGS = 100
@@ -101,6 +107,40 @@ export function listRecentRuleResults({ state = {}, networkEntries = [] } = {}) 
   return getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : [])
     .slice(0, MAX_AI_BRIDGE_RECENT_RULE_RESULTS)
     .map(entry => sanitizeAiBridgeRuleResult(entry, permissions))
+}
+
+export function searchCapturedRequests({ state = {}, networkEntries = [], payload = {} } = {}) {
+  const permissions = getAiBridgePermissions(state)
+  return searchCapturedRequestsCore({
+    networkEntries: getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : []),
+    permissions,
+    payload
+  })
+}
+
+export function searchSanitizedLogs({ state = {}, logs = state.logs || [], payload = {} } = {}) {
+  const permissions = getAiBridgePermissions(state)
+  return searchSanitizedLogsCore({
+    logs: getVisibleLogsForCapture(state, Array.isArray(logs) ? logs : []),
+    permissions,
+    payload
+  })
+}
+
+export function searchRuleResults({ state = {}, networkEntries = [], payload = {} } = {}) {
+  const permissions = getAiBridgePermissions(state)
+  return searchRuleResultsCore({
+    networkEntries: getVisibleNetworkEntriesForCapture(state, Array.isArray(networkEntries) ? networkEntries : []),
+    permissions,
+    payload
+  })
+}
+
+export function searchRules({ state = {}, payload = {} } = {}) {
+  return searchRulesCore({
+    rules: getStateRules(state),
+    payload
+  })
 }
 
 export function explainRuleMatchCommand({ state = {}, networkEntries = [], payload = {} } = {}) {

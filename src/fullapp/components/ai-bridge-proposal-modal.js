@@ -14,6 +14,10 @@ function getRuleActionLabel(action) {
   if (action === 'enable_rule') return t('fullapp.aiActionTypeEnableRule')
   if (action === 'disable_rule') return t('fullapp.aiActionTypeDisableRule')
   if (action === 'set_only_active_rule') return t('fullapp.aiActionTypeSetOnlyActiveRule')
+  if (action === 'update_rule') return t('fullapp.aiActionTypeUpdateRule')
+  if (action === 'update_collection') return t('fullapp.aiActionTypeUpdateCollection')
+  if (action === 'delete_rule') return t('fullapp.aiActionTypeDeleteRule')
+  if (action === 'delete_collection') return t('fullapp.aiActionTypeDeleteCollection')
   if (action === 'reload_captured_tab') return t('fullapp.aiActionTypeReloadCapturedTab')
   return t('common.unknown')
 }
@@ -140,6 +144,58 @@ function renderReloadProposalBody(pendingAction) {
   `
 }
 
+function renderDiffRows(diff = []) {
+  return diff.map(item => `
+    <div class="ai-bridge-proposal-modal__row">
+      <span>${escapeHtml(String(item?.field || ''))}</span>
+      <strong>${escapeHtml(`${String(item?.before ?? '')} -> ${String(item?.after ?? '')}`)}</strong>
+    </div>
+  `).join('')
+}
+
+function renderEditProposalBody(pendingAction) {
+  const summary = pendingAction.summary || {}
+  const rows = [
+    renderSummaryRow(t('fullapp.aiImportSource'), pendingAction.source || 'AI Bridge'),
+    renderSummaryRow(t('fullapp.aiActionType'), getRuleActionLabel(pendingAction.action)),
+    pendingAction.action === 'update_rule' ? renderSummaryRow(t('fullapp.aiActionRule'), summary.ruleName) : '',
+    renderSummaryRow(t('fullapp.aiActionCollection'), summary.collectionName),
+    renderSummaryRow(t('fullapp.aiActionReason'), summary.reason),
+    renderDiffRows(Array.isArray(summary.diff) ? summary.diff : [])
+  ].join('')
+
+  return `
+    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
+    <div class="ai-bridge-proposal-modal__grid">
+      ${rows}
+    </div>
+  `
+}
+
+function renderDeleteProposalBody(pendingAction) {
+  const summary = pendingAction.summary || {}
+  const affectedNames = Array.isArray(summary.affectedRules)
+    ? summary.affectedRules.map(rule => rule.name).filter(Boolean).join(', ')
+    : ''
+  const isCollectionDelete = pendingAction.action === 'delete_collection'
+  const rows = [
+    renderSummaryRow(t('fullapp.aiImportSource'), pendingAction.source || 'AI Bridge'),
+    renderSummaryRow(t('fullapp.aiActionType'), getRuleActionLabel(pendingAction.action)),
+    !isCollectionDelete ? renderSummaryRow(t('fullapp.aiActionRule'), summary.ruleName) : '',
+    renderSummaryRow(t('fullapp.aiActionCollection'), summary.collectionName),
+    isCollectionDelete ? renderSummaryRow(t('fullapp.aiActionAffectedRuleCount'), summary.affectedRuleCount) : '',
+    isCollectionDelete ? renderSummaryRow(t('fullapp.aiActionAffectedRules'), affectedNames) : '',
+    renderSummaryRow(t('fullapp.aiActionImpact'), t('fullapp.aiActionDeleteWarning'))
+  ].join('')
+
+  return `
+    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiActionDeleteWarning'))}</p>
+    <div class="ai-bridge-proposal-modal__grid">
+      ${rows}
+    </div>
+  `
+}
+
 export function renderAiBridgeProposalModal(proposal) {
   const pendingAction = proposal?.pendingAction || (proposal?.action ? proposal : null)
   const pendingImport = proposal?.pendingImport || (!pendingAction ? proposal : null)
@@ -147,8 +203,12 @@ export function renderAiBridgeProposalModal(proposal) {
 
   const isAction = Boolean(pendingAction?.id)
   const isReload = isAction && pendingAction.action === 'reload_captured_tab'
+  const isEdit = isAction && ['update_rule', 'update_collection'].includes(pendingAction.action)
+  const isDelete = isAction && ['delete_rule', 'delete_collection'].includes(pendingAction.action)
   const bodyHtml = isReload
     ? renderReloadProposalBody(pendingAction)
+    : isEdit ? renderEditProposalBody(pendingAction)
+    : isDelete ? renderDeleteProposalBody(pendingAction)
     : isAction ? renderActionProposalBody(pendingAction) : renderImportProposalBody(pendingImport)
   const footerHtml = `
     ${renderButton({ id: 'full-ai-proposal-cancel-btn', label: t('fullapp.aiImportCancel'), variant: 'secondary' })}

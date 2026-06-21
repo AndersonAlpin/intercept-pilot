@@ -12,7 +12,11 @@ import {
   listCollections,
   listRecentRuleResults,
   listRules,
-  listSanitizedLogs
+  listSanitizedLogs,
+  searchCapturedRequests,
+  searchRuleResults,
+  searchRules,
+  searchSanitizedLogs
 } from '../src/background/ai-bridge-commands.js'
 
 const state = {
@@ -169,6 +173,56 @@ test('listCapturedRequests limits the response size for AI Bridge', () => {
   assert.doesNotMatch(JSON.stringify(requests), /secret-/)
 })
 
+test('searchCapturedRequests filters active capture requests and keeps sanitized output', () => {
+  const result = searchCapturedRequests({
+    state,
+    payload: {
+      method: 'POST',
+      statusGroup: '4xx',
+      resourceType: 'Fetch',
+      urlContains: 'auth',
+      matchedRuleId: 'rule-auth',
+      intercepted: true,
+      appliedAction: 'mockResponse',
+      limit: 10,
+      offset: 0
+    },
+    networkEntries: [
+      {
+        id: 'active-entry',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'POST',
+        url: 'https://internal.example.test/api/auth?token=secret-token',
+        status: 401,
+        resourceType: 'Fetch',
+        intercepted: true,
+        matchedRuleId: 'rule-auth',
+        matchedRuleName: 'Mock auth',
+        appliedAction: 'mockResponse',
+        requestHeaders: [{ name: 'Authorization', value: 'Bearer secret' }],
+        responseBody: '{"access_token":"secret"}'
+      },
+      {
+        id: 'active-other',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'GET',
+        url: 'https://internal.example.test/api/profile?token=secret-token',
+        status: 200,
+        resourceType: 'XHR'
+      }
+    ]
+  })
+
+  assert.equal(result.total, 1)
+  assert.equal(result.limit, 10)
+  assert.equal(result.offset, 0)
+  assert.equal(result.hasMore, false)
+  assert.equal(result.items[0].id, 'active-entry')
+  assert.doesNotMatch(JSON.stringify(result), /secret-token|Bearer secret|access_token|"requestHeaders":|"responseBody":/)
+})
+
 test('listSanitizedLogs returns only sanitized logs from the active capture context', () => {
   const logs = listSanitizedLogs({
     state,
@@ -235,6 +289,46 @@ test('listSanitizedLogs limits the response size for AI Bridge', () => {
   assert.equal(sanitized[0].id, 'log-0')
   assert.equal(sanitized.at(-1).id, `log-${MAX_AI_BRIDGE_SANITIZED_LOGS - 1}`)
   assert.doesNotMatch(JSON.stringify(sanitized), /secret-/)
+})
+
+test('searchSanitizedLogs filters by level scope message url and since', () => {
+  const result = searchSanitizedLogs({
+    state,
+    payload: {
+      level: 'error',
+      scope: 'web',
+      messageContains: 'Fetch failed',
+      urlContains: 'auth',
+      since: '2026-06-20T09:00:00.000Z'
+    },
+    logs: [
+      {
+        id: 'active-log',
+        scope: 'web',
+        level: 'error',
+        message: 'Fetch failed token=secret-token Authorization: Bearer secret',
+        url: 'https://internal.example.test/api/auth?token=secret-token',
+        timestamp: '2026-06-20T10:00:00.000Z',
+        tabId: 42,
+        captureSessionId: 'cdp:42:session',
+        stack: 'Error: secret stack'
+      },
+      {
+        id: 'old-log',
+        scope: 'web',
+        level: 'error',
+        message: 'Fetch failed token=old-secret',
+        url: 'https://internal.example.test/api/auth?token=old-secret',
+        timestamp: '2026-06-20T08:00:00.000Z',
+        tabId: 42,
+        captureSessionId: 'cdp:42:session'
+      }
+    ]
+  })
+
+  assert.equal(result.total, 1)
+  assert.equal(result.items[0].id, 'active-log')
+  assert.doesNotMatch(JSON.stringify(result), /secret-token|Bearer secret|secret stack|old-secret|message":/i)
 })
 
 test('listRecentRuleResults returns only safe rule result summaries from the active capture context', () => {
@@ -333,6 +427,58 @@ test('listRecentRuleResults limits the response size for AI Bridge', () => {
   assert.doesNotMatch(JSON.stringify(results), /secret-/)
 })
 
+test('searchRuleResults filters matched rule summaries with pagination', () => {
+  const result = searchRuleResults({
+    state,
+    payload: {
+      ruleId: 'rule-auth',
+      matched: true,
+      appliedAction: 'mockResponse',
+      limit: 1,
+      offset: 1
+    },
+    networkEntries: [
+      {
+        id: 'result-1',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'POST',
+        url: 'https://internal.example.test/api/auth/1?token=secret-1',
+        matchedRuleId: 'rule-auth',
+        matchedRuleName: 'Mock auth',
+        appliedAction: 'mockResponse',
+        intercepted: true
+      },
+      {
+        id: 'result-2',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'POST',
+        url: 'https://internal.example.test/api/auth/2?token=secret-2',
+        matchedRuleId: 'rule-auth',
+        matchedRuleName: 'Mock auth',
+        appliedAction: 'mockResponse',
+        intercepted: true
+      },
+      {
+        id: 'result-3',
+        networkTabId: 42,
+        captureSessionId: 'cdp:42:session',
+        method: 'GET',
+        url: 'https://internal.example.test/api/profile?token=secret-3',
+        appliedAction: 'passThrough',
+        intercepted: false
+      }
+    ]
+  })
+
+  assert.equal(result.total, 2)
+  assert.equal(result.hasMore, false)
+  assert.equal(result.items.length, 1)
+  assert.equal(result.items[0].requestId, 'result-2')
+  assert.doesNotMatch(JSON.stringify(result), /secret-/)
+})
+
 test('explainRuleMatchCommand compares a rule with a captured request using payload ids', () => {
   const result = explainRuleMatchCommand({
     state: {
@@ -429,6 +575,56 @@ test('listRules returns allowed rule fields only', () => {
 
   const serialized = JSON.stringify(rules)
   assert.doesNotMatch(serialized, /responseBody|responseHeaders|matchCount|lastMatchedAt|Set-Cookie|access_token/)
+})
+
+test('searchRules filters safe rule summaries without response bodies or headers', () => {
+  const result = searchRules({
+    state,
+    payload: {
+      collectionId: 'collection-auth',
+      enabled: false,
+      method: 'POST',
+      resourceType: 'Fetch',
+      matchType: 'contains',
+      urlPatternContains: 'auth',
+      actionType: 'mockResponse',
+      nameContains: 'mock',
+      hasConflict: true,
+      lastError: true
+    }
+  })
+
+  assert.equal(result.total, 1)
+  assert.equal(result.items[0].id, 'rule-auth')
+  assert.doesNotMatch(JSON.stringify(result), /responseBody|responseHeaders|Set-Cookie|access_token|matchCount|lastMatchedAt/)
+})
+
+test('search tools clamp limit to 100 and normalize invalid offsets', () => {
+  const result = searchRules({
+    state: {
+      ...state,
+      rules: Array.from({ length: 125 }, (_, index) => ({
+        id: `rule-${index}`,
+        collectionId: 'collection-auth',
+        name: `Rule ${index}`,
+        enabled: true,
+        priority: index,
+        match: { urlPattern: `/api/${index}`, matchType: 'contains', method: 'GET', resourceType: 'ANY' },
+        action: { type: 'passThrough' },
+        diagnostics: {}
+      }))
+    },
+    payload: {
+      limit: 500,
+      offset: -10
+    }
+  })
+
+  assert.equal(result.total, 125)
+  assert.equal(result.limit, 100)
+  assert.equal(result.offset, 0)
+  assert.equal(result.items.length, 100)
+  assert.equal(result.hasMore, true)
 })
 
 test('getActiveCollection returns sanitized active collection summary', () => {

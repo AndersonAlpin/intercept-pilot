@@ -1,7 +1,11 @@
 export const AI_BRIDGE_RULE_ACTIONS = {
   enableRule: 'enable_rule',
   disableRule: 'disable_rule',
-  setOnlyActiveRule: 'set_only_active_rule'
+  setOnlyActiveRule: 'set_only_active_rule',
+  updateRule: 'update_rule',
+  updateCollection: 'update_collection',
+  deleteRule: 'delete_rule',
+  deleteCollection: 'delete_collection'
 }
 
 export const AI_BRIDGE_TAB_ACTIONS = {
@@ -10,6 +14,27 @@ export const AI_BRIDGE_TAB_ACTIONS = {
 
 const ALLOWED_ACTIONS = new Set(Object.values(AI_BRIDGE_RULE_ACTIONS))
 const MAX_AFFECTED_RULES_SUMMARY = 5
+const SAFE_RULE_UPDATE_FIELDS = new Set([
+  'name',
+  'enabled',
+  'priority',
+  'match.urlPattern',
+  'match.matchType',
+  'match.method',
+  'match.resourceType',
+  'action.type',
+  'action.statusCode',
+  'action.statusText',
+  'action.contentType',
+  'action.delayMs',
+  'action.failReason'
+])
+const SAFE_COLLECTION_UPDATE_FIELDS = new Set([
+  'name',
+  'description',
+  'enabled',
+  'order'
+])
 
 function createSafeActionError(code, message) {
   return {
@@ -28,12 +53,59 @@ function normalizeRuleId(payload = {}) {
   return String(payload.ruleId || '').trim()
 }
 
+function normalizeCollectionId(payload = {}) {
+  return String(payload.collectionId || '').trim()
+}
+
 function findRule(rules = [], ruleId = '') {
   return rules.find(rule => rule.id === ruleId) || null
 }
 
 function findCollection(collections = [], collectionId = '') {
   return collections.find(collection => collection.id === collectionId) || null
+}
+
+function getPathValue(source = {}, path = '') {
+  return String(path || '').split('.').reduce((current, key) => (
+    current && Object.hasOwn(current, key) ? current[key] : undefined
+  ), source)
+}
+
+function normalizeDiffValue(value) {
+  return value === undefined || value === null ? '' : value
+}
+
+function flattenPatch(patch = {}, prefix = '') {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return []
+  return Object.entries(patch).flatMap(([key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return flattenPatch(value, path)
+    }
+    return [{ field: path, value }]
+  })
+}
+
+function createDiff(target = {}, patch = {}, allowedFields = new Set()) {
+  const entries = flattenPatch(patch)
+  if (!entries.length) {
+    return createSafeActionError('INVALID_PAYLOAD', 'patch must include at least one allowed field.')
+  }
+  const diff = []
+  for (const entry of entries) {
+    if (!allowedFields.has(entry.field)) {
+      return createSafeActionError('UNSAFE_UPDATE_FIELD', 'Requested update field is not allowed.')
+    }
+    const before = normalizeDiffValue(getPathValue(target, entry.field))
+    const after = normalizeDiffValue(entry.value)
+    if (JSON.stringify(before) !== JSON.stringify(after)) {
+      diff.push({ field: entry.field, before, after })
+    }
+  }
+  if (!diff.length) {
+    return createSafeActionError('NO_CHANGES', 'Requested update does not change any allowed field.')
+  }
+  return { diff }
 }
 
 function summarizeAffectedRules(action, rule, rules = []) {
@@ -70,6 +142,63 @@ function createActionSummary(action, rule, context = {}) {
   }
 }
 
+function createRuleUpdateSummary(rule, payload = {}, context = {}) {
+  const diffResult = createDiff(rule, payload.patch, SAFE_RULE_UPDATE_FIELDS)
+  if (diffResult.error) return diffResult
+  const collection = findCollection(context.collections || [], rule.collectionId)
+
+  return {
+    summary: {
+      ruleId: rule.id,
+      ruleName: String(rule.name || ''),
+      collectionId: String(rule.collectionId || ''),
+      collectionName: String(collection?.name || ''),
+      diff: diffResult.diff,
+      reason: String(payload.reason || '')
+    }
+  }
+}
+
+function createCollectionUpdateSummary(collection, payload = {}) {
+  const diffResult = createDiff(collection, payload.patch, SAFE_COLLECTION_UPDATE_FIELDS)
+  if (diffResult.error) return diffResult
+
+  return {
+    summary: {
+      collectionId: collection.id,
+      collectionName: String(collection.name || ''),
+      diff: diffResult.diff,
+      reason: String(payload.reason || '')
+    }
+  }
+}
+
+function createRuleDeleteSummary(rule, context = {}) {
+  const collection = findCollection(context.collections || [], rule.collectionId)
+  return {
+    ruleId: rule.id,
+    ruleName: String(rule.name || ''),
+    collectionId: String(rule.collectionId || ''),
+    collectionName: String(collection?.name || '')
+  }
+}
+
+function createCollectionDeleteSummary(collection, context = {}) {
+  const affectedRules = (Array.isArray(context.rules) ? context.rules : [])
+    .filter(rule => rule.collectionId === collection.id)
+    .map(rule => ({
+      id: rule.id,
+      name: String(rule.name || '')
+    }))
+
+  return {
+    collectionId: collection.id,
+    collectionName: String(collection.name || ''),
+    affectedRuleCount: affectedRules.length,
+    affectedRules: affectedRules.slice(0, MAX_AFFECTED_RULES_SUMMARY)
+  }
+}
+
 export function createAiBridgeRuleActionController(options = {}) {
   const {
     idGenerator = () => `ai-action-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`,
@@ -91,6 +220,61 @@ export function createAiBridgeRuleActionController(options = {}) {
       return createSafeActionError('PENDING_PROPOSAL_EXISTS', 'Another AI Bridge proposal is already pending.')
     }
 
+    if (action === AI_BRIDGE_RULE_ACTIONS.updateCollection) {
+      const collectionId = normalizeCollectionId(payload)
+      if (!collectionId || !payload.patch || typeof payload.patch !== 'object') {
+        return createSafeActionError('INVALID_PAYLOAD', 'collectionId and patch are required.')
+      }
+      const collection = findCollection(context.collections || [], collectionId)
+      if (!collection) {
+        return createSafeActionError('COLLECTION_NOT_FOUND', 'Collection was not found.')
+      }
+      const update = createCollectionUpdateSummary(collection, payload)
+      if (update.error) return update
+      pendingAction = {
+        id: idGenerator(),
+        source: 'AI Bridge',
+        createdAt: now(),
+        action,
+        summary: update.summary
+      }
+
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: pendingAction.id,
+        action,
+        summary: update.summary
+      }
+    }
+
+    if (action === AI_BRIDGE_RULE_ACTIONS.deleteCollection) {
+      const collectionId = normalizeCollectionId(payload)
+      if (!collectionId) {
+        return createSafeActionError('INVALID_PAYLOAD', 'collectionId must be a non-empty string.')
+      }
+      const collection = findCollection(context.collections || [], collectionId)
+      if (!collection) {
+        return createSafeActionError('COLLECTION_NOT_FOUND', 'Collection was not found.')
+      }
+      const summary = createCollectionDeleteSummary(collection, {
+        rules: context.rules || []
+      })
+      pendingAction = {
+        id: idGenerator(),
+        source: 'AI Bridge',
+        createdAt: now(),
+        action,
+        summary
+      }
+
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: pendingAction.id,
+        action,
+        summary
+      }
+    }
+
     const ruleId = normalizeRuleId(payload)
     if (!ruleId) {
       return createSafeActionError('INVALID_PAYLOAD', 'ruleId must be a non-empty string.')
@@ -100,6 +284,48 @@ export function createAiBridgeRuleActionController(options = {}) {
     const rule = findRule(rules, ruleId)
     if (!rule) {
       return createSafeActionError('RULE_NOT_FOUND', 'Rule was not found.')
+    }
+    if (action === AI_BRIDGE_RULE_ACTIONS.updateRule) {
+      if (!payload.patch || typeof payload.patch !== 'object') {
+        return createSafeActionError('INVALID_PAYLOAD', 'patch must be an object.')
+      }
+      const update = createRuleUpdateSummary(rule, payload, {
+        collections: context.collections || []
+      })
+      if (update.error) return update
+      pendingAction = {
+        id: idGenerator(),
+        source: 'AI Bridge',
+        createdAt: now(),
+        action,
+        summary: update.summary
+      }
+
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: pendingAction.id,
+        action,
+        summary: update.summary
+      }
+    }
+    if (action === AI_BRIDGE_RULE_ACTIONS.deleteRule) {
+      const summary = createRuleDeleteSummary(rule, {
+        collections: context.collections || []
+      })
+      pendingAction = {
+        id: idGenerator(),
+        source: 'AI Bridge',
+        createdAt: now(),
+        action,
+        summary
+      }
+
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: pendingAction.id,
+        action,
+        summary
+      }
     }
 
     const summary = createActionSummary(action, rule, {

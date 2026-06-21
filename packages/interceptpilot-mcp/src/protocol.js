@@ -15,10 +15,14 @@ export const MESSAGE_TYPES = {
 
 export const ALLOWED_COMMANDS = Object.freeze([
   'list_captured_requests',
+  'search_captured_requests',
   'list_collections',
   'list_rules',
+  'search_rules',
   'list_sanitized_logs',
+  'search_sanitized_logs',
   'list_recent_rule_results',
+  'search_rule_results',
   'get_active_collection',
   'get_current_test_context',
   'get_import_bundle_schema',
@@ -28,6 +32,10 @@ export const ALLOWED_COMMANDS = Object.freeze([
   'request_enable_rule',
   'request_disable_rule',
   'request_set_only_active_rule',
+  'request_update_rule',
+  'request_update_collection',
+  'request_delete_rule',
+  'request_delete_collection',
   'request_reload_captured_tab'
 ])
 

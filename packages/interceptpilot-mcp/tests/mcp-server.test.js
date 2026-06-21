@@ -6,10 +6,14 @@ import { ALLOWED_COMMANDS } from '../src/protocol.js'
 
 const EXPECTED_TOOL_NAMES = [
   'list_captured_requests',
+  'search_captured_requests',
   'list_collections',
   'list_rules',
+  'search_rules',
   'list_sanitized_logs',
+  'search_sanitized_logs',
   'list_recent_rule_results',
+  'search_rule_results',
   'get_active_collection',
   'get_current_test_context',
   'get_import_bundle_schema',
@@ -19,7 +23,17 @@ const EXPECTED_TOOL_NAMES = [
   'request_enable_rule',
   'request_disable_rule',
   'request_set_only_active_rule',
+  'request_update_rule',
+  'request_update_collection',
+  'request_delete_rule',
+  'request_delete_collection',
   'request_reload_captured_tab'
+]
+const SEARCH_TOOL_NAMES = [
+  'search_captured_requests',
+  'search_rules',
+  'search_sanitized_logs',
+  'search_rule_results'
 ]
 const STATIC_TOOL_NAMES = [
   'get_import_bundle_schema',
@@ -30,7 +44,11 @@ const REQUIRED_INPUT_TOOL_NAMES = [
   'explain_rule_match',
   'request_enable_rule',
   'request_disable_rule',
-  'request_set_only_active_rule'
+  'request_set_only_active_rule',
+  'request_update_rule',
+  'request_update_collection',
+  'request_delete_rule',
+  'request_delete_collection'
 ]
 
 test('MCP server exposes the allowed InterceptPilot tools', () => {
@@ -45,15 +63,41 @@ test('MCP tool definitions stay synchronized with the protocol allowlist', () =>
 })
 
 test('MCP read-only tools do not require input', () => {
-  const tools = getMcpToolDefinitions().filter(tool => !REQUIRED_INPUT_TOOL_NAMES.includes(tool.name))
+  const tools = getMcpToolDefinitions().filter(tool => (
+    !REQUIRED_INPUT_TOOL_NAMES.includes(tool.name) && !SEARCH_TOOL_NAMES.includes(tool.name)
+  ))
 
-  assert.deepEqual(tools.map(tool => tool.name), EXPECTED_TOOL_NAMES.filter(name => !REQUIRED_INPUT_TOOL_NAMES.includes(name)))
+  assert.deepEqual(tools.map(tool => tool.name), EXPECTED_TOOL_NAMES.filter(name => (
+    !REQUIRED_INPUT_TOOL_NAMES.includes(name) && !SEARCH_TOOL_NAMES.includes(name)
+  )))
   for (const tool of tools) {
     assert.deepEqual(tool.inputSchema, {
       type: 'object',
       additionalProperties: false
     })
   }
+})
+
+test('MCP search tools declare optional filters and pagination inputs', () => {
+  const tools = getMcpToolDefinitions().filter(item => SEARCH_TOOL_NAMES.includes(item.name))
+
+  assert.deepEqual(tools.map(tool => tool.name), SEARCH_TOOL_NAMES)
+  for (const tool of tools) {
+    assert.equal(tool.inputSchema.type, 'object')
+    assert.equal(tool.inputSchema.additionalProperties, false)
+    assert.equal(tool.inputSchema.properties.limit.maximum, 100)
+    assert.equal(tool.inputSchema.properties.offset.minimum, 0)
+    assert.equal(tool.inputSchema.required, undefined)
+  }
+
+  const requestTool = tools.find(tool => tool.name === 'search_captured_requests')
+  assert.equal(requestTool.inputSchema.properties.method.type, 'string')
+  assert.equal(requestTool.inputSchema.properties.intercepted.type, 'boolean')
+  assert.equal(requestTool.inputSchema.properties.statusGroup.type, 'string')
+
+  const rulesTool = tools.find(tool => tool.name === 'search_rules')
+  assert.equal(rulesTool.inputSchema.properties.collectionId.type, 'string')
+  assert.equal(rulesTool.inputSchema.properties.hasConflict.type, 'boolean')
 })
 
 test('MCP explain_rule_match tool declares ruleId and requestId inputs', () => {
@@ -89,6 +133,36 @@ test('MCP rule action request tools declare ruleId input', () => {
     assert.equal(tool.inputSchema.properties.ruleId.type, 'string')
     assert.equal(tool.inputSchema.additionalProperties, false)
   }
+})
+
+test('MCP update request tools declare target, patch and reason inputs', () => {
+  const ruleTool = getMcpToolDefinitions().find(item => item.name === 'request_update_rule')
+  const collectionTool = getMcpToolDefinitions().find(item => item.name === 'request_update_collection')
+
+  assert.deepEqual(ruleTool.inputSchema.required, ['ruleId', 'patch'])
+  assert.equal(ruleTool.inputSchema.properties.ruleId.type, 'string')
+  assert.equal(ruleTool.inputSchema.properties.patch.type, 'object')
+  assert.equal(ruleTool.inputSchema.properties.reason.type, 'string')
+  assert.equal(ruleTool.inputSchema.additionalProperties, false)
+
+  assert.deepEqual(collectionTool.inputSchema.required, ['collectionId', 'patch'])
+  assert.equal(collectionTool.inputSchema.properties.collectionId.type, 'string')
+  assert.equal(collectionTool.inputSchema.properties.patch.type, 'object')
+  assert.equal(collectionTool.inputSchema.properties.reason.type, 'string')
+  assert.equal(collectionTool.inputSchema.additionalProperties, false)
+})
+
+test('MCP delete request tools declare target inputs', () => {
+  const ruleTool = getMcpToolDefinitions().find(item => item.name === 'request_delete_rule')
+  const collectionTool = getMcpToolDefinitions().find(item => item.name === 'request_delete_collection')
+
+  assert.deepEqual(ruleTool.inputSchema.required, ['ruleId'])
+  assert.equal(ruleTool.inputSchema.properties.ruleId.type, 'string')
+  assert.equal(ruleTool.inputSchema.additionalProperties, false)
+
+  assert.deepEqual(collectionTool.inputSchema.required, ['collectionId'])
+  assert.equal(collectionTool.inputSchema.properties.collectionId.type, 'string')
+  assert.equal(collectionTool.inputSchema.additionalProperties, false)
 })
 
 test('MCP reload captured tab tool requires no input and is confirmation-gated', () => {
@@ -148,13 +222,48 @@ test('MCP all read-only tools ignore programmatic arguments', async () => {
     }
   })
 
-  for (const name of EXPECTED_TOOL_NAMES.filter(toolName => !REQUIRED_INPUT_TOOL_NAMES.includes(toolName))) {
+  for (const name of EXPECTED_TOOL_NAMES.filter(toolName => (
+    !REQUIRED_INPUT_TOOL_NAMES.includes(toolName) && !SEARCH_TOOL_NAMES.includes(toolName)
+  ))) {
     await handleToolCall(name, { extra: true, bundleJson: 'ignored' })
   }
 
   assert.deepEqual(calls, EXPECTED_TOOL_NAMES
-    .filter(name => !REQUIRED_INPUT_TOOL_NAMES.includes(name) && !STATIC_TOOL_NAMES.includes(name))
+    .filter(name => !REQUIRED_INPUT_TOOL_NAMES.includes(name) && !SEARCH_TOOL_NAMES.includes(name) && !STATIC_TOOL_NAMES.includes(name))
     .map(command => ({ command, payload: {} })))
+})
+
+test('MCP search tools forward safe filter payloads through the bridge', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        return { items: [], total: 0, limit: 25, offset: 0, hasMore: false }
+      }
+    }
+  })
+
+  const result = await handleToolCall('search_captured_requests', {
+    method: 'POST',
+    intercepted: true,
+    limit: 25,
+    offset: 0,
+    ignored: 'value',
+    urlContains: ''
+  })
+
+  assert.deepEqual(calls, [{
+    command: 'search_captured_requests',
+    payload: {
+      method: 'POST',
+      intercepted: true,
+      limit: 25,
+      offset: 0
+    }
+  }])
+  assert.equal(result.content[0].type, 'text')
+  assert.match(result.content[0].text, /"total": 0/)
 })
 
 test('MCP explain_rule_match forwards ruleId and requestId through the bridge', async () => {
@@ -285,6 +394,68 @@ test('MCP rule action tools forward ruleId and format pending proposal result', 
   assert.match(result.content[0].text, /Rule action proposal sent to InterceptPilot/)
   assert.match(result.content[0].text, /ai-action-1/)
   assert.match(result.content[0].text, /Checkout 200/)
+})
+
+test('MCP update tools forward target patch and reason through the bridge', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        return {
+          status: 'awaiting_human_confirmation',
+          pendingActionId: 'ai-action-update',
+          action: command === 'request_update_rule' ? 'update_rule' : 'update_collection',
+          summary: {
+            ruleName: 'Checkout 200',
+            collectionName: 'Checkout',
+            diff: [{ field: 'priority', before: 100, after: 300 }]
+          }
+        }
+      }
+    }
+  })
+
+  const result = await handleToolCall('request_update_rule', {
+    ruleId: 'rule-1',
+    patch: { priority: 300 },
+    reason: 'Raise priority.',
+    ignored: true
+  })
+
+  assert.deepEqual(calls, [{
+    command: 'request_update_rule',
+    payload: {
+      ruleId: 'rule-1',
+      patch: { priority: 300 },
+      reason: 'Raise priority.'
+    }
+  }])
+  assert.match(result.content[0].text, /Rule action proposal sent to InterceptPilot/)
+  assert.match(result.content[0].text, /ai-action-update/)
+})
+
+test('MCP delete tools forward target ids through the bridge', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        return {
+          status: 'awaiting_human_confirmation',
+          pendingActionId: 'ai-action-delete',
+          action: command === 'request_delete_rule' ? 'delete_rule' : 'delete_collection',
+          summary: { ruleName: 'Checkout 200', collectionName: 'Checkout' }
+        }
+      }
+    }
+  })
+
+  const result = await handleToolCall('request_delete_rule', { ruleId: 'rule-1', ignored: true })
+
+  assert.deepEqual(calls, [{ command: 'request_delete_rule', payload: { ruleId: 'rule-1' } }])
+  assert.match(result.content[0].text, /Rule action proposal sent to InterceptPilot/)
+  assert.match(result.content[0].text, /ai-action-delete/)
 })
 
 test('MCP rule action tools return a safe error for missing ruleId', async () => {

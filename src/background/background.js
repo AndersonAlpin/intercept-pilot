@@ -777,6 +777,93 @@ function applyRuleEnabledState(rule, enabled, updatedAt) {
   return nextRule
 }
 
+function setPathValue(source = {}, path = '', value) {
+  const keys = String(path || '').split('.').filter(Boolean)
+  if (!keys.length) return source
+  let current = source
+  keys.slice(0, -1).forEach(key => {
+    if (!current[key] || typeof current[key] !== 'object') current[key] = {}
+    current = current[key]
+  })
+  current[keys.at(-1)] = value
+  return source
+}
+
+function applyDiffToObject(source = {}, diff = []) {
+  const next = clone(source)
+  for (const item of Array.isArray(diff) ? diff : []) {
+    setPathValue(next, item.field, item.after)
+  }
+  next.updatedAt = new Date().toISOString()
+  return next
+}
+
+async function applyAiBridgeRuleUpdate(pendingAction = {}) {
+  const state = await getState()
+  const summary = pendingAction.summary || {}
+  const targetRuleId = String(summary.ruleId || '')
+  const targetRule = state.rules.find(rule => rule.id === targetRuleId)
+  if (!targetRule) {
+    return { error: { code: 'RULE_NOT_FOUND', message: 'Rule was not found.' } }
+  }
+
+  const nextRule = applyDiffToObject(targetRule, summary.diff)
+  const errors = validateRule(nextRule)
+  if (errors.length) {
+    return { error: { code: 'INVALID_RULE_UPDATE', message: 'Rule update is invalid.' } }
+  }
+
+  state.rules = state.rules.map(rule => rule.id === targetRuleId ? nextRule : rule)
+  await setState(state)
+  await maybeAutoReloadAfterRuleChange()
+  return { ok: true, rules: state.rules }
+}
+
+async function applyAiBridgeCollectionUpdate(pendingAction = {}) {
+  const state = await getState()
+  const summary = pendingAction.summary || {}
+  const targetCollectionId = String(summary.collectionId || '')
+  const targetCollection = state.collections.find(collection => collection.id === targetCollectionId)
+  if (!targetCollection) {
+    return { error: { code: 'COLLECTION_NOT_FOUND', message: 'Collection was not found.' } }
+  }
+
+  const nextCollection = applyDiffToObject(targetCollection, summary.diff)
+  state.collections = state.collections.map(collection => collection.id === targetCollectionId ? nextCollection : collection)
+  await setState(state)
+  return { ok: true, collections: state.collections }
+}
+
+async function applyAiBridgeRuleDelete(pendingAction = {}) {
+  const summary = pendingAction.summary || {}
+  const targetRuleId = String(summary.ruleId || '')
+  const state = await getState()
+  if (!state.rules.some(rule => rule.id === targetRuleId)) {
+    return { error: { code: 'RULE_NOT_FOUND', message: 'Rule was not found.' } }
+  }
+
+  const rules = await deleteRule(targetRuleId)
+  await maybeAutoReloadAfterRuleChange()
+  return { ok: true, rules }
+}
+
+async function applyAiBridgeCollectionDelete(pendingAction = {}) {
+  const summary = pendingAction.summary || {}
+  const targetCollectionId = String(summary.collectionId || '')
+  const state = await getState()
+  if (!state.collections.some(collection => collection.id === targetCollectionId)) {
+    return { error: { code: 'COLLECTION_NOT_FOUND', message: 'Collection was not found.' } }
+  }
+
+  const collections = await deleteCollection(targetCollectionId)
+  await maybeAutoReloadAfterRuleChange()
+  return {
+    ok: true,
+    collections,
+    affectedRuleCount: Number(summary.affectedRuleCount || 0)
+  }
+}
+
 async function applyAiBridgeRuleAction(pendingAction = {}) {
   const state = await getState()
   const summary = pendingAction.summary || {}
@@ -827,7 +914,12 @@ async function requestAiBridgeRuleAction(action, payload) {
     collections: state.collections,
     hasPendingImport: Boolean(getPendingAiImport())
   })
-  if (!result.error && getAiBridgeSession().permissions?.allowRuleActionsThisSession) {
+  const canAutoApplyRuleAction = [
+    AI_BRIDGE_RULE_ACTIONS.enableRule,
+    AI_BRIDGE_RULE_ACTIONS.disableRule,
+    AI_BRIDGE_RULE_ACTIONS.setOnlyActiveRule
+  ].includes(action)
+  if (!result.error && canAutoApplyRuleAction && getAiBridgeSession().permissions?.allowRuleActionsThisSession) {
     const confirmed = await confirmPendingAiRuleAction(result.pendingActionId, applyAiBridgeRuleAction)
     broadcastAiBridgeAction()
     if (confirmed?.error) return confirmed
@@ -884,6 +976,10 @@ async function applyReloadCapturedTab() {
 
 async function applyAiBridgePendingAction(pendingAction = {}) {
   if (pendingAction.action === AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab) return applyReloadCapturedTab(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.updateRule) return applyAiBridgeRuleUpdate(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.updateCollection) return applyAiBridgeCollectionUpdate(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.deleteRule) return applyAiBridgeRuleDelete(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.deleteCollection) return applyAiBridgeCollectionDelete(pendingAction)
   return applyAiBridgeRuleAction(pendingAction)
 }
 

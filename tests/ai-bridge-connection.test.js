@@ -282,6 +282,97 @@ test('AI Bridge connection routes rule action request commands through proposal 
   })
 })
 
+test('AI Bridge connection routes update requests through proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedActions = []
+  const session = {
+    status: AI_BRIDGE_STATUS.connected,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  }
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => session,
+    markWaiting: () => session,
+    getCommandContext: async () => ({}),
+    requestRuleAction: async (action, payload) => {
+      proposedActions.push({ action, payload })
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: 'ai-action-update',
+        action,
+        summary: { ruleId: 'rule-1', ruleName: 'Rule 1', diff: [{ field: 'priority', before: 100, after: 300 }] }
+      }
+    },
+    setTimeoutFn: fn => fn && 1,
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({
+    id: 'req-update',
+    type: 'command',
+    command: 'request_update_rule',
+    payload: { ruleId: 'rule-1', patch: { priority: 300 }, reason: 'Raise priority.' }
+  }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedActions, [{
+    action: 'update_rule',
+    payload: { ruleId: 'rule-1', patch: { priority: 300 }, reason: 'Raise priority.' }
+  }])
+  assert.equal(JSON.parse(socket.sent.at(-1)).result.action, 'update_rule')
+})
+
+test('AI Bridge connection routes delete requests through proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedActions = []
+  const session = {
+    status: AI_BRIDGE_STATUS.connected,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  }
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => session,
+    markWaiting: () => session,
+    getCommandContext: async () => ({}),
+    requestRuleAction: async (action, payload) => {
+      proposedActions.push({ action, payload })
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: 'ai-action-delete',
+        action,
+        summary: { ruleId: 'rule-1', ruleName: 'Rule 1' }
+      }
+    },
+    setTimeoutFn: fn => fn && 1,
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({
+    id: 'req-delete',
+    type: 'command',
+    command: 'request_delete_rule',
+    payload: { ruleId: 'rule-1' }
+  }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedActions, [{ action: 'delete_rule', payload: { ruleId: 'rule-1' } }])
+  assert.equal(JSON.parse(socket.sent.at(-1)).result.action, 'delete_rule')
+})
+
 test('AI Bridge connection returns safe error when import_bundle is rejected', async () => {
   FakeWebSocket.instances = []
   const harness = makeHarness({
@@ -371,6 +462,36 @@ test('AI Bridge connection executes allowed read-only commands with sanitized re
   assert.deepEqual(response.result[0].queryKeys, ['token'])
   assert.equal(response.result[0].requestHeadersPresent, true)
   assert.equal(response.result[0].responseBodyPresent, true)
+  assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
+})
+
+test('AI Bridge connection routes search_captured_requests with payload to read-only command', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({
+    id: 'req-search',
+    type: 'command',
+    command: 'search_captured_requests',
+    payload: { method: 'GET', urlContains: 'api', limit: 5 }
+  }))
+  await Promise.resolve()
+
+  const response = JSON.parse(socket.sent.at(-1))
+  assert.equal(response.id, 'req-search')
+  assert.equal(response.type, 'command:result')
+  assert.equal(response.ok, true)
+  assert.equal(response.result.total, 1)
+  assert.equal(response.result.items[0].urlSanitized, 'https://example.test/api')
   assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
 })
 

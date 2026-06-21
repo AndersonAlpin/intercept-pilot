@@ -7,7 +7,11 @@ import {
   listCollections,
   listRecentRuleResults,
   listRules,
-  listSanitizedLogs
+  listSanitizedLogs,
+  searchCapturedRequests,
+  searchRuleResults,
+  searchRules,
+  searchSanitizedLogs
 } from './ai-bridge-commands.js'
 
 const BRIDGE_SOURCE = 'interceptpilot-extension'
@@ -16,10 +20,14 @@ const DEFAULT_RECONNECT_DELAY_MS = 1500
 
 const ALLOWED_COMMANDS = {
   list_captured_requests: listCapturedRequests,
+  search_captured_requests: searchCapturedRequests,
   list_collections: listCollections,
   list_rules: listRules,
+  search_rules: searchRules,
   list_sanitized_logs: listSanitizedLogs,
+  search_sanitized_logs: searchSanitizedLogs,
   list_recent_rule_results: listRecentRuleResults,
+  search_rule_results: searchRuleResults,
   explain_rule_match: explainRuleMatchCommand,
   get_active_collection: getActiveCollection,
   get_current_test_context: getCurrentTestContext
@@ -29,7 +37,11 @@ const WRITE_PROPOSAL_COMMANDS = new Set(['import_bundle'])
 const RULE_ACTION_PROPOSAL_COMMANDS = {
   request_enable_rule: 'enable_rule',
   request_disable_rule: 'disable_rule',
-  request_set_only_active_rule: 'set_only_active_rule'
+  request_set_only_active_rule: 'set_only_active_rule',
+  request_update_rule: 'update_rule',
+  request_update_collection: 'update_collection',
+  request_delete_rule: 'delete_rule',
+  request_delete_collection: 'delete_collection'
 }
 const TAB_ACTION_PROPOSAL_COMMANDS = new Set(['request_reload_captured_tab'])
 

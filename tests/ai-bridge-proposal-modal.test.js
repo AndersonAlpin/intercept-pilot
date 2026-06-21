@@ -115,6 +115,68 @@ test('AI Bridge proposal modal renders a safe rule action summary', () => {
   assert.doesNotMatch(html, /responseBody|Authorization|Cookie|token=/i)
 })
 
+test('AI Bridge proposal modal renders a safe edit diff summary', () => {
+  setLocale('en')
+
+  const html = renderAiBridgeProposalModal({
+    pendingAction: {
+      id: 'ai-action-edit',
+      source: 'AI Bridge',
+      action: 'update_rule',
+      summary: {
+        ruleId: 'rule-1',
+        ruleName: 'Checkout 200',
+        collectionId: 'collection-1',
+        collectionName: 'Checkout',
+        reason: 'The captured request is XHR and the rule currently targets Fetch.',
+        diff: [
+          { field: 'match.resourceType', before: 'Fetch', after: 'ANY' },
+          { field: 'priority', before: 100, after: 300 }
+        ]
+      }
+    }
+  })
+
+  assert.match(html, /AI proposed action/)
+  assert.match(html, /Update rule/)
+  assert.match(html, /Checkout 200/)
+  assert.match(html, /match\.resourceType/)
+  assert.match(html, /Fetch/)
+  assert.match(html, /ANY/)
+  assert.match(html, /priority/)
+  assert.match(html, /300/)
+  assert.match(html, /The captured request is XHR/)
+  assert.doesNotMatch(html, /responseBody|Authorization|Cookie|token=/i)
+})
+
+test('AI Bridge proposal modal renders a protected delete warning', () => {
+  setLocale('en')
+
+  const html = renderAiBridgeProposalModal({
+    pendingAction: {
+      id: 'ai-action-delete',
+      source: 'AI Bridge',
+      action: 'delete_collection',
+      summary: {
+        collectionId: 'collection-1',
+        collectionName: 'Checkout',
+        affectedRuleCount: 3,
+        affectedRules: [
+          { id: 'rule-1', name: 'Checkout 200' },
+          { id: 'rule-2', name: 'Checkout 500' }
+        ]
+      }
+    }
+  })
+
+  assert.match(html, /Delete collection/)
+  assert.match(html, /Checkout/)
+  assert.match(html, /Affected rules/)
+  assert.match(html, />3</)
+  assert.match(html, /Confirmation is required/)
+  assert.doesNotMatch(html, /responseBody|Authorization|Cookie|token=/i)
+})
+
 test('AI Bridge proposal modal is empty without a pending proposal', () => {
   assert.equal(renderAiBridgeProposalModal(null), '')
   assert.equal(renderAiBridgeProposalModal({}), '')

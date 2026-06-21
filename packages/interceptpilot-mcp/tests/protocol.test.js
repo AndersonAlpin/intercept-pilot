@@ -13,10 +13,14 @@ import {
 test('protocol exposes only allowed MVP commands', () => {
   assert.deepEqual(ALLOWED_COMMANDS, [
     'list_captured_requests',
+    'search_captured_requests',
     'list_collections',
     'list_rules',
+    'search_rules',
     'list_sanitized_logs',
+    'search_sanitized_logs',
     'list_recent_rule_results',
+    'search_rule_results',
     'get_active_collection',
     'get_current_test_context',
     'get_import_bundle_schema',
@@ -26,11 +30,18 @@ test('protocol exposes only allowed MVP commands', () => {
     'request_enable_rule',
     'request_disable_rule',
     'request_set_only_active_rule',
+    'request_update_rule',
+    'request_update_collection',
+    'request_delete_rule',
+    'request_delete_collection',
     'request_reload_captured_tab'
   ])
   assert.equal(isAllowedCommand('list_rules'), true)
+  assert.equal(isAllowedCommand('search_rules'), true)
   assert.equal(isAllowedCommand('list_sanitized_logs'), true)
+  assert.equal(isAllowedCommand('search_sanitized_logs'), true)
   assert.equal(isAllowedCommand('list_recent_rule_results'), true)
+  assert.equal(isAllowedCommand('search_rule_results'), true)
   assert.equal(isAllowedCommand('get_current_test_context'), true)
   assert.equal(isAllowedCommand('get_import_bundle_schema'), true)
   assert.equal(isAllowedCommand('get_import_bundle_examples'), true)
@@ -39,13 +50,19 @@ test('protocol exposes only allowed MVP commands', () => {
   assert.equal(isAllowedCommand('request_enable_rule'), true)
   assert.equal(isAllowedCommand('request_disable_rule'), true)
   assert.equal(isAllowedCommand('request_set_only_active_rule'), true)
+  assert.equal(isAllowedCommand('request_update_rule'), true)
+  assert.equal(isAllowedCommand('request_update_collection'), true)
+  assert.equal(isAllowedCommand('request_delete_rule'), true)
+  assert.equal(isAllowedCommand('request_delete_collection'), true)
   assert.equal(isAllowedCommand('enable_rule'), false)
   assert.equal(isAllowedCommand('update_rule'), false)
   assert.equal(isAllowedCommand('create_rule'), false)
   assert.equal(isAllowedCommand('delete_rule'), false)
+  assert.equal(isAllowedCommand('delete_collection'), false)
   assert.equal(isAllowedCommand('clear_logs'), false)
   assert.equal(isAllowedCommand('set_capture_mode'), false)
   assert.equal(isAllowedCommand('reload_captured_tab'), false)
+  assert.equal(isAllowedCommand('reload_tab'), false)
 })
 
 test('protocol creates local command messages with stable shape', () => {
