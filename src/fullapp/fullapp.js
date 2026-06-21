@@ -54,10 +54,11 @@ import { getBulkDeleteDialogCopy, getBulkDeleteSuccessMessage } from '../shared/
 import { AI_BRIDGE_STATUS, buildAiBridgeMcpConfigText, createAiBridgeSessionState } from '../shared/ai-bridge-state.js'
 import {
   AI_BRIDGE_PERMISSION_MODES,
+  AI_BRIDGE_PERMISSION_PAIRS,
   createAiBridgeDefaultPermissionsForMode,
   createAiBridgeSessionPermissionsForMode,
-  normalizeAiBridgeDefaultPermissions,
-  normalizeAiBridgePermissionsPatch
+  createSessionAiBridgePermissions,
+  normalizeAiBridgeDefaultPermissions
 } from '../shared/ai-bridge-permissions.js'
 
 const PAGE_IDS = ['dashboard', 'rules', 'collections', 'network', 'logs', 'import-export', 'diagnostics', 'ai-bridge', 'settings']
@@ -2173,39 +2174,58 @@ function bindEvents() {
       input.addEventListener('change', updateSettingsSaveState)
     })
 
-  async function applyAiBridgeDefaultPermissionMode(mode) {
-    const permissions = createAiBridgeDefaultPermissionsForMode(mode)
-    const result = await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { aiBridgePermissions: permissions } })
+  function hasActiveAiBridgeSession() {
+    return state.aiBridgeSession?.status && state.aiBridgeSession.status !== AI_BRIDGE_STATUS.disabled
+  }
+
+  function getDefaultPermissionKeyForSessionKey(sessionKey) {
+    const pair = AI_BRIDGE_PERMISSION_PAIRS.find(([, itemSessionKey]) => itemSessionKey === sessionKey)
+    return pair?.[0] || ''
+  }
+
+  async function saveAiBridgeDefaultPermissions(permissions) {
+    const normalized = normalizeAiBridgeDefaultPermissions(permissions)
+    const result = await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { aiBridgePermissions: normalized } })
     if (result?.error) {
       toastError(translateBackendError(result.error))
       render()
-      return
+      return null
     }
+    const settings = result.settings || result || {}
     state.settings = {
       ...(state.settings || {}),
-      ...(result || {}),
-      aiBridgePermissions: normalizeAiBridgeDefaultPermissions(result.aiBridgePermissions || permissions)
+      ...settings,
+      aiBridgePermissions: normalizeAiBridgeDefaultPermissions(settings.aiBridgePermissions || normalized)
     }
-    state.aiBridgeDefaultPermissionsOpen = false
-    toastSuccess(t('fullapp.aiBridgeDefaultPermissionsSaved'))
-    render()
+    return state.settings.aiBridgePermissions
   }
 
-  async function applyAiBridgeSessionPermissionMode(mode) {
-    const payload = createAiBridgeSessionPermissionsForMode(mode)
+  async function updateAiBridgeSessionPermissions(payload) {
+    if (!hasActiveAiBridgeSession()) return true
     const result = await sendMessage({ type: MSG.AI_BRIDGE_UPDATE_SESSION_PERMISSIONS, payload })
     if (result?.error) {
       toastError(translateBackendError(result.error))
       render()
-      return
+      return false
     }
     state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
+    return true
+  }
+
+  async function applyAiBridgePermissionMode(mode) {
+    const permissions = createAiBridgeDefaultPermissionsForMode(mode)
+    const savedPermissions = await saveAiBridgeDefaultPermissions(permissions)
+    if (!savedPermissions) return
+    const sessionUpdated = await updateAiBridgeSessionPermissions(createAiBridgeSessionPermissionsForMode(mode))
+    if (!sessionUpdated) return
+    state.aiBridgeDefaultPermissionsOpen = false
     state.aiBridgeSessionPermissionsOpen = false
+    toastSuccess(t('fullapp.aiBridgeDefaultPermissionsSaved'))
     render()
   }
 
   function openAiBridgeCustomPermissions() {
-    if (state.aiBridgeSession?.status && state.aiBridgeSession.status !== AI_BRIDGE_STATUS.disabled) state.aiBridgeSessionPermissionsOpen = true
+    if (hasActiveAiBridgeSession()) state.aiBridgeSessionPermissionsOpen = true
     else state.aiBridgeDefaultPermissionsOpen = true
     render()
   }
@@ -2217,8 +2237,7 @@ function bindEvents() {
         openAiBridgeCustomPermissions()
         return
       }
-      if (state.aiBridgeSession?.status && state.aiBridgeSession.status !== AI_BRIDGE_STATUS.disabled) await applyAiBridgeSessionPermissionMode(mode)
-      else await applyAiBridgeDefaultPermissionMode(mode)
+      await applyAiBridgePermissionMode(mode)
     })
   })
 
@@ -2228,17 +2247,10 @@ function bindEvents() {
         ...(state.settings?.aiBridgePermissions || {}),
         [input.dataset.aiBridgeDefaultPermission]: Boolean(input.checked)
       })
-      const result = await sendMessage({ type: MSG.SETTINGS_UPDATE, payload: { aiBridgePermissions: permissions } })
-      if (result?.error) {
-        toastError(translateBackendError(result.error))
-        render()
-        return
-      }
-      state.settings = {
-        ...(state.settings || {}),
-        ...(result || {}),
-        aiBridgePermissions: normalizeAiBridgeDefaultPermissions(result.aiBridgePermissions || permissions)
-      }
+      const savedPermissions = await saveAiBridgeDefaultPermissions(permissions)
+      if (!savedPermissions) return
+      const sessionUpdated = await updateAiBridgeSessionPermissions(createSessionAiBridgePermissions(savedPermissions))
+      if (!sessionUpdated) return
       state.aiBridgeDefaultPermissionsOpen = true
       render()
     })
@@ -2246,16 +2258,16 @@ function bindEvents() {
 
   document.querySelectorAll('[data-ai-bridge-session-permission]').forEach(input => {
     input.addEventListener('change', async () => {
-      const payload = normalizeAiBridgePermissionsPatch({
-        [input.dataset.aiBridgeSessionPermission]: Boolean(input.checked)
+      const sessionKey = input.dataset.aiBridgeSessionPermission
+      const defaultKey = getDefaultPermissionKeyForSessionKey(sessionKey)
+      const permissions = normalizeAiBridgeDefaultPermissions({
+        ...(state.settings?.aiBridgePermissions || {}),
+        ...(defaultKey ? { [defaultKey]: Boolean(input.checked) } : {})
       })
-      const result = await sendMessage({ type: MSG.AI_BRIDGE_UPDATE_SESSION_PERMISSIONS, payload })
-      if (result?.error) {
-        toastError(translateBackendError(result.error))
-        render()
-        return
-      }
-      state.aiBridgeSession = result.aiBridgeSession || createAiBridgeSessionState()
+      const savedPermissions = await saveAiBridgeDefaultPermissions(permissions)
+      if (!savedPermissions) return
+      const sessionUpdated = await updateAiBridgeSessionPermissions(createSessionAiBridgePermissions(savedPermissions))
+      if (!sessionUpdated) return
       state.aiBridgeSessionPermissionsOpen = true
       render()
     })

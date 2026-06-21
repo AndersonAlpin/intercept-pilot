@@ -21,17 +21,22 @@ test('AI Bridge background supports direct apply only through session permission
   assert.match(backgroundSource, /approval = 'modal_required'/)
 })
 
-test('Full App can update saved default permissions and current session permissions separately', () => {
+test('Full App persists AI Bridge permission changes and syncs the active session', () => {
   assert.match(fullAppSource, /aiBridgePermissions: normalizeAiBridgeDefaultPermissions/)
   assert.match(fullAppSource, /readAiBridgeDefaultPermissionsFormPayload/)
   assert.match(fullAppSource, /AI_BRIDGE_UPDATE_SESSION_PERMISSIONS/)
   assert.match(fullAppSource, /data-ai-bridge-session-permission/)
+  assert.match(fullAppSource, /async function saveAiBridgeDefaultPermissions/)
+  assert.match(fullAppSource, /async function updateAiBridgeSessionPermissions/)
+  assert.match(fullAppSource, /createSessionAiBridgePermissions\(savedPermissions\)/)
 })
 
 test('Full App applies permission presets and opens custom permissions from the mode card', () => {
   assert.match(fullAppSource, /data-ai-bridge-mode/)
   assert.match(fullAppSource, /createAiBridgeDefaultPermissionsForMode\(mode\)/)
   assert.match(fullAppSource, /createAiBridgeSessionPermissionsForMode\(mode\)/)
+  assert.match(fullAppSource, /await applyAiBridgePermissionMode\(mode\)/)
+  assert.doesNotMatch(fullAppSource, /await applyAiBridgeSessionPermissionMode\(mode\)/)
   assert.match(fullAppSource, /mode === AI_BRIDGE_PERMISSION_MODES\.custom/)
   assert.match(fullAppSource, /state\.aiBridgeDefaultPermissionsOpen = true/)
   assert.match(fullAppSource, /state\.aiBridgeSessionPermissionsOpen = true/)
