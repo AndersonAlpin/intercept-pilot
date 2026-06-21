@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   ALLOWED_COMMANDS,
   BRIDGE_PROTOCOL_VERSION,
+  MESSAGE_TYPES,
   createCommandMessage,
   isAllowedCommand,
   parseBridgeMessage,
@@ -72,6 +73,14 @@ test('protocol creates local command messages with stable shape', () => {
     command: 'list_rules',
     payload: {}
   })
+})
+
+test('protocol defines adapter-side daemon message types', () => {
+  assert.equal(MESSAGE_TYPES.clientHello, 'client:hello')
+  assert.equal(MESSAGE_TYPES.clientHelloAck, 'client:hello:ack')
+  assert.equal(MESSAGE_TYPES.clientCommand, 'client:command')
+  assert.equal(MESSAGE_TYPES.clientResult, 'client:result')
+  assert.equal(MESSAGE_TYPES.clientError, 'client:error')
 })
 
 test('protocol validates extension hello using the connection key without exposing it', () => {

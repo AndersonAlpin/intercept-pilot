@@ -2,6 +2,7 @@ export const BRIDGE_HOST = '127.0.0.1'
 export const BRIDGE_PORT = 37177
 export const BRIDGE_PROTOCOL_VERSION = 1
 export const BRIDGE_SOURCE = 'interceptpilot-extension'
+export const MCP_CLIENT_SOURCE = 'interceptpilot-mcp-client'
 
 export const MESSAGE_TYPES = {
   hello: 'hello',
@@ -9,6 +10,11 @@ export const MESSAGE_TYPES = {
   command: 'command',
   commandResult: 'command:result',
   commandError: 'command:error',
+  clientHello: 'client:hello',
+  clientHelloAck: 'client:hello:ack',
+  clientCommand: 'client:command',
+  clientResult: 'client:result',
+  clientError: 'client:error',
   ping: 'ping',
   pong: 'pong'
 }
@@ -48,6 +54,14 @@ export function isAllowedCommand(command) {
 export function createHelloAckMessage() {
   return {
     type: MESSAGE_TYPES.helloAck,
+    ok: true,
+    version: BRIDGE_PROTOCOL_VERSION
+  }
+}
+
+export function createClientHelloAckMessage() {
+  return {
+    type: MESSAGE_TYPES.clientHelloAck,
     ok: true,
     version: BRIDGE_PROTOCOL_VERSION
   }
@@ -95,10 +109,37 @@ export function validateHelloMessage(message = {}, options = {}) {
   return { ok: true }
 }
 
+export function validateClientHelloMessage(message = {}, options = {}) {
+  const key = String(message.key || '')
+  const expectedKey = String(options.expectedKey || '')
+  const ok = message.type === MESSAGE_TYPES.clientHello
+    && message.source === MCP_CLIENT_SOURCE
+    && Number(message.version) === BRIDGE_PROTOCOL_VERSION
+    && Boolean(key)
+    && (!expectedKey || key === expectedKey)
+
+  if (!ok) {
+    return {
+      ok: false,
+      error: 'Invalid InterceptPilot client hello message.'
+    }
+  }
+
+  return { ok: true }
+}
+
 export function isCommandResponse(message = {}) {
   return Boolean(
     message
       && typeof message.id === 'string'
       && [MESSAGE_TYPES.commandResult, MESSAGE_TYPES.commandError].includes(message.type)
+  )
+}
+
+export function isClientResponse(message = {}) {
+  return Boolean(
+    message
+      && typeof message.id === 'string'
+      && [MESSAGE_TYPES.clientResult, MESSAGE_TYPES.clientError].includes(message.type)
   )
 }
