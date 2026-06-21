@@ -149,6 +149,30 @@ test('AI Bridge proposal modal renders a safe edit diff summary', () => {
   assert.doesNotMatch(html, /responseBody|Authorization|Cookie|token=/i)
 })
 
+test('AI Bridge proposal modal renders set active collection summary', () => {
+  setLocale('pt-BR')
+
+  const html = renderAiBridgeProposalModal({
+    pendingAction: {
+      id: 'ai-action-active-collection',
+      source: 'AI Bridge',
+      action: 'set_active_collection',
+      summary: {
+        collectionId: 'collection-2',
+        collectionName: 'Conta',
+        previousCollectionId: 'collection-1',
+        previousCollectionName: 'Checkout'
+      }
+    }
+  })
+
+  assert.match(html, /Definir coleção principal/)
+  assert.match(html, /Checkout/)
+  assert.match(html, /Conta/)
+  assert.match(html, /A coleção escolhida passará a ser usada pelas regras da captura\./)
+  assert.doesNotMatch(html, /responseBody|Authorization|Cookie|token=/i)
+})
+
 test('AI Bridge proposal modal renders a protected delete warning', () => {
   setLocale('en')
 
@@ -169,11 +193,18 @@ test('AI Bridge proposal modal renders a protected delete warning', () => {
     }
   })
 
+  assert.match(html, /Delete this collection\?/)
   assert.match(html, /Delete collection/)
+  assert.match(html, /This will remove &quot;Checkout&quot; and 3 rules\./)
   assert.match(html, /Checkout/)
-  assert.match(html, /Affected rules/)
-  assert.match(html, />3</)
-  assert.match(html, /Confirmation is required/)
+  assert.match(html, /AI Bridge/)
+  assert.match(html, /This action cannot be undone\. Canceling will not change anything/)
+  assert.match(html, /class="btn danger"/)
+  assert.match(html, /dialog-message/)
+  assert.match(html, /dialog-modal-danger/)
+  assert.doesNotMatch(html, /Rules included in deletion/)
+  assert.doesNotMatch(html, /Checkout 200|Checkout 500/)
+  assert.doesNotMatch(html, /ai-bridge-proposal-modal__rule-list/)
   assert.doesNotMatch(html, /responseBody|Authorization|Cookie|token=/i)
 })
 

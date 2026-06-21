@@ -159,6 +159,28 @@ test('AI collection update proposal includes a safe diff and waits for confirmat
   assert.equal(result.summary.collectionId, 'collection-1')
 })
 
+test('AI set active collection proposal summarizes current and next collection', () => {
+  const controller = createController({ idGenerator: () => 'ai-active-collection' })
+
+  const result = controller.createPendingAction('set_active_collection', {
+    collectionId: 'collection-2'
+  }, {
+    rules: baseRules,
+    collections: baseCollections,
+    settings: { activeCollectionId: 'collection-1' }
+  })
+
+  assert.equal(result.status, 'awaiting_human_confirmation')
+  assert.equal(result.action, 'set_active_collection')
+  assert.equal(result.pendingActionId, 'ai-active-collection')
+  assert.deepEqual(result.summary, {
+    collectionId: 'collection-2',
+    collectionName: 'Account',
+    previousCollectionId: 'collection-1',
+    previousCollectionName: 'Checkout'
+  })
+})
+
 test('AI update proposals reject unsafe fields without exposing payload details', () => {
   const controller = createController()
   const result = controller.createPendingAction('update_rule', {

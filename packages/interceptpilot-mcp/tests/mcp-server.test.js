@@ -23,6 +23,7 @@ const EXPECTED_TOOL_NAMES = [
   'request_enable_rule',
   'request_disable_rule',
   'request_set_only_active_rule',
+  'request_set_active_collection',
   'request_update_rule',
   'request_update_collection',
   'request_delete_rule',
@@ -45,6 +46,7 @@ const REQUIRED_INPUT_TOOL_NAMES = [
   'request_enable_rule',
   'request_disable_rule',
   'request_set_only_active_rule',
+  'request_set_active_collection',
   'request_update_rule',
   'request_update_collection',
   'request_delete_rule',
@@ -133,6 +135,16 @@ test('MCP rule action request tools declare ruleId input', () => {
     assert.equal(tool.inputSchema.properties.ruleId.type, 'string')
     assert.equal(tool.inputSchema.additionalProperties, false)
   }
+})
+
+test('MCP set active collection tool declares collectionId input', () => {
+  const tool = getMcpToolDefinitions().find(item => item.name === 'request_set_active_collection')
+
+  assert.match(tool.description, /active collection/)
+  assert.match(tool.description, /requires user confirmation/)
+  assert.deepEqual(tool.inputSchema.required, ['collectionId'])
+  assert.equal(tool.inputSchema.properties.collectionId.type, 'string')
+  assert.equal(tool.inputSchema.additionalProperties, false)
 })
 
 test('MCP update request tools declare target, patch and reason inputs', () => {
@@ -394,6 +406,35 @@ test('MCP rule action tools forward ruleId and format pending proposal result', 
   assert.match(result.content[0].text, /Rule action proposal sent to InterceptPilot/)
   assert.match(result.content[0].text, /ai-action-1/)
   assert.match(result.content[0].text, /Checkout 200/)
+})
+
+test('MCP set active collection tool forwards collectionId and formats proposal result', async () => {
+  const calls = []
+  const handleToolCall = createToolCallHandler({
+    bridge: {
+      callCommand: async (command, payload) => {
+        calls.push({ command, payload })
+        return {
+          status: 'awaiting_human_confirmation',
+          pendingActionId: 'ai-action-collection',
+          action: 'set_active_collection',
+          summary: {
+            collectionId: 'collection-2',
+            collectionName: 'Account',
+            previousCollectionName: 'Checkout'
+          }
+        }
+      }
+    }
+  })
+
+  const result = await handleToolCall('request_set_active_collection', { collectionId: 'collection-2', ignored: true })
+
+  assert.deepEqual(calls, [{ command: 'request_set_active_collection', payload: { collectionId: 'collection-2' } }])
+  assert.equal(result.content[0].type, 'text')
+  assert.match(result.content[0].text, /Rule action proposal sent to InterceptPilot/)
+  assert.match(result.content[0].text, /ai-action-collection/)
+  assert.match(result.content[0].text, /Account/)
 })
 
 test('MCP update tools forward target patch and reason through the bridge', async () => {

@@ -31,6 +31,7 @@ test('protocol exposes only allowed MVP commands', () => {
     'request_enable_rule',
     'request_disable_rule',
     'request_set_only_active_rule',
+    'request_set_active_collection',
     'request_update_rule',
     'request_update_collection',
     'request_delete_rule',
@@ -51,6 +52,7 @@ test('protocol exposes only allowed MVP commands', () => {
   assert.equal(isAllowedCommand('request_enable_rule'), true)
   assert.equal(isAllowedCommand('request_disable_rule'), true)
   assert.equal(isAllowedCommand('request_set_only_active_rule'), true)
+  assert.equal(isAllowedCommand('request_set_active_collection'), true)
   assert.equal(isAllowedCommand('request_update_rule'), true)
   assert.equal(isAllowedCommand('request_update_collection'), true)
   assert.equal(isAllowedCommand('request_delete_rule'), true)

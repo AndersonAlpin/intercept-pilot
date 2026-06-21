@@ -282,6 +282,58 @@ test('AI Bridge connection routes rule action request commands through proposal 
   })
 })
 
+test('AI Bridge connection routes set active collection request through proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedActions = []
+  const session = {
+    status: AI_BRIDGE_STATUS.connected,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  }
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => session,
+    markWaiting: () => session,
+    getCommandContext: async () => ({}),
+    importBundle: async () => {
+      throw new Error('import should not be called')
+    },
+    requestRuleAction: async (action, payload) => {
+      proposedActions.push({ action, payload })
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: 'ai-action-collection',
+        action,
+        summary: { collectionId: 'collection-2', collectionName: 'Account' }
+      }
+    },
+    setTimeoutFn: fn => fn && 1,
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-collection', type: 'command', command: 'request_set_active_collection', payload: { collectionId: 'collection-2' } }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedActions, [{ action: 'set_active_collection', payload: { collectionId: 'collection-2' } }])
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-collection',
+    type: 'command:result',
+    ok: true,
+    result: {
+      status: 'awaiting_human_confirmation',
+      pendingActionId: 'ai-action-collection',
+      action: 'set_active_collection',
+      summary: { collectionId: 'collection-2', collectionName: 'Account' }
+    }
+  })
+})
+
 test('AI Bridge connection routes update requests through proposal handler', async () => {
   FakeWebSocket.instances = []
   const proposedActions = []

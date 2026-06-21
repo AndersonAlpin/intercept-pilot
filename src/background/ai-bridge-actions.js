@@ -2,6 +2,7 @@ export const AI_BRIDGE_RULE_ACTIONS = {
   enableRule: 'enable_rule',
   disableRule: 'disable_rule',
   setOnlyActiveRule: 'set_only_active_rule',
+  setActiveCollection: 'set_active_collection',
   updateRule: 'update_rule',
   updateCollection: 'update_collection',
   deleteRule: 'delete_rule',
@@ -173,6 +174,23 @@ function createCollectionUpdateSummary(collection, payload = {}) {
   }
 }
 
+function createSetActiveCollectionSummary(collection, context = {}) {
+  const previousCollectionId = String(context.settings?.activeCollectionId || '')
+  const previousCollection = findCollection(context.collections || [], previousCollectionId)
+  if (previousCollectionId === collection.id) {
+    return createSafeActionError('NO_CHANGES', 'Collection is already active.')
+  }
+
+  return {
+    summary: {
+      collectionId: collection.id,
+      collectionName: String(collection.name || ''),
+      previousCollectionId,
+      previousCollectionName: String(previousCollection?.name || '')
+    }
+  }
+}
+
 function createRuleDeleteSummary(rule, context = {}) {
   const collection = findCollection(context.collections || [], rule.collectionId)
   return {
@@ -230,6 +248,33 @@ export function createAiBridgeRuleActionController(options = {}) {
         return createSafeActionError('COLLECTION_NOT_FOUND', 'Collection was not found.')
       }
       const update = createCollectionUpdateSummary(collection, payload)
+      if (update.error) return update
+      pendingAction = {
+        id: idGenerator(),
+        source: 'AI Bridge',
+        createdAt: now(),
+        action,
+        summary: update.summary
+      }
+
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: pendingAction.id,
+        action,
+        summary: update.summary
+      }
+    }
+
+    if (action === AI_BRIDGE_RULE_ACTIONS.setActiveCollection) {
+      const collectionId = normalizeCollectionId(payload)
+      if (!collectionId) {
+        return createSafeActionError('INVALID_PAYLOAD', 'collectionId must be a non-empty string.')
+      }
+      const collection = findCollection(context.collections || [], collectionId)
+      if (!collection) {
+        return createSafeActionError('COLLECTION_NOT_FOUND', 'Collection was not found.')
+      }
+      const update = createSetActiveCollectionSummary(collection, context)
       if (update.error) return update
       pendingAction = {
         id: idGenerator(),

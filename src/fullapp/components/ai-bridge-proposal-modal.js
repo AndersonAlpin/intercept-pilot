@@ -14,6 +14,7 @@ function getRuleActionLabel(action) {
   if (action === 'enable_rule') return t('fullapp.aiActionTypeEnableRule')
   if (action === 'disable_rule') return t('fullapp.aiActionTypeDisableRule')
   if (action === 'set_only_active_rule') return t('fullapp.aiActionTypeSetOnlyActiveRule')
+  if (action === 'set_active_collection') return t('fullapp.aiActionTypeSetActiveCollection')
   if (action === 'update_rule') return t('fullapp.aiActionTypeUpdateRule')
   if (action === 'update_collection') return t('fullapp.aiActionTypeUpdateCollection')
   if (action === 'delete_rule') return t('fullapp.aiActionTypeDeleteRule')
@@ -126,6 +127,22 @@ function renderActionProposalBody(pendingAction) {
   `
 }
 
+function renderSetActiveCollectionProposalBody(pendingAction) {
+  const summary = pendingAction.summary || {}
+  const rows = [
+    renderSummaryRow(t('fullapp.aiActionPreviousCollection'), summary.previousCollectionName),
+    renderSummaryRow(t('fullapp.aiActionNextCollection'), summary.collectionName),
+    renderSummaryRow(t('fullapp.aiActionImpact'), t('fullapp.aiActionImpact_set_active_collection'))
+  ].join('')
+
+  return `
+    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
+    <div class="ai-bridge-proposal-modal__grid">
+      ${rows}
+    </div>
+  `
+}
+
 function renderReloadProposalBody(pendingAction) {
   const summary = pendingAction.summary || {}
   const target = [summary.origin, summary.path].filter(Boolean).join('')
@@ -174,25 +191,20 @@ function renderEditProposalBody(pendingAction) {
 
 function renderDeleteProposalBody(pendingAction) {
   const summary = pendingAction.summary || {}
-  const affectedNames = Array.isArray(summary.affectedRules)
-    ? summary.affectedRules.map(rule => rule.name).filter(Boolean).join(', ')
-    : ''
   const isCollectionDelete = pendingAction.action === 'delete_collection'
-  const rows = [
-    renderSummaryRow(t('fullapp.aiImportSource'), pendingAction.source || 'AI Bridge'),
-    renderSummaryRow(t('fullapp.aiActionType'), getRuleActionLabel(pendingAction.action)),
-    !isCollectionDelete ? renderSummaryRow(t('fullapp.aiActionRule'), summary.ruleName) : '',
-    renderSummaryRow(t('fullapp.aiActionCollection'), summary.collectionName),
-    isCollectionDelete ? renderSummaryRow(t('fullapp.aiActionAffectedRuleCount'), summary.affectedRuleCount) : '',
-    isCollectionDelete ? renderSummaryRow(t('fullapp.aiActionAffectedRules'), affectedNames) : '',
-    renderSummaryRow(t('fullapp.aiActionImpact'), t('fullapp.aiActionDeleteWarning'))
-  ].join('')
+  const targetName = isCollectionDelete ? summary.collectionName : summary.ruleName
+  const ruleCount = Number(summary.affectedRuleCount || 0)
+  const lead = isCollectionDelete
+    ? t('fullapp.aiActionDeleteCollectionLead', { name: targetName || t('common.unknown'), count: ruleCount })
+    : t('fullapp.aiActionDeleteRuleLead', {
+      rule: targetName || t('common.unknown'),
+      collection: summary.collectionName || t('common.unknown')
+    })
+  const source = pendingAction.source || 'AI Bridge'
 
   return `
-    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiActionDeleteWarning'))}</p>
-    <div class="ai-bridge-proposal-modal__grid">
-      ${rows}
-    </div>
+    <p class="dialog-message">${escapeHtml(`${lead}\n${t('fullapp.aiActionDeleteWarning')}`)}</p>
+    <p class="ai-bridge-proposal-modal__source">${escapeHtml(t('fullapp.aiActionProposalSource', { source }))}</p>
   `
 }
 
@@ -203,24 +215,33 @@ export function renderAiBridgeProposalModal(proposal) {
 
   const isAction = Boolean(pendingAction?.id)
   const isReload = isAction && pendingAction.action === 'reload_captured_tab'
+  const isSetActiveCollection = isAction && pendingAction.action === 'set_active_collection'
   const isEdit = isAction && ['update_rule', 'update_collection'].includes(pendingAction.action)
   const isDelete = isAction && ['delete_rule', 'delete_collection'].includes(pendingAction.action)
   const bodyHtml = isReload
     ? renderReloadProposalBody(pendingAction)
+    : isSetActiveCollection ? renderSetActiveCollectionProposalBody(pendingAction)
     : isEdit ? renderEditProposalBody(pendingAction)
     : isDelete ? renderDeleteProposalBody(pendingAction)
     : isAction ? renderActionProposalBody(pendingAction) : renderImportProposalBody(pendingImport)
+  const title = isDelete
+    ? t(pendingAction.action === 'delete_collection' ? 'collections.deleteTitle' : 'rules.deleteTitle')
+    : isSetActiveCollection ? t('fullapp.aiActionTypeSetActiveCollection')
+    : isAction ? t('fullapp.aiActionProposalTitle') : t('fullapp.aiImportProposalTitle')
+  const confirmLabel = isDelete
+    ? t(pendingAction.action === 'delete_collection' ? 'fullapp.aiActionConfirmDeleteCollection' : 'fullapp.aiActionConfirmDeleteRule')
+    : isAction ? t('fullapp.aiActionConfirm') : t('fullapp.aiProposalModalConfirm')
   const footerHtml = `
     ${renderButton({ id: 'full-ai-proposal-cancel-btn', label: t('fullapp.aiImportCancel'), variant: 'secondary' })}
-    ${renderButton({ id: 'full-ai-proposal-confirm-btn', label: isAction ? t('fullapp.aiActionConfirm') : t('fullapp.aiProposalModalConfirm'), variant: 'primary' })}
+    ${renderButton({ id: 'full-ai-proposal-confirm-btn', label: confirmLabel, variant: isDelete ? 'danger' : 'primary' })}
   `
 
   return renderModalShell({
-    title: isAction ? t('fullapp.aiActionProposalTitle') : t('fullapp.aiImportProposalTitle'),
+    title,
     bodyHtml,
     footerHtml,
     className: 'ai-bridge-proposal-modal-backdrop',
-    dialogClassName: 'ai-bridge-proposal-modal',
+    dialogClassName: isDelete ? 'ai-bridge-proposal-modal dialog-modal dialog-modal-danger' : 'ai-bridge-proposal-modal',
     bodyClassName: 'ai-bridge-proposal-modal__body',
     footerClassName: 'footer-actions ai-bridge-proposal-modal__footer',
     closeId: 'full-ai-proposal-close',

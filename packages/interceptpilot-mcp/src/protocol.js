@@ -38,6 +38,7 @@ export const ALLOWED_COMMANDS = Object.freeze([
   'request_enable_rule',
   'request_disable_rule',
   'request_set_only_active_rule',
+  'request_set_active_collection',
   'request_update_rule',
   'request_update_collection',
   'request_delete_rule',

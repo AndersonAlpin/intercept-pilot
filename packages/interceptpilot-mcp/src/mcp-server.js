@@ -7,6 +7,7 @@ import { ALLOWED_COMMANDS, isAllowedCommand } from './protocol.js'
 const IMPORT_BUNDLE_INPUT_DESCRIPTION = 'A JSON string containing an InterceptPilot import bundle. It can be either a single rule bundle with type "interceptpilot.rule" or a collection bundle with type "interceptpilot.collection". The extension will create a pending proposal and wait for user confirmation.'
 const RULE_ID_INPUT_DESCRIPTION = 'The InterceptPilot rule id to compare against a captured request.'
 const RULE_ACTION_RULE_ID_INPUT_DESCRIPTION = 'The existing InterceptPilot rule id to use for the pending rule action proposal.'
+const COLLECTION_ACTION_COLLECTION_ID_INPUT_DESCRIPTION = 'The existing InterceptPilot collection id to use for the pending collection action proposal.'
 const REQUEST_ID_INPUT_DESCRIPTION = 'The captured request/network entry id to compare against the rule.'
 const EMPTY_JSON_INPUT_SCHEMA = {
   type: 'object',
@@ -47,6 +48,17 @@ const RULE_ACTION_JSON_INPUT_SCHEMA = {
     }
   },
   required: ['ruleId'],
+  additionalProperties: false
+}
+const COLLECTION_ACTION_JSON_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    collectionId: {
+      type: 'string',
+      description: COLLECTION_ACTION_COLLECTION_ID_INPUT_DESCRIPTION
+    }
+  },
+  required: ['collectionId'],
   additionalProperties: false
 }
 const UPDATE_RULE_JSON_INPUT_SCHEMA = {
@@ -245,6 +257,14 @@ function buildRuleActionPayload(args = {}) {
     throw new Error('ruleId must be a non-empty string.')
   }
   return { ruleId }
+}
+
+function buildCollectionActionPayload(args = {}) {
+  const collectionId = args?.collectionId
+  if (typeof collectionId !== 'string' || !collectionId.trim()) {
+    throw new Error('collectionId must be a non-empty string.')
+  }
+  return { collectionId }
 }
 
 function buildUpdateRulePayload(args = {}) {
@@ -461,6 +481,18 @@ function createRuleActionTool(description) {
   }
 }
 
+function createCollectionActionTool(description) {
+  return {
+    description,
+    jsonInputSchema: COLLECTION_ACTION_JSON_INPUT_SCHEMA,
+    registeredInputSchema: {
+      collectionId: z.string().min(1).describe(COLLECTION_ACTION_COLLECTION_ID_INPUT_DESCRIPTION)
+    },
+    buildPayload: buildCollectionActionPayload,
+    formatResult: createRuleActionProposalResult
+  }
+}
+
 function createUpdateRuleTool(description) {
   return {
     description,
@@ -549,6 +581,7 @@ const MCP_TOOLS = {
   request_enable_rule: createRuleActionTool('Request enabling an existing InterceptPilot rule. This creates a pending action proposal in the Full App and requires user confirmation before the rule is enabled.'),
   request_disable_rule: createRuleActionTool('Request disabling an existing InterceptPilot rule. This creates a pending action proposal in the Full App and requires user confirmation before the rule is disabled.'),
   request_set_only_active_rule: createRuleActionTool('Request making one rule the only active rule in its collection. This creates a pending action proposal in the Full App and requires user confirmation before enabling the selected rule and disabling the others in the same collection.'),
+  request_set_active_collection: createCollectionActionTool('Request making an existing InterceptPilot collection the active collection. This creates a pending action proposal in the Full App and requires user confirmation before the active collection changes, unless the session allows rule and collection actions without confirmation.'),
   request_update_rule: createUpdateRuleTool('Request updating safe fields on an existing InterceptPilot rule. This creates a pending action proposal in the Full App with a before/after diff and requires user confirmation before anything is changed. It does not allow responseBody or responseHeaders edits.'),
   request_update_collection: createUpdateCollectionTool('Request updating safe fields on an existing InterceptPilot collection. This creates a pending action proposal in the Full App with a before/after diff and requires user confirmation before anything is changed.'),
   request_delete_rule: createDeleteRuleTool('Request deleting an existing InterceptPilot rule. This always creates a pending action proposal in the Full App and requires human confirmation before anything is removed.'),

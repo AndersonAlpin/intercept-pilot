@@ -38,6 +38,7 @@ const RULE_ACTION_PROPOSAL_COMMANDS = {
   request_enable_rule: 'enable_rule',
   request_disable_rule: 'disable_rule',
   request_set_only_active_rule: 'set_only_active_rule',
+  request_set_active_collection: 'set_active_collection',
   request_update_rule: 'update_rule',
   request_update_collection: 'update_collection',
   request_delete_rule: 'delete_rule',

@@ -834,6 +834,20 @@ async function applyAiBridgeCollectionUpdate(pendingAction = {}) {
   return { ok: true, collections: state.collections }
 }
 
+async function applyAiBridgeSetActiveCollection(pendingAction = {}) {
+  const state = await getState()
+  const summary = pendingAction.summary || {}
+  const targetCollectionId = String(summary.collectionId || '')
+  if (!state.collections.some(collection => collection.id === targetCollectionId)) {
+    return { error: { code: 'COLLECTION_NOT_FOUND', message: 'Collection was not found.' } }
+  }
+
+  await updateSettings({ activeCollectionId: targetCollectionId })
+  await resetMatchedState()
+  await maybeAutoReloadAfterRuleChange()
+  return { ok: true, activeCollectionId: targetCollectionId }
+}
+
 async function applyAiBridgeRuleDelete(pendingAction = {}) {
   const summary = pendingAction.summary || {}
   const targetRuleId = String(summary.ruleId || '')
@@ -912,12 +926,14 @@ async function requestAiBridgeRuleAction(action, payload) {
   const result = createPendingAiRuleAction(action, payload, {
     rules: state.rules,
     collections: state.collections,
+    settings: state.settings,
     hasPendingImport: Boolean(getPendingAiImport())
   })
   const canAutoApplyRuleAction = [
     AI_BRIDGE_RULE_ACTIONS.enableRule,
     AI_BRIDGE_RULE_ACTIONS.disableRule,
-    AI_BRIDGE_RULE_ACTIONS.setOnlyActiveRule
+    AI_BRIDGE_RULE_ACTIONS.setOnlyActiveRule,
+    AI_BRIDGE_RULE_ACTIONS.setActiveCollection
   ].includes(action)
   if (!result.error && canAutoApplyRuleAction && getAiBridgeSession().permissions?.allowRuleActionsThisSession) {
     const confirmed = await confirmPendingAiRuleAction(result.pendingActionId, applyAiBridgeRuleAction)
@@ -976,6 +992,7 @@ async function applyReloadCapturedTab() {
 
 async function applyAiBridgePendingAction(pendingAction = {}) {
   if (pendingAction.action === AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab) return applyReloadCapturedTab(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.setActiveCollection) return applyAiBridgeSetActiveCollection(pendingAction)
   if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.updateRule) return applyAiBridgeRuleUpdate(pendingAction)
   if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.updateCollection) return applyAiBridgeCollectionUpdate(pendingAction)
   if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.deleteRule) return applyAiBridgeRuleDelete(pendingAction)
