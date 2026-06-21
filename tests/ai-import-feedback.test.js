@@ -31,3 +31,13 @@ test('AI import confirmation suppresses generic import success feedback', () => 
   assert.match(confirmAiBridgePendingImport, /toastSuccess\(t\('toasts\.aiImportConfirmed'\)\)/)
   assert.doesNotMatch(cancelAiBridgePendingImport, /aiImportConfirmed|ruleImported|collectionImported|collectionUpdated/)
 })
+
+test('AI proposal cancellation does not show success feedback', () => {
+  const cancelAiBridgePendingImport = source.match(/async function cancelAiBridgePendingImport\(\) \{[\s\S]*?render\(\)\n\}/)?.[0] || ''
+  const cancelAiBridgePendingAction = source.match(/async function cancelAiBridgePendingAction\(\) \{[\s\S]*?render\(\)\n\}/)?.[0] || ''
+
+  assert.match(cancelAiBridgePendingImport, /AI_BRIDGE_CANCEL_PENDING_IMPORT/)
+  assert.match(cancelAiBridgePendingAction, /AI_BRIDGE_CANCEL_PENDING_ACTION/)
+  assert.doesNotMatch(cancelAiBridgePendingImport, /toastSuccess|toastInfo|aiImportCanceled/)
+  assert.doesNotMatch(cancelAiBridgePendingAction, /toastSuccess|toastInfo|aiActionCanceled/)
+})

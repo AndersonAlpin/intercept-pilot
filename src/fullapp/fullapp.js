@@ -1135,7 +1135,6 @@ async function cancelAiBridgePendingImport() {
   }
 
   state.aiBridgePendingImport = result.pendingImport || null
-  toastSuccess(t('toasts.aiImportCanceled'))
   render()
 }
 
@@ -1177,7 +1176,6 @@ async function cancelAiBridgePendingAction() {
   }
 
   state.aiBridgePendingAction = result.pendingAction || null
-  toastSuccess(t('toasts.aiActionCanceled'))
   render()
 }
 
