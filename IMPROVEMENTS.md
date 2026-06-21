@@ -446,6 +446,8 @@ Critérios de aceite:
 
 Objetivo: melhorar a manutenção dos textos traduzidos, separando textos por domínio, feature ou fluxo quando eles pertencem a uma área específica do produto.
 
+Observação: esta é uma melhoria estrutural de manutenção e pode servir como base para evoluir fluxos complexos como AI Bridge, modais globais e importações assistidas.
+
 Contexto:
 
 - Fluxos recentes como AI Bridge, proposal modal, importação assistida, ações de regra, deleção, reload e permissões adicionam várias chaves relacionadas entre si.
@@ -508,6 +510,8 @@ Critérios de aceite:
 ## 21. Organizar CSS dos componentes compartilhados
 
 Objetivo: deixar clara a responsabilidade entre CSS global/base, CSS de componentes compartilhados e CSS específico de features ou superfícies.
+
+Observação: esta é uma melhoria estrutural de manutenção e pode servir como base para remodelagem visual, consistência entre Full App e Sidepanel e evolução dos componentes compartilhados.
 
 Contexto:
 
@@ -580,11 +584,11 @@ Critérios de aceite:
 14. Host / Project Profiles.
 15. Confiabilidade de estado da regra.
 16. Session Report / Recording.
-17. Remodelagem visual, tema light/dark e branding.
-18. Organização futura de regras.
-19. Auto-dismiss para notice modals.
-20. Organização de i18n por domínio e fluxo.
-21. Organizar CSS dos componentes compartilhados.
+17. Organização de i18n por domínio e fluxo.
+18. Organizar CSS dos componentes compartilhados.
+19. Remodelagem visual, tema light/dark e branding.
+20. Organização futura de regras.
+21. Auto-dismiss para notice modals.
 
 ## Referências históricas
 
