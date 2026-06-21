@@ -22,8 +22,9 @@
           <img class="brand-logo" src="./assets/brand/logo-horizontal.png" alt="InterceptPilot" />
           <h1>Privacy Policy</h1>
           <p class="lede">
-            InterceptPilot is built for local development and QA workflows. Its technical processing stays inside
-            the user's browser and starts only when the user explicitly activates capture for a selected tab.
+            InterceptPilot is built for local development and QA workflows. By default, technical processing happens
+            in the user's browser and starts only when the user explicitly activates capture for a selected tab.
+            Optional AI Bridge workflows can share permission-controlled data with a local process on the user's device.
           </p>
         </div>
 
@@ -48,30 +49,35 @@
         <section class="hero-card">
           <div class="hero-copy">
             <p class="hero-kicker">Local-first browser tooling</p>
-            <h2>Designed to inspect and simulate network behavior without sending your data anywhere else.</h2>
+            <h2>Designed to inspect and simulate network behavior without an InterceptPilot backend.</h2>
             <p>
               InterceptPilot is a Manifest V3 Chrome and Edge extension for frontend developers and QA teams. It helps
               inspect HTTP and HTTPS requests, create mock rules, review logs, and test API scenarios directly in the
-              browser.
+              browser, with optional user-controlled local AI Bridge integration.
             </p>
 
             <div class="highlight-row" aria-label="Privacy highlights">
-              <span class="highlight-badge">Local-only</span>
-              <span class="highlight-badge">No backend</span>
+              <span class="highlight-badge">Local-first</span>
+              <span class="highlight-badge">No InterceptPilot backend</span>
               <span class="highlight-badge">No tracking</span>
-              <span class="highlight-badge">No third-party sharing</span>
+              <span class="highlight-badge">No advertiser sharing</span>
               <span class="highlight-badge">User-controlled capture</span>
+              <span class="highlight-badge">Optional AI Bridge</span>
             </div>
           </div>
 
           <aside class="signal-panel" aria-label="Key privacy indicators">
             <div class="signal-item">
               <span class="signal-label">Data flow</span>
-              <strong>Browser only</strong>
+              <strong>Local device</strong>
             </div>
             <div class="signal-item">
-              <span class="signal-label">External transport</span>
-              <strong>Disabled</strong>
+              <span class="signal-label">Backend</span>
+              <strong>None operated by InterceptPilot</strong>
+            </div>
+            <div class="signal-item">
+              <span class="signal-label">AI Bridge</span>
+              <strong>Optional local bridge</strong>
             </div>
             <div class="signal-item">
               <span class="signal-label">Capture scope</span>
@@ -89,11 +95,12 @@
             <h3>Overview</h3>
             <p>
               This policy explains how InterceptPilot handles technical data while supporting local debugging, request
-              inspection, mocking, and QA testing inside the browser.
+              inspection, mocking, QA testing, and optional AI Bridge workflows on the user's device.
             </p>
             <p>
               InterceptPilot does not operate a backend service, does not send captured data to external servers, and
-              does not share or sell user data.
+              does not share or sell user data. AI Bridge, when enabled by the user, communicates with a local process
+              configured by the user.
             </p>
           </article>
 
@@ -117,7 +124,30 @@
               <li>additional technical request or response details, such as payload content, when needed for inspection, debugging, and mock flows</li>
               <li>logs, rules, collections, filters, and extension settings</li>
             </ul>
-            <p>This processing happens inside the browser on the user's device.</p>
+            <p>
+              By default, this processing happens inside the browser on the user's device. If the user enables AI
+              Bridge, selected and permission-controlled data may be shared with a local process on the same device,
+              such as an MCP adapter or daemon.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>AI Bridge / MCP</h3>
+            <p>
+              InterceptPilot may offer an optional AI Bridge integration that connects the extension to local tools
+              compatible with MCP. AI Bridge stays off until the user starts it.
+            </p>
+            <p>
+              When enabled, the extension can communicate through a local connection such as <code>127.0.0.1</code>
+              with a user-authorized local process, including an MCP daemon or adapter. That connection can let AI
+              tools inspect sanitized context, requests, logs, rules, collections, and run assisted actions according
+              to the permissions selected by the user.
+            </p>
+            <p>
+              Sensitive data is limited and sanitized by default. Some permissions may allow more data to be sent to
+              the local bridge, and sensitive actions may require visual confirmation in the extension. The user can
+              stop the connection and regenerate the connection key.
+            </p>
           </article>
 
           <article class="policy-card">
@@ -140,6 +170,7 @@
               <li>supporting local debugging, diagnostics, and QA workflows</li>
               <li>creating, applying, and reviewing mock rules and collections</li>
               <li>preserving settings and working context required for the tool between sessions</li>
+              <li>supporting optional AI Bridge workflows that the user enables and configures</li>
             </ul>
           </article>
 
@@ -156,11 +187,18 @@
           </article>
 
           <article class="policy-card">
-            <h3>Third-party sharing</h3>
+            <h3>Third-party sharing and AI tools</h3>
             <p>
               InterceptPilot does not share captured data, rules, logs, or settings with third parties. It does not
               sell data and does not make captured technical data available to advertisers, data brokers, or external
               analytics providers.
+            </p>
+            <p>
+              InterceptPilot does not control the privacy practices of external AI tools connected by the user. If the
+              user connects AI Bridge to an AI client or another compatible tool, that tool may process or transmit data
+              according to its own configuration and privacy policy. Users should review the settings and policies of
+              the AI tool they choose. InterceptPilot provides the local bridge and permission controls; it does not
+              operate the AI provider.
             </p>
           </article>
 
@@ -181,7 +219,8 @@
             <p>
               InterceptPilot uses browser permissions only to provide its development and QA features, such as
               attaching to a user-selected tab, inspecting requests, supporting debugging workflows, storing local
-              rules and settings, and rendering the extension UI.
+              rules and settings, rendering the extension UI, and supporting optional AI Bridge workflows when the user
+              enables them.
             </p>
             <p>
               These permissions are used only for the extension's stated purpose. They are not used for tracking,
@@ -207,8 +246,9 @@
               not silently activate request capture across unrelated tabs.
             </p>
             <p>
-              Because data stays local, the user remains in direct control of browser-stored rules, collections, logs,
-              filters, and settings.
+              The user remains in direct control of browser-stored rules, collections, logs, filters, and settings.
+              When AI Bridge is enabled, the user also controls data/action permissions, can stop the local connection,
+              and can regenerate the connection key.
             </p>
           </article>
 
@@ -222,7 +262,7 @@
 
           <article class="policy-card">
             <h3>Last updated</h3>
-            <p>May 28, 2026</p>
+            <p>June 21, 2026</p>
           </article>
         </section>
       </main>

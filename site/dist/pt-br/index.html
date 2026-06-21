@@ -22,9 +22,10 @@
           <img class="brand-logo" src="../assets/brand/logo-horizontal.png" alt="InterceptPilot" />
           <h1>Política de Privacidade</h1>
           <p class="lede">
-            A InterceptPilot foi criada para fluxos locais de desenvolvimento e QA. O processamento técnico acontece
-            dentro do navegador do usuário e só começa quando a captura é ativada de forma explícita para uma aba
-            escolhida pelo próprio usuário.
+            A InterceptPilot foi criada para fluxos locais de desenvolvimento e QA. Por padrão, o processamento técnico
+            acontece no navegador do usuário e só começa quando a captura é ativada de forma explícita para uma aba
+            escolhida pelo próprio usuário. Fluxos opcionais do AI Bridge podem compartilhar dados controlados por
+            permissões com um processo local no dispositivo do usuário.
           </p>
         </div>
 
@@ -49,30 +50,36 @@
         <section class="hero-card">
           <div class="hero-copy">
             <p class="hero-kicker">Ferramenta local para o navegador</p>
-            <h2>Projetada para inspecionar e simular o comportamento de rede sem enviar seus dados para outro lugar.</h2>
+            <h2>Projetada para inspecionar e simular o comportamento de rede sem backend da InterceptPilot.</h2>
             <p>
               A InterceptPilot é uma extensão Manifest V3 para Chrome e Edge voltada a desenvolvedores frontend e
               equipes de QA. Ela ajuda a inspecionar requisições HTTP e HTTPS, criar regras de mock, revisar logs e
-              testar cenários de API diretamente no navegador.
+              testar cenários de API diretamente no navegador, com integração local opcional e controlada pelo usuário
+              via AI Bridge.
             </p>
 
             <div class="highlight-row" aria-label="Destaques de privacidade">
-              <span class="highlight-badge">Somente local</span>
-              <span class="highlight-badge">Sem backend</span>
+              <span class="highlight-badge">Local-first</span>
+              <span class="highlight-badge">Sem backend da InterceptPilot</span>
               <span class="highlight-badge">Sem rastreamento</span>
-              <span class="highlight-badge">Sem compartilhamento com terceiros</span>
+              <span class="highlight-badge">Sem compartilhamento com anunciantes</span>
               <span class="highlight-badge">Captura controlada pelo usuário</span>
+              <span class="highlight-badge">AI Bridge opcional</span>
             </div>
           </div>
 
           <aside class="signal-panel" aria-label="Indicadores principais de privacidade">
             <div class="signal-item">
               <span class="signal-label">Fluxo de dados</span>
-              <strong>Somente no navegador</strong>
+              <strong>Dispositivo local</strong>
             </div>
             <div class="signal-item">
-              <span class="signal-label">Transporte externo</span>
-              <strong>Desativado</strong>
+              <span class="signal-label">Backend</span>
+              <strong>Nenhum operado pela InterceptPilot</strong>
+            </div>
+            <div class="signal-item">
+              <span class="signal-label">AI Bridge</span>
+              <strong>Ponte local opcional</strong>
             </div>
             <div class="signal-item">
               <span class="signal-label">Escopo da captura</span>
@@ -90,11 +97,12 @@
             <h3>Visão geral</h3>
             <p>
               Esta política explica como a InterceptPilot trata dados técnicos ao oferecer depuração local, inspeção de
-              requisições, mocks e testes de QA dentro do navegador.
+              requisições, mocks, testes de QA e fluxos opcionais de AI Bridge no dispositivo do usuário.
             </p>
             <p>
               A InterceptPilot não opera backend próprio, não envia dados capturados para servidores externos e não
-              compartilha nem vende dados do usuário.
+              compartilha nem vende dados do usuário. O AI Bridge, quando habilitado pelo usuário, se comunica com um
+              processo local configurado pelo próprio usuário.
             </p>
           </article>
 
@@ -121,7 +129,30 @@
               <li>detalhes técnicos adicionais de requisições ou respostas, como conteúdo de payload, quando necessários para inspeção, depuração e fluxos de mock</li>
               <li>logs, regras, coleções, filtros e configurações da extensão</li>
             </ul>
-            <p>Esse processamento acontece dentro do navegador, no dispositivo do usuário.</p>
+            <p>
+              Por padrão, esse processamento acontece dentro do navegador, no dispositivo do usuário. Se o usuário
+              habilitar o AI Bridge, dados selecionados e controlados por permissões podem ser compartilhados com um
+              processo local no mesmo dispositivo, como um adaptador ou daemon MCP.
+            </p>
+          </article>
+
+          <article class="policy-card">
+            <h3>AI Bridge / MCP</h3>
+            <p>
+              A InterceptPilot pode oferecer uma integração opcional chamada AI Bridge, usada para conectar a extensão
+              a ferramentas locais compatíveis com MCP. O AI Bridge permanece desligado até o usuário iniciar a conexão.
+            </p>
+            <p>
+              Quando habilitada, a extensão pode se comunicar por uma conexão local como <code>127.0.0.1</code> com um
+              processo local autorizado pelo usuário, incluindo daemon ou adaptador MCP. Essa conexão pode permitir que
+              ferramentas de IA consultem contexto sanitizado, requisições, logs, regras, coleções e executem ações
+              assistidas conforme as permissões escolhidas pelo usuário.
+            </p>
+            <p>
+              Dados sensíveis são limitados e sanitizados por padrão. Algumas permissões podem permitir que mais dados
+              sejam enviados para a ponte local, e ações sensíveis podem exigir confirmação visual na extensão. O
+              usuário pode encerrar a conexão e regenerar a chave de conexão.
+            </p>
           </article>
 
           <article class="policy-card">
@@ -150,6 +181,7 @@
               <li>apoiar depuração, diagnósticos e fluxos locais de desenvolvimento e QA</li>
               <li>criar, aplicar e revisar regras de mock e coleções</li>
               <li>preservar configurações e contexto de trabalho necessários para a ferramenta entre sessões</li>
+              <li>apoiar fluxos opcionais do AI Bridge habilitados e configurados pelo usuário</li>
             </ul>
           </article>
 
@@ -166,11 +198,18 @@
           </article>
 
           <article class="policy-card">
-            <h3>Compartilhamento com terceiros</h3>
+            <h3>Compartilhamento com terceiros e ferramentas de IA</h3>
             <p>
               A InterceptPilot não compartilha dados capturados, regras, logs ou configurações com terceiros. Ela não
               vende dados nem disponibiliza dados técnicos capturados para anunciantes, data brokers ou provedores
               externos de analytics.
+            </p>
+            <p>
+              A InterceptPilot não controla as práticas de privacidade de ferramentas externas conectadas pelo usuário.
+              Se o usuário conectar o AI Bridge a um cliente de IA ou outra ferramenta compatível, essa ferramenta pode
+              processar ou transmitir dados conforme sua própria configuração e política de privacidade. O usuário deve
+              revisar as configurações e políticas da ferramenta de IA escolhida. A InterceptPilot fornece a ponte local
+              e os controles de permissão; ela não opera o provedor de IA.
             </p>
           </article>
 
@@ -191,7 +230,8 @@
             <p>
               A InterceptPilot usa permissões do navegador apenas para oferecer seus recursos de desenvolvimento e QA,
               como se conectar à aba escolhida pelo usuário, inspecionar requisições, apoiar fluxos de depuração,
-              armazenar regras e configurações locais e renderizar a interface da extensão.
+              armazenar regras e configurações locais, renderizar a interface da extensão e apoiar fluxos opcionais do
+              AI Bridge quando o usuário os habilita.
             </p>
             <p>
               Essas permissões são usadas somente para a finalidade declarada da extensão. Elas não são usadas para
@@ -217,8 +257,9 @@
               InterceptPilot não ativa a captura de requisições silenciosamente em abas não relacionadas.
             </p>
             <p>
-              Como os dados permanecem locais, o usuário continua em controle direto sobre regras, coleções, logs,
-              filtros e configurações armazenados no navegador.
+              O usuário continua em controle direto sobre regras, coleções, logs, filtros e configurações armazenados
+              no navegador. Quando o AI Bridge está habilitado, o usuário também controla permissões de dados e ações,
+              pode encerrar a conexão local e pode regenerar a chave de conexão.
             </p>
           </article>
 
@@ -232,7 +273,7 @@
 
           <article class="policy-card">
             <h3>Última atualização</h3>
-            <p>28 de maio de 2026</p>
+            <p>21 de junho de 2026</p>
           </article>
         </section>
       </main>
