@@ -4,7 +4,49 @@ Este roadmap lista apenas melhorias ainda pendentes, parciais ou que precisam de
 
 Itens já entregues devem ficar documentados em `docs/releases/`, `docs/internal/ai/` ou nos planos de execução correspondentes, não neste arquivo.
 
-## 1. Filtros avançados da Network
+## 1. Segurança e privacidade
+
+Objetivo: reduzir risco de vazamento de dados sensíveis em inspeção, cópia e exportação.
+
+Escopo pendente:
+
+- Mascarar `Authorization`, `Cookie` e `Set-Cookie` por padrão em cURL/fetch.
+- Opção explícita para copiar headers sensíveis.
+- Avisos em exportações que contenham payloads ou headers sensíveis.
+- Limpeza/sanitização de dados sensíveis.
+- Modo local-only/privado explicado de forma clara.
+- Política de sanitização para requests expostas a integrações locais e AI Bridge.
+- Política explícita para URLs privadas e payloads sensíveis.
+
+Critérios de aceite:
+
+- Dados sensíveis não aparecem em cópias/exportações sem intenção clara.
+- O usuário entende quando está copiando informação sensível.
+- Sanitização é consistente entre Full App e Sidepanel quando aplicável.
+- Integrações locais seguem a mesma política antes de ler ou importar dados.
+
+## 2. Preview e estratégias avançadas de importação
+
+Objetivo: reduzir risco ao importar bundles maiores, dados vindos de outra instalação ou sugestões produzidas por agentes locais.
+
+Escopo pendente:
+
+- Preview antes de aplicar a importação.
+- Diferença visual entre criação, atualização e conflito.
+- Estratégia `merge by id` para coleções/regras.
+- Resumo de impacto antes da confirmação.
+- Possível dry-run interno reaproveitando o parser/validador atual.
+- Importação de bundle JSON sugerido por IA apenas com confirmação explícita na UI.
+
+Critérios de aceite:
+
+- O usuário entende o que será criado, atualizado ou ignorado antes de confirmar.
+- Conflitos ficam claros.
+- O fluxo continua aceitando colagem manual, seleção de arquivo e drag-and-drop.
+- O parser/validador atual continua sendo a fonte de verdade.
+- Importações vindas do AI Bridge passam pelo mesmo preview e pela mesma confirmação visual.
+
+## 3. Filtros avançados da Network
 
 Objetivo: evoluir os filtros atuais sem perder a estabilidade de foco e clique durante atualizações em tempo real.
 
@@ -23,25 +65,7 @@ Critérios de aceite:
 - A lista continua abrindo o item correto por ID estável.
 - PT, EN e ES cobrem todos os novos textos.
 
-## 2. Segurança e privacidade
-
-Objetivo: reduzir risco de vazamento de dados sensíveis em inspeção, cópia e exportação.
-
-Escopo pendente:
-
-- Mascarar `Authorization`, `Cookie` e `Set-Cookie` por padrão em cURL/fetch.
-- Opção explícita para copiar headers sensíveis.
-- Avisos em exportações que contenham payloads ou headers sensíveis.
-- Limpeza/sanitização de dados sensíveis.
-- Modo local-only/privado explicado de forma clara.
-
-Critérios de aceite:
-
-- Dados sensíveis não aparecem em cópias/exportações sem intenção clara.
-- O usuário entende quando está copiando informação sensível.
-- Sanitização é consistente entre Full App e Sidepanel quando aplicável.
-
-## 3. Response e Media Preview
+## 4. Response e Media Preview
 
 Objetivo: melhorar o Network Inspector para exibir previews seguros de responses.
 
@@ -67,25 +91,6 @@ Critérios de aceite:
 - O usuário entende quando um preview não está disponível.
 - Copiar/download continua disponível quando fizer sentido.
 - Conteúdo potencialmente perigoso é tratado de forma segura.
-
-## 4. Preview e estratégias avançadas de importação
-
-Objetivo: reduzir risco ao importar bundles maiores ou dados vindos de outra instalação.
-
-Escopo pendente:
-
-- Preview antes de aplicar a importação.
-- Diferença visual entre criação, atualização e conflito.
-- Estratégia `merge by id` para coleções/regras.
-- Resumo de impacto antes da confirmação.
-- Possível dry-run interno reaproveitando o parser/validador atual.
-
-Critérios de aceite:
-
-- O usuário entende o que será criado, atualizado ou ignorado antes de confirmar.
-- Conflitos ficam claros.
-- O fluxo continua aceitando colagem manual, seleção de arquivo e drag-and-drop.
-- O parser/validador atual continua sendo a fonte de verdade.
 
 ## 5. Browser Storage Inspector
 
@@ -437,36 +442,75 @@ Critérios de aceite:
 - Ações novas não competem com editar, duplicar, exportar, excluir e avançado.
 - Full App e Sidepanel continuam sincronizados.
 
-## 20. MCP/local bridge
+## 20. Organização de i18n por domínio e fluxo
 
-Objetivo: pesquisar uma integração local para Claude/Codex e outros agentes conseguirem se conectar ao InterceptPilot com segurança.
+Objetivo: melhorar a manutenção dos textos traduzidos, separando textos por domínio, feature ou fluxo quando eles pertencem a uma área específica do produto.
 
-Status: pesquisa futura. Não implementar sem aprovação explícita.
+Contexto:
+
+- Fluxos recentes como AI Bridge, proposal modal, importação assistida, ações de regra, deleção, reload e permissões adicionam várias chaves relacionadas entre si.
+- Hoje essas chaves tendem a ficar flat no mesmo bloco, por exemplo `aiImportCollectionLead`, `aiImportRuleLead`, `aiActionProposalTitle`, `aiActionTypeDeleteCollection` e `aiActionReloadTarget`.
+- O modelo atual funciona, mas dificulta identificar todos os textos de uma feature e mistura textos globais, textos de tela, modal, toast, ação e importação no mesmo nível.
 
 Escopo pendente:
 
-- Threat model antes de qualquer código.
-- MVP read-only para agentes lerem estado da extensão.
-- Leitura de coleções, regras, configurações não sensíveis, network/logs sanitizados e diagnósticos.
-- Escrita controlada em regras/coleções apenas em etapa posterior.
-- Mascaramento de dados sensíveis.
-- Pairing local ou token por sessão.
-- Avaliação separada para Native Messaging, companion app ou export-based workflow.
-- Comandos auditáveis para saber o que o agente leu ou sugeriu alterar.
+- Avaliar uma organização aninhada por domínio/fluxo, por exemplo `fullapp.aiBridge.proposalModal.import.ruleLead`.
+- Deixar globais apenas textos realmente reutilizados em várias telas, como `Cancelar`, `Confirmar`, `Excluir`, `Salvar`, `Editar` e `Desconhecido`.
+- Agrupar textos específicos dentro do domínio da feature ou fluxo.
+- Manter paridade entre PT-BR, EN e ES.
+- Garantir que o helper `t()` continue simples de usar com paths aninhados.
+- Avaliar migração incremental para não refatorar todos os locales de uma vez.
+- Começar por fluxos novos ou mais isolados, como AI Bridge Proposal Modal.
+- Evitar quebrar chaves existentes sem necessidade; se migrar, fazer por etapas com testes.
+
+Exemplo de direção:
+
+```js
+fullapp: {
+  aiBridge: {
+    page: {
+      title: 'AI Bridge',
+      description: '...'
+    },
+    proposalModal: {
+      source: 'AI Bridge',
+      import: {
+        ruleLead: 'Importar a regra “{name}”.',
+        collectionLead: 'Importar a coleção “{name}”.',
+        collectionRuleImpact: 'Isso adicionará {count} regras.'
+      },
+      action: {
+        title: 'Ação proposta pela IA',
+        confirm: 'Confirmar'
+      },
+      delete: {
+        collectionLead: 'Excluir “{name}” também removerá {count} regras desta coleção.',
+        warning: 'Esta ação não pode ser desfeita.'
+      },
+      reload: {
+        lead: 'Recarregar a aba capturada.',
+        target: 'Aba: {target}'
+      }
+    }
+  }
+}
+```
 
 Critérios de aceite:
 
-- Nenhuma permissão nova sem decisão documentada.
-- Nenhum controle de captura por agente sem confirmação humana.
-- Escrita em regras/configurações só entra depois de modo explícito e auditável.
-- O agente nunca recebe tokens, cookies, payloads sensíveis ou URLs privadas sem política clara de sanitização.
+- Textos de fluxos específicos ficam agrupados por domínio.
+- Chaves globais ficam reservadas para textos realmente compartilhados.
+- Fica fácil identificar todos os textos usados por uma feature.
+- Locale parity continua coberta por teste.
+- Nenhuma chave crua aparece na UI.
+- A migração não altera comportamento visual além da organização interna.
 
 ## Priorização recomendada
 
-1. Filtros avançados da Network.
-2. Segurança e privacidade.
-3. Response e Media Preview.
-4. Preview e estratégias avançadas de importação.
+1. Segurança e privacidade.
+2. Preview e estratégias avançadas de importação.
+3. Filtros avançados da Network.
+4. Response e Media Preview.
 5. Browser Storage Inspector.
 6. One-Rule Mode.
 7. Request Builder / API Client.
@@ -482,7 +526,7 @@ Critérios de aceite:
 17. Remodelagem visual, tema light/dark e branding.
 18. Organização futura de regras.
 19. Auto-dismiss para notice modals.
-20. MCP/local bridge.
+20. Organização de i18n por domínio e fluxo.
 
 ## Referências históricas
 
