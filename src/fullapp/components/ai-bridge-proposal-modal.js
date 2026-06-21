@@ -3,6 +3,7 @@ import { t } from '../../shared/i18n.js'
 import { BUNDLE_TYPE_COLLECTION, BUNDLE_TYPE_RULE } from '../../shared/export.js'
 import { renderButton } from '../../shared/ui/button.js'
 import { renderModalShell } from '../../shared/ui/modal-shell.js'
+import { renderBadge } from '../../shared/ui/badge.js'
 
 function getProposalTypeLabel(type) {
   if (type === BUNDLE_TYPE_COLLECTION) return t('fullapp.aiImportTypeCollection')
@@ -194,17 +195,26 @@ function renderDeleteProposalBody(pendingAction) {
   const isCollectionDelete = pendingAction.action === 'delete_collection'
   const targetName = isCollectionDelete ? summary.collectionName : summary.ruleName
   const ruleCount = Number(summary.affectedRuleCount || 0)
-  const lead = isCollectionDelete
-    ? t('fullapp.aiActionDeleteCollectionLead', { name: targetName || t('common.unknown'), count: ruleCount })
-    : t('fullapp.aiActionDeleteRuleLead', {
-      rule: targetName || t('common.unknown'),
-      collection: summary.collectionName || t('common.unknown')
-    })
-  const source = pendingAction.source || 'AI Bridge'
-
+  const message = isCollectionDelete
+    ? [
+      t('fullapp.aiActionDeleteCollectionLead', { name: targetName || t('common.unknown') }),
+      t('fullapp.aiActionDeleteCollectionRuleImpact', { count: ruleCount }),
+      t('fullapp.aiActionDeleteWarning')
+    ].join('\n')
+    : [
+      t('fullapp.aiActionDeleteRuleLead', {
+        rule: targetName || t('common.unknown'),
+        collection: summary.collectionName || t('common.unknown')
+      }),
+      t('fullapp.aiActionDeleteWarning')
+    ].join('\n')
   return `
-    <p class="dialog-message">${escapeHtml(`${lead}\n${t('fullapp.aiActionDeleteWarning')}`)}</p>
-    <p class="ai-bridge-proposal-modal__source">${escapeHtml(t('fullapp.aiActionProposalSource', { source }))}</p>
+    ${renderBadge({
+      label: 'AI Bridge',
+      variant: 'contrast',
+      className: 'ai-bridge-proposal-modal__source-badge'
+    })}
+    <p class="dialog-message">${escapeHtml(message)}</p>
   `
 }
 

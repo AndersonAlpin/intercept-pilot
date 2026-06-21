@@ -38,3 +38,50 @@
 textarea {
   resize: vertical;
 }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid var(--badge-border, var(--border));
+  border-radius: 999px;
+  background: var(--badge-bg, transparent);
+  color: var(--badge-color, var(--text-muted));
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.badge.success {
+  --badge-border: rgba(34, 197, 94, .45);
+  --badge-color: #bbf7d0;
+}
+
+.badge.warning {
+  --badge-border: rgba(245, 158, 11, .45);
+  --badge-color: #fde68a;
+}
+
+.badge.danger {
+  --badge-border: rgba(255, 92, 102, .45);
+  --badge-color: #fecdd3;
+}
+
+.badge.info {
+  --badge-border: rgba(91, 130, 255, .5);
+  --badge-bg: rgba(91, 130, 255, .1);
+  --badge-color: #c9d9ff;
+}
+
+.badge.secondary {
+  --badge-border: rgba(148, 163, 184, .42);
+  --badge-bg: rgba(148, 163, 184, .12);
+  --badge-color: var(--text-muted);
+}
+
+.badge.contrast {
+  --badge-border: rgba(226, 232, 240, .8);
+  --badge-bg: #e2e8f0;
+  --badge-color: #020617;
+}

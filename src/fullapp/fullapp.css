@@ -376,12 +376,7 @@ button,input,select,textarea { font: inherit; color: inherit; }
   overflow-wrap: anywhere;
   font-size: 13px;
 }
-.ai-bridge-proposal-modal__source {
-  margin: -4px 0 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.4;
-}
+.ai-bridge-proposal-modal__source-badge { justify-self: flex-start; font-weight: 700; }
 .ai-bridge-proposal-modal__details {
   justify-self: flex-start;
   color: var(--accent);
@@ -859,10 +854,6 @@ button,input,select,textarea { font: inherit; color: inherit; }
 .switch input:disabled + .switch-track { opacity: .5; }
 .switch-label { min-width: 0; }
 .settings-toggle { align-self: center; }
-.badge { border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; font-size: 11px; color: var(--text-muted); }
-.badge.success { border-color: rgba(34,197,94,.45); color: #bbf7d0; }
-.badge.warning { border-color: rgba(245,158,11,.45); color: #fde68a; }
-.badge.danger { border-color: rgba(255,92,102,.45); color: #fecdd3; }
 .app-tooltip {
   position: fixed;
   z-index: 2000;
