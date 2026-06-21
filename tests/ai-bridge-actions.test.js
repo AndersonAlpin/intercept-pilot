@@ -210,3 +210,42 @@ test('default AI rule action singleton can create, cancel and confirm pending ac
   const confirmed = await confirmPendingAiRuleAction(next.pendingActionId, async () => ({ ok: true, rules: baseRules }))
   assert.equal(confirmed.ok, true)
 })
+
+test('AI reload proposal captures the tab origin/path and waits for confirmation', () => {
+  const controller = createAiBridgeRuleActionController({
+    idGenerator: () => 'ai-action-reload',
+    now: () => '2026-06-20T10:00:00.000Z'
+  })
+
+  const result = controller.createReloadProposal({
+    capturedTab: { tabId: 7, origin: 'https://app.test', path: '/videos' }
+  })
+
+  assert.equal(result.status, 'awaiting_human_confirmation')
+  assert.equal(result.action, 'reload_captured_tab')
+  assert.deepEqual(result.summary, { origin: 'https://app.test', path: '/videos' })
+  assert.equal(controller.getPendingAction().action, 'reload_captured_tab')
+})
+
+test('AI reload proposal fails without a captured tab', () => {
+  const controller = createAiBridgeRuleActionController()
+  const result = controller.createReloadProposal({ capturedTab: null })
+  assert.equal(result.error.code, 'CAPTURED_TAB_NOT_FOUND')
+})
+
+test('AI reload proposal is blocked while another proposal is pending', () => {
+  const controller = createAiBridgeRuleActionController({ idGenerator: () => 'ai-action-reload' })
+  controller.createReloadProposal({ capturedTab: { tabId: 1, origin: 'https://a.test', path: '/' } })
+  const second = controller.createReloadProposal({ capturedTab: { tabId: 1, origin: 'https://a.test', path: '/' } })
+  assert.equal(second.error.code, 'PENDING_PROPOSAL_EXISTS')
+})
+
+test('AI reload proposal confirm runs the provided apply function', async () => {
+  const controller = createAiBridgeRuleActionController({ idGenerator: () => 'ai-action-reload' })
+  controller.createReloadProposal({ capturedTab: { tabId: 9, origin: 'https://a.test', path: '/x' } })
+  let applied = false
+  const confirmed = await controller.confirmPendingAction('ai-action-reload', async () => { applied = true; return { ok: true } })
+  assert.equal(applied, true)
+  assert.equal(confirmed.ok, true)
+  assert.equal(controller.getPendingAction(), null)
+})

@@ -18,7 +18,8 @@ const EXPECTED_TOOL_NAMES = [
   'import_bundle',
   'request_enable_rule',
   'request_disable_rule',
-  'request_set_only_active_rule'
+  'request_set_only_active_rule',
+  'request_reload_captured_tab'
 ]
 const STATIC_TOOL_NAMES = [
   'get_import_bundle_schema',
@@ -78,19 +79,25 @@ test('MCP import_bundle tool declares bundleJson input', () => {
 })
 
 test('MCP rule action request tools declare ruleId input', () => {
-  const tools = getMcpToolDefinitions().filter(item => item.name.startsWith('request_'))
+  const ruleActionNames = ['request_enable_rule', 'request_disable_rule', 'request_set_only_active_rule']
+  const tools = getMcpToolDefinitions().filter(item => ruleActionNames.includes(item.name))
 
-  assert.deepEqual(tools.map(tool => tool.name), [
-    'request_enable_rule',
-    'request_disable_rule',
-    'request_set_only_active_rule'
-  ])
+  assert.deepEqual(tools.map(tool => tool.name), ruleActionNames)
   for (const tool of tools) {
     assert.match(tool.description, /requires user confirmation/)
     assert.deepEqual(tool.inputSchema.required, ['ruleId'])
     assert.equal(tool.inputSchema.properties.ruleId.type, 'string')
     assert.equal(tool.inputSchema.additionalProperties, false)
   }
+})
+
+test('MCP reload captured tab tool requires no input and is confirmation-gated', () => {
+  const tool = getMcpToolDefinitions().find(item => item.name === 'request_reload_captured_tab')
+
+  assert.ok(tool)
+  assert.deepEqual(tool.inputSchema, { type: 'object', additionalProperties: false })
+  assert.match(tool.description, /captured tab/)
+  assert.match(tool.description, /chrome:\/\//)
 })
 
 test('MCP read-only tool handlers always forward empty payloads', async () => {

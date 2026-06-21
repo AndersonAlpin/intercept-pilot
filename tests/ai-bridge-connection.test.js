@@ -487,3 +487,42 @@ test('AI Bridge connection ignores ping before hello ack', () => {
 
   assert.equal(socket.sent.length, sentBefore)
 })
+
+test('AI Bridge connection routes request_reload_captured_tab through the reload handler', async () => {
+  FakeWebSocket.instances = []
+  const reloadCalls = []
+  const session = {
+    status: AI_BRIDGE_STATUS.connected,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  }
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => session,
+    markWaiting: () => session,
+    getCommandContext: async () => ({}),
+    requestReload: async payload => {
+      reloadCalls.push(payload)
+      return { status: 'awaiting_human_confirmation', pendingActionId: 'ai-action-reload', action: 'reload_captured_tab', summary: { origin: 'https://app.test', path: '/videos' } }
+    },
+    setTimeoutFn: fn => fn && 1,
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-reload', type: 'command', command: 'request_reload_captured_tab', payload: {} }))
+  await Promise.resolve()
+
+  assert.deepEqual(reloadCalls, [{}])
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-reload',
+    type: 'command:result',
+    ok: true,
+    result: { status: 'awaiting_human_confirmation', pendingActionId: 'ai-action-reload', action: 'reload_captured_tab', summary: { origin: 'https://app.test', path: '/videos' } }
+  })
+})

@@ -4,6 +4,10 @@ export const AI_BRIDGE_RULE_ACTIONS = {
   setOnlyActiveRule: 'set_only_active_rule'
 }
 
+export const AI_BRIDGE_TAB_ACTIONS = {
+  reloadCapturedTab: 'reload_captured_tab'
+}
+
 const ALLOWED_ACTIONS = new Set(Object.values(AI_BRIDGE_RULE_ACTIONS))
 const MAX_AFFECTED_RULES_SUMMARY = 5
 
@@ -118,6 +122,36 @@ export function createAiBridgeRuleActionController(options = {}) {
     }
   }
 
+  function createReloadProposal(context = {}) {
+    if (pendingAction || context.hasPendingImport) {
+      return createSafeActionError('PENDING_PROPOSAL_EXISTS', 'Another AI Bridge proposal is already pending.')
+    }
+
+    const capturedTab = context.capturedTab || null
+    if (!capturedTab || !capturedTab.tabId) {
+      return createSafeActionError('CAPTURED_TAB_NOT_FOUND', 'No captured tab is available to reload.')
+    }
+
+    const summary = {
+      origin: String(capturedTab.origin || ''),
+      path: String(capturedTab.path || '')
+    }
+    pendingAction = {
+      id: idGenerator(),
+      source: 'AI Bridge',
+      createdAt: now(),
+      action: AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab,
+      summary
+    }
+
+    return {
+      status: 'awaiting_human_confirmation',
+      pendingActionId: pendingAction.id,
+      action: AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab,
+      summary
+    }
+  }
+
   function cancelPendingAction(id = '') {
     if (!pendingAction) return { ok: true, pendingAction: null }
     if (id && pendingAction.id !== id) {
@@ -145,6 +179,7 @@ export function createAiBridgeRuleActionController(options = {}) {
 
   return {
     createPendingAction,
+    createReloadProposal,
     getPendingAction,
     cancelPendingAction,
     confirmPendingAction
@@ -155,6 +190,10 @@ const aiBridgeRuleActionController = createAiBridgeRuleActionController()
 
 export function createPendingAiRuleAction(action, payload, context) {
   return aiBridgeRuleActionController.createPendingAction(action, payload, context)
+}
+
+export function createPendingAiReloadAction(context) {
+  return aiBridgeRuleActionController.createReloadProposal(context)
 }
 
 export function getPendingAiRuleAction() {

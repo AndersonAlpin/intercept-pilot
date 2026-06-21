@@ -203,6 +203,42 @@ function createStaticReadOnlyTool(description, getResult) {
   }
 }
 
+function createReloadProposalResult(result = {}) {
+  if (result.status === 'applied') {
+    const summary = result.summary || {}
+    return {
+      content: [
+        {
+          type: 'text',
+          text: [
+            'Captured tab reload applied in InterceptPilot.',
+            'Approval: session_permission.',
+            summary.origin ? `Origin: ${summary.origin}` : '',
+            summary.path ? `Path: ${summary.path}` : ''
+          ].filter(Boolean).join('\n')
+        }
+      ]
+    }
+  }
+  const summary = result.summary || {}
+  const lines = [
+    'Captured tab reload proposal sent to InterceptPilot.',
+    'The user must confirm it in the Full App before the tab is reloaded.',
+    result.pendingActionId ? `Pending action: ${result.pendingActionId}` : '',
+    summary.origin ? `Origin: ${summary.origin}` : '',
+    summary.path ? `Path: ${summary.path}` : ''
+  ].filter(Boolean)
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: lines.join('\n')
+      }
+    ]
+  }
+}
+
 function createRuleActionTool(description) {
   return {
     description,
@@ -246,7 +282,14 @@ const MCP_TOOLS = {
   },
   request_enable_rule: createRuleActionTool('Request enabling an existing InterceptPilot rule. This creates a pending action proposal in the Full App and requires user confirmation before the rule is enabled.'),
   request_disable_rule: createRuleActionTool('Request disabling an existing InterceptPilot rule. This creates a pending action proposal in the Full App and requires user confirmation before the rule is disabled.'),
-  request_set_only_active_rule: createRuleActionTool('Request making one rule the only active rule in its collection. This creates a pending action proposal in the Full App and requires user confirmation before enabling the selected rule and disabling the others in the same collection.')
+  request_set_only_active_rule: createRuleActionTool('Request making one rule the only active rule in its collection. This creates a pending action proposal in the Full App and requires user confirmation before enabling the selected rule and disabling the others in the same collection.'),
+  request_reload_captured_tab: {
+    description: 'Request reloading only the InterceptPilot captured tab so a mock or rule change can be validated. Creates a pending action proposal in the Full App that the user must confirm, unless the captured-tab reload session permission is enabled. Never reloads an arbitrary or internal (chrome://, extension://) page and does not change capture mode or debugger state.',
+    jsonInputSchema: EMPTY_JSON_INPUT_SCHEMA,
+    registeredInputSchema: {},
+    buildPayload: createEmptyPayload,
+    formatResult: createReloadProposalResult
+  }
 }
 
 export function getMcpToolNames() {

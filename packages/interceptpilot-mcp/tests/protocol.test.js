@@ -25,7 +25,8 @@ test('protocol exposes only allowed MVP commands', () => {
     'import_bundle',
     'request_enable_rule',
     'request_disable_rule',
-    'request_set_only_active_rule'
+    'request_set_only_active_rule',
+    'request_reload_captured_tab'
   ])
   assert.equal(isAllowedCommand('list_rules'), true)
   assert.equal(isAllowedCommand('list_sanitized_logs'), true)

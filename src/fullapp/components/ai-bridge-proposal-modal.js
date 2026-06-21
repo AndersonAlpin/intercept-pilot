@@ -14,6 +14,7 @@ function getRuleActionLabel(action) {
   if (action === 'enable_rule') return t('fullapp.aiActionTypeEnableRule')
   if (action === 'disable_rule') return t('fullapp.aiActionTypeDisableRule')
   if (action === 'set_only_active_rule') return t('fullapp.aiActionTypeSetOnlyActiveRule')
+  if (action === 'reload_captured_tab') return t('fullapp.aiActionTypeReloadCapturedTab')
   return t('common.unknown')
 }
 
@@ -121,13 +122,34 @@ function renderActionProposalBody(pendingAction) {
   `
 }
 
+function renderReloadProposalBody(pendingAction) {
+  const summary = pendingAction.summary || {}
+  const target = [summary.origin, summary.path].filter(Boolean).join('')
+  const rows = [
+    renderSummaryRow(t('fullapp.aiImportSource'), pendingAction.source || 'AI Bridge'),
+    renderSummaryRow(t('fullapp.aiActionType'), getRuleActionLabel(pendingAction.action)),
+    renderSummaryRow(t('fullapp.aiActionReloadTarget'), target),
+    renderSummaryRow(t('fullapp.aiActionImpact'), t('fullapp.aiActionImpact_reload_captured_tab'))
+  ].join('')
+
+  return `
+    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
+    <div class="ai-bridge-proposal-modal__grid">
+      ${rows}
+    </div>
+  `
+}
+
 export function renderAiBridgeProposalModal(proposal) {
   const pendingAction = proposal?.pendingAction || (proposal?.action ? proposal : null)
   const pendingImport = proposal?.pendingImport || (!pendingAction ? proposal : null)
   if (!pendingAction?.id && !pendingImport?.id) return ''
 
   const isAction = Boolean(pendingAction?.id)
-  const bodyHtml = isAction ? renderActionProposalBody(pendingAction) : renderImportProposalBody(pendingImport)
+  const isReload = isAction && pendingAction.action === 'reload_captured_tab'
+  const bodyHtml = isReload
+    ? renderReloadProposalBody(pendingAction)
+    : isAction ? renderActionProposalBody(pendingAction) : renderImportProposalBody(pendingImport)
   const footerHtml = `
     ${renderButton({ id: 'full-ai-proposal-cancel-btn', label: t('fullapp.aiImportCancel'), variant: 'secondary' })}
     ${renderButton({ id: 'full-ai-proposal-confirm-btn', label: isAction ? t('fullapp.aiActionConfirm') : t('fullapp.aiProposalModalConfirm'), variant: 'primary' })}

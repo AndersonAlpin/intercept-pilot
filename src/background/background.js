@@ -23,7 +23,7 @@ import { AI_BRIDGE_STATUS, generateAiBridgeConnectionKey, resolveAiBridgeConnect
 import { createAiBridgeConnection } from './ai-bridge-connection.js'
 import { createAiBridgeKeepalive } from './ai-bridge-keepalive.js'
 import { cancelPendingAiImport, confirmPendingAiImport, createPendingAiImport, getPendingAiImport } from './ai-bridge-imports.js'
-import { AI_BRIDGE_RULE_ACTIONS, cancelPendingAiRuleAction, confirmPendingAiRuleAction, createPendingAiRuleAction, getPendingAiRuleAction } from './ai-bridge-actions.js'
+import { AI_BRIDGE_RULE_ACTIONS, AI_BRIDGE_TAB_ACTIONS, cancelPendingAiRuleAction, confirmPendingAiRuleAction, createPendingAiReloadAction, createPendingAiRuleAction, getPendingAiRuleAction } from './ai-bridge-actions.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
@@ -848,6 +848,74 @@ async function requestAiBridgeRuleAction(action, payload) {
   return result
 }
 
+async function resolveAiBridgeCapturedTab() {
+  const state = await getState()
+  const effectiveCandidate = getEffectiveCandidateTab()
+  const compatActiveTabId = getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null)
+  const tabId = runtimeState.attachedTabId || compatActiveTabId || null
+  if (!tabId) return null
+  const ref = runtimeState.attachedTabId ? await getAttachedTabRef() : await getCompatTabRef(compatActiveTabId)
+  const url = String(ref?.url || '')
+  if (!isHttpUrl(url)) return null
+  let origin = ''
+  let path = ''
+  try {
+    const parsed = new URL(url)
+    origin = parsed.origin
+    path = parsed.pathname
+  } catch {
+    return null
+  }
+  return { tabId, origin, path }
+}
+
+async function applyReloadCapturedTab() {
+  const captured = await resolveAiBridgeCapturedTab()
+  if (!captured) {
+    return { error: { code: 'CAPTURED_TAB_NOT_FOUND', message: 'No captured tab is available to reload.' } }
+  }
+  try {
+    const result = await reloadTabWithReadyDebugger(captured.tabId)
+    return { ok: true, reloadedTabId: result?.reloadedTabId || captured.tabId }
+  } catch {
+    return { error: { code: 'RELOAD_FAILED', message: 'Failed to reload the captured tab.' } }
+  }
+}
+
+async function applyAiBridgePendingAction(pendingAction = {}) {
+  if (pendingAction.action === AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab) return applyReloadCapturedTab(pendingAction)
+  return applyAiBridgeRuleAction(pendingAction)
+}
+
+async function requestReloadCapturedTab() {
+  const captured = await resolveAiBridgeCapturedTab()
+  if (!captured) {
+    return { error: { code: 'CAPTURED_TAB_NOT_FOUND', message: 'No captured tab is available to reload.' } }
+  }
+  const result = createPendingAiReloadAction({
+    capturedTab: captured,
+    hasPendingImport: Boolean(getPendingAiImport())
+  })
+  if (!result.error && getAiBridgeSession().permissions?.allowCapturedTabReloadThisSession) {
+    const confirmed = await confirmPendingAiRuleAction(result.pendingActionId, applyReloadCapturedTab)
+    broadcastAiBridgeAction()
+    if (confirmed?.error) return confirmed
+    await pushLog({ level: 'info', scope: 'ai-bridge', message: 'AI Bridge captured tab reload applied by session permission.' })
+    broadcastAiBridgeApplied(AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab, result.summary)
+    return {
+      status: 'applied',
+      approval: 'session_permission',
+      action: AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab,
+      summary: result.summary
+    }
+  }
+  if (!result.error) {
+    result.approval = 'modal_required'
+    broadcastAiBridgeAction()
+  }
+  return result
+}
+
 let aiBridgeConnectionKeyCache = ''
 
 function getAiBridgeConnectionKey() {
@@ -871,6 +939,7 @@ const aiBridgeConnection = createAiBridgeConnection({
   getCommandContext: getAiBridgeCommandContext,
   importBundle: proposeAiBridgeImport,
   requestRuleAction: requestAiBridgeRuleAction,
+  requestReload: requestReloadCapturedTab,
   onSessionChange: broadcastAiBridgeSession
 })
 
@@ -1887,7 +1956,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ pendingAction: getPendingAiRuleAction() })
         return
       case 'aiBridge:confirmPendingAction': {
-        const result = await confirmPendingAiRuleAction(message.pendingActionId || '', applyAiBridgeRuleAction)
+        const result = await confirmPendingAiRuleAction(message.pendingActionId || '', applyAiBridgePendingAction)
         sendResponse({ ...result, pendingAction: getPendingAiRuleAction() })
         broadcastAiBridgeAction()
         return

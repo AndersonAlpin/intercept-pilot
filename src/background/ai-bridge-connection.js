@@ -31,6 +31,7 @@ const RULE_ACTION_PROPOSAL_COMMANDS = {
   request_disable_rule: 'disable_rule',
   request_set_only_active_rule: 'set_only_active_rule'
 }
+const TAB_ACTION_PROPOSAL_COMMANDS = new Set(['request_reload_captured_tab'])
 
 const COMMAND_NOT_ALLOWED_ERROR = {
   code: 'UNKNOWN_COMMAND',
@@ -64,6 +65,7 @@ export function createAiBridgeConnection(options = {}) {
     getCommandContext,
     importBundle,
     requestRuleAction,
+    requestReload,
     onSessionChange = () => {},
     setTimeoutFn = setTimeout,
     clearTimeoutFn = clearTimeout,
@@ -106,7 +108,7 @@ export function createAiBridgeConnection(options = {}) {
   async function handleCommand(message) {
     const id = String(message?.id || '')
     const command = String(message?.command || '')
-    if (!id || (!ALLOWED_COMMANDS[command] && !WRITE_PROPOSAL_COMMANDS.has(command) && !RULE_ACTION_PROPOSAL_COMMANDS[command])) {
+    if (!id || (!ALLOWED_COMMANDS[command] && !WRITE_PROPOSAL_COMMANDS.has(command) && !RULE_ACTION_PROPOSAL_COMMANDS[command] && !TAB_ACTION_PROPOSAL_COMMANDS.has(command))) {
       sendCommandError(id, COMMAND_NOT_ALLOWED_ERROR)
       return
     }
@@ -129,6 +131,21 @@ export function createAiBridgeConnection(options = {}) {
 
       if (RULE_ACTION_PROPOSAL_COMMANDS[command]) {
         const result = await requestRuleAction(RULE_ACTION_PROPOSAL_COMMANDS[command], message.payload || {})
+        if (result?.error) {
+          sendCommandError(id, result.error)
+          return
+        }
+        send({
+          id,
+          type: 'command:result',
+          ok: true,
+          result
+        })
+        return
+      }
+
+      if (TAB_ACTION_PROPOSAL_COMMANDS.has(command)) {
+        const result = await requestReload(message.payload || {})
         if (result?.error) {
           sendCommandError(id, result.error)
           return
