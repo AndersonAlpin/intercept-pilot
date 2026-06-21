@@ -5,24 +5,7 @@ import { renderButton } from '../../shared/ui/button.js'
 import { renderModalShell } from '../../shared/ui/modal-shell.js'
 import { renderBadge } from '../../shared/ui/badge.js'
 
-function getProposalTypeLabel(type) {
-  if (type === BUNDLE_TYPE_COLLECTION) return t('fullapp.aiImportTypeCollection')
-  if (type === BUNDLE_TYPE_RULE) return t('fullapp.aiImportTypeRule')
-  return t('common.unknown')
-}
-
-function getRuleActionLabel(action) {
-  if (action === 'enable_rule') return t('fullapp.aiActionTypeEnableRule')
-  if (action === 'disable_rule') return t('fullapp.aiActionTypeDisableRule')
-  if (action === 'set_only_active_rule') return t('fullapp.aiActionTypeSetOnlyActiveRule')
-  if (action === 'set_active_collection') return t('fullapp.aiActionTypeSetActiveCollection')
-  if (action === 'update_rule') return t('fullapp.aiActionTypeUpdateRule')
-  if (action === 'update_collection') return t('fullapp.aiActionTypeUpdateCollection')
-  if (action === 'delete_rule') return t('fullapp.aiActionTypeDeleteRule')
-  if (action === 'delete_collection') return t('fullapp.aiActionTypeDeleteCollection')
-  if (action === 'reload_captured_tab') return t('fullapp.aiActionTypeReloadCapturedTab')
-  return t('common.unknown')
-}
+const MAX_DIFF_LINES = 3
 
 function getBundleRule(bundle) {
   if (bundle?.type !== BUNDLE_TYPE_RULE) return null
@@ -51,12 +34,56 @@ function getRuleActionSummary(rule) {
   return [type, statusCode].filter(Boolean).join(' ')
 }
 
-function renderSummaryRow(label, value) {
-  if (value === undefined || value === null || value === '') return ''
+function renderSourceBadge() {
   return `
-    <div class="ai-bridge-proposal-modal__row">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(String(value))}</strong>
+    ${renderBadge({
+      label: 'AI Bridge',
+      variant: 'contrast',
+      className: 'ai-bridge-proposal-modal__source-badge'
+    })}
+  `
+}
+
+function strong(value) {
+  return `<strong>${escapeHtml(String(value ?? ''))}</strong>`
+}
+
+function renderTemplate(key, values = {}, strongKeys = []) {
+  const tokens = {}
+  const tokenValues = {}
+  for (const [name, value] of Object.entries(values)) {
+    const token = `__AI_BRIDGE_${name.toUpperCase()}__`
+    tokens[name] = token
+    tokenValues[name] = value
+  }
+
+  let html = escapeHtml(t(key, tokens))
+  for (const [name, token] of Object.entries(tokens)) {
+    html = html.replaceAll(escapeHtml(token), strongKeys.includes(name) ? strong(tokenValues[name]) : escapeHtml(String(tokenValues[name] ?? '')))
+  }
+  return html
+}
+
+function renderTemplateLine(key, values = {}, strongKeys = []) {
+  return { html: renderTemplate(key, values, strongKeys) }
+}
+
+function renderMessageLine(line) {
+  if (line?.html) return line.html
+  return escapeHtml(String(line || ''))
+}
+
+function renderMessageItem(item) {
+  if (!item) return ''
+  if (item?.block) return item.html
+  return `<p>${renderMessageLine(item)}</p>`
+}
+
+function renderMessage(lines = []) {
+  return `
+    ${renderSourceBadge()}
+    <div class="dialog-message ai-bridge-proposal-modal__message">
+      ${lines.filter(Boolean).map(renderMessageItem).join('')}
     </div>
   `
 }
@@ -83,111 +110,98 @@ function getPendingImportSummary(pendingImport) {
 function renderImportProposalBody(pendingImport) {
   const summary = getPendingImportSummary(pendingImport)
   const isCollection = summary.type === BUNDLE_TYPE_COLLECTION
-  const rows = [
-    renderSummaryRow(t('fullapp.aiImportSource'), pendingImport.source || 'AI Bridge'),
-    renderSummaryRow(t('fullapp.aiImportType'), getProposalTypeLabel(summary.type)),
-    renderSummaryRow(t('fullapp.aiImportName'), summary.name),
-    isCollection ? renderSummaryRow(t('fullapp.aiImportRuleCount'), summary.ruleCount) : '',
-    !isCollection ? renderSummaryRow(t('fullapp.aiProposalModalMethod'), summary.method) : '',
-    !isCollection ? renderSummaryRow(t('fullapp.aiProposalModalEndpoint'), summary.pattern) : '',
-    !isCollection ? renderSummaryRow(t('fullapp.aiProposalModalAction'), summary.action) : ''
-  ].join('')
+  const lines = isCollection
+    ? [
+      renderTemplateLine('fullapp.aiImportCollectionLead', { name: summary.name }, ['name']),
+      renderTemplateLine('fullapp.aiImportCollectionRuleImpact', { count: summary.ruleCount }, ['count'])
+    ]
+    : [
+      renderTemplateLine('fullapp.aiImportRuleLead', { name: summary.name }, ['name']),
+      summary.method || summary.pattern ? renderTemplateLine('fullapp.aiImportRuleMatchSummary', {
+        method: summary.method || t('common.unknown'),
+        pattern: summary.pattern || t('common.unknown')
+      }, ['method', 'pattern']) : '',
+      summary.action ? renderTemplateLine('fullapp.aiImportRuleActionSummary', { action: summary.action }, ['action']) : ''
+    ]
 
-  return `
-    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
-    <div class="ai-bridge-proposal-modal__grid">
-      ${rows}
-    </div>
-    <a class="ai-bridge-proposal-modal__details" id="full-ai-proposal-import-details-link" href="?page=import">
-      ${escapeHtml(t('fullapp.aiProposalModalViewDetails'))}
-    </a>
-  `
+  return renderMessage(lines)
 }
 
 function renderActionProposalBody(pendingAction) {
   const summary = pendingAction.summary || {}
   const isSetOnlyActiveRule = pendingAction.action === 'set_only_active_rule'
-  const affectedNames = Array.isArray(summary.affectedRules)
-    ? summary.affectedRules.map(rule => rule.name).filter(Boolean).join(', ')
-    : ''
-  const rows = [
-    renderSummaryRow(t('fullapp.aiImportSource'), pendingAction.source || 'AI Bridge'),
-    renderSummaryRow(t('fullapp.aiActionType'), getRuleActionLabel(pendingAction.action)),
-    renderSummaryRow(t('fullapp.aiActionRule'), summary.ruleName),
-    renderSummaryRow(t('fullapp.aiActionCollection'), summary.collectionName),
-    renderSummaryRow(t('fullapp.aiActionImpact'), t(`fullapp.aiActionImpact_${pendingAction.action}`)),
-    isSetOnlyActiveRule ? renderSummaryRow(t('fullapp.aiActionAffectedRuleCount'), summary.affectedRuleCount) : '',
-    isSetOnlyActiveRule ? renderSummaryRow(t('fullapp.aiActionAffectedRules'), affectedNames) : ''
-  ].join('')
+  const lines = [
+    renderTemplateLine(`fullapp.aiActionLead_${pendingAction.action}`, { rule: summary.ruleName || t('common.unknown') }, ['rule']),
+    summary.collectionName && !isSetOnlyActiveRule ? renderTemplateLine('fullapp.aiActionCollectionLine', { collection: summary.collectionName }, ['collection']) : '',
+    isSetOnlyActiveRule ? renderTemplateLine('fullapp.aiActionSetOnlyActiveRuleImpact', {
+      count: Number(summary.affectedRuleCount || 0),
+      collection: summary.collectionName || t('common.unknown')
+    }, ['count', 'collection']) : ''
+  ]
 
-  return `
-    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
-    <div class="ai-bridge-proposal-modal__grid">
-      ${rows}
-    </div>
-  `
+  return renderMessage(lines)
 }
 
 function renderSetActiveCollectionProposalBody(pendingAction) {
   const summary = pendingAction.summary || {}
-  const rows = [
-    renderSummaryRow(t('fullapp.aiActionPreviousCollection'), summary.previousCollectionName),
-    renderSummaryRow(t('fullapp.aiActionNextCollection'), summary.collectionName),
-    renderSummaryRow(t('fullapp.aiActionImpact'), t('fullapp.aiActionImpact_set_active_collection'))
-  ].join('')
-
-  return `
-    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
-    <div class="ai-bridge-proposal-modal__grid">
-      ${rows}
-    </div>
-  `
+  return renderMessage([
+    renderTemplateLine('fullapp.aiActionLead_set_active_collection', { collection: summary.collectionName || t('common.unknown') }, ['collection']),
+    summary.previousCollectionName ? renderTemplateLine('fullapp.aiActionPreviousCollectionLine', { collection: summary.previousCollectionName }, ['collection']) : ''
+  ])
 }
 
 function renderReloadProposalBody(pendingAction) {
   const summary = pendingAction.summary || {}
   const target = [summary.origin, summary.path].filter(Boolean).join('')
-  const rows = [
-    renderSummaryRow(t('fullapp.aiImportSource'), pendingAction.source || 'AI Bridge'),
-    renderSummaryRow(t('fullapp.aiActionType'), getRuleActionLabel(pendingAction.action)),
-    renderSummaryRow(t('fullapp.aiActionReloadTarget'), target),
-    renderSummaryRow(t('fullapp.aiActionImpact'), t('fullapp.aiActionImpact_reload_captured_tab'))
-  ].join('')
 
-  return `
-    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
-    <div class="ai-bridge-proposal-modal__grid">
-      ${rows}
-    </div>
-  `
+  return renderMessage([
+    t('fullapp.aiActionLead_reload_captured_tab'),
+    target ? {
+      html: `${escapeHtml(t('fullapp.aiActionReloadTarget'))}: <strong>${escapeHtml(target)}</strong>.`
+    } : ''
+  ])
 }
 
-function renderDiffRows(diff = []) {
-  return diff.map(item => `
-    <div class="ai-bridge-proposal-modal__row">
-      <span>${escapeHtml(String(item?.field || ''))}</span>
-      <strong>${escapeHtml(`${String(item?.before ?? '')} -> ${String(item?.after ?? '')}`)}</strong>
-    </div>
-  `).join('')
+function formatDiffBlock(diff = []) {
+  const safeDiff = Array.isArray(diff) ? diff : []
+  const visible = safeDiff.slice(0, MAX_DIFF_LINES).map(item => {
+    const field = String(item?.field || t('common.unknown'))
+    const before = String(item?.before ?? '')
+    const after = String(item?.after ?? '')
+    return `
+      <div class="ai-bridge-proposal-modal__diff-item">
+        <div class="ai-bridge-proposal-modal__diff-field">${escapeHtml(field)}</div>
+        <div class="ai-bridge-proposal-modal__diff-values">
+          <span>${escapeHtml(t('fullapp.aiActionDiffBefore'))}: ${strong(before)}</span>
+          <span>${escapeHtml(t('fullapp.aiActionDiffAfter'))}: ${strong(after)}</span>
+        </div>
+      </div>
+    `
+  })
+  const remaining = safeDiff.length - visible.length
+  if (remaining > 0) {
+    visible.push(`<p class="ai-bridge-proposal-modal__diff-more">${escapeHtml(t('fullapp.aiActionDiffMoreLine', { count: remaining }))}</p>`)
+  }
+  if (!visible.length) return ''
+  return {
+    block: true,
+    html: `<div class="ai-bridge-proposal-modal__diff">${visible.join('')}</div>`
+  }
 }
 
 function renderEditProposalBody(pendingAction) {
   const summary = pendingAction.summary || {}
-  const rows = [
-    renderSummaryRow(t('fullapp.aiImportSource'), pendingAction.source || 'AI Bridge'),
-    renderSummaryRow(t('fullapp.aiActionType'), getRuleActionLabel(pendingAction.action)),
-    pendingAction.action === 'update_rule' ? renderSummaryRow(t('fullapp.aiActionRule'), summary.ruleName) : '',
-    renderSummaryRow(t('fullapp.aiActionCollection'), summary.collectionName),
-    renderSummaryRow(t('fullapp.aiActionReason'), summary.reason),
-    renderDiffRows(Array.isArray(summary.diff) ? summary.diff : [])
-  ].join('')
+  const isRule = pendingAction.action === 'update_rule'
+  const lines = [
+    isRule
+      ? renderTemplateLine('fullapp.aiActionLead_update_rule', { rule: summary.ruleName || t('common.unknown') }, ['rule'])
+      : renderTemplateLine('fullapp.aiActionLead_update_collection', { collection: summary.collectionName || t('common.unknown') }, ['collection']),
+    summary.collectionName && isRule ? renderTemplateLine('fullapp.aiActionCollectionLine', { collection: summary.collectionName }, ['collection']) : '',
+    summary.reason ? renderTemplateLine('fullapp.aiActionReasonLine', { reason: summary.reason }) : '',
+    formatDiffBlock(summary.diff)
+  ]
 
-  return `
-    <p class="ai-bridge-proposal-modal__notice">${escapeHtml(t('fullapp.aiProposalModalSafetyNotice'))}</p>
-    <div class="ai-bridge-proposal-modal__grid">
-      ${rows}
-    </div>
-  `
+  return renderMessage(lines)
 }
 
 function renderDeleteProposalBody(pendingAction) {
@@ -195,27 +209,22 @@ function renderDeleteProposalBody(pendingAction) {
   const isCollectionDelete = pendingAction.action === 'delete_collection'
   const targetName = isCollectionDelete ? summary.collectionName : summary.ruleName
   const ruleCount = Number(summary.affectedRuleCount || 0)
-  const message = isCollectionDelete
+  const lines = isCollectionDelete
     ? [
-      t('fullapp.aiActionDeleteCollectionLead', { name: targetName || t('common.unknown') }),
-      t('fullapp.aiActionDeleteCollectionRuleImpact', { count: ruleCount }),
+      renderTemplateLine('fullapp.aiActionDeleteCollectionLead', {
+        name: targetName || t('common.unknown'),
+        count: ruleCount
+      }, ['name', 'count']),
       t('fullapp.aiActionDeleteWarning')
-    ].join('\n')
+    ]
     : [
-      t('fullapp.aiActionDeleteRuleLead', {
+      renderTemplateLine('fullapp.aiActionDeleteRuleLead', {
         rule: targetName || t('common.unknown'),
         collection: summary.collectionName || t('common.unknown')
-      }),
+      }, ['rule', 'collection']),
       t('fullapp.aiActionDeleteWarning')
-    ].join('\n')
-  return `
-    ${renderBadge({
-      label: 'AI Bridge',
-      variant: 'contrast',
-      className: 'ai-bridge-proposal-modal__source-badge'
-    })}
-    <p class="dialog-message">${escapeHtml(message)}</p>
-  `
+    ]
+  return renderMessage(lines)
 }
 
 export function renderAiBridgeProposalModal(proposal) {

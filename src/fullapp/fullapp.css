@@ -339,52 +339,52 @@ button,input,select,textarea { font: inherit; color: inherit; }
   justify-content: flex-end;
   flex-wrap: wrap;
 }
-.ai-bridge-proposal-modal {
-  max-width: 640px;
+.modal.ai-bridge-proposal-modal {
+  width: min(520px, 100%);
 }
 .ai-bridge-proposal-modal__body {
   display: grid;
   gap: 14px;
 }
-.ai-bridge-proposal-modal__notice {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-.ai-bridge-proposal-modal__grid {
+.ai-bridge-proposal-modal__source-badge { justify-self: flex-start; font-weight: 700; }
+.ai-bridge-proposal-modal__message {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-.ai-bridge-proposal-modal__row {
-  min-width: 0;
-  padding: 9px 10px;
-  border: 1px solid rgba(255,255,255,.08);
+.ai-bridge-proposal-modal__message p { margin: 0; }
+.ai-bridge-proposal-modal__message strong {
+  color: var(--text);
+  font-weight: 700;
+}
+.ai-bridge-proposal-modal__diff {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+}
+.ai-bridge-proposal-modal__diff-item {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(11, 15, 23, .32);
+  background: rgba(255,255,255,.025);
+  padding: 9px 10px;
 }
-.ai-bridge-proposal-modal__row span {
-  display: block;
-  margin-bottom: 4px;
+.ai-bridge-proposal-modal__diff-field {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ai-bridge-proposal-modal__diff-values {
+  display: grid;
+  gap: 4px;
   color: var(--text-muted);
   font-size: 12px;
 }
-.ai-bridge-proposal-modal__row strong {
-  display: block;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: 13px;
-}
-.ai-bridge-proposal-modal__source-badge { justify-self: flex-start; font-weight: 700; }
-.ai-bridge-proposal-modal__details {
-  justify-self: flex-start;
-  color: var(--accent);
-  font-size: 13px;
-  text-decoration: none;
-}
-.ai-bridge-proposal-modal__details:hover {
-  text-decoration: underline;
+.ai-bridge-proposal-modal__diff-more {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 .ai-bridge-proposal-modal__footer {
   justify-content: flex-end;
