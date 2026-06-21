@@ -515,14 +515,38 @@ Contexto:
 - Helpers em `src/shared/ui/` como button, toggle, select, modal shell, data panel, dropdown, empty state e floating selection bar não têm um CSS compartilhado único.
 - Há duplicação de estilos e variantes entre `src/fullapp/fullapp.css` e `src/sidepanel/sidepanel.css`.
 
+Direção preferida:
+
+- Evitar um único `shared.css` gigante para todos os componentes.
+- Avaliar uma estrutura por componente ou grupo dentro de `src/shared/ui/styles/`.
+- Manter `src/shared/base.css` focado em tokens globais, variáveis globais, reset/base, scrollbar, regras realmente globais e fundamentos compartilhados por todas as superfícies.
+- Concentrar estilos reutilizáveis de componentes em arquivos como `button.css`, `badge.css`, `modal-shell.css`, `toggle.css`, `select.css`, `toast.css`, `dialogs.css` e `data-panel.css`.
+- Avaliar um agregador `src/shared/ui/styles/index.css` para importar os CSS compartilhados por componente.
+- Avaliar se `@import` funciona bem no contexto da extensão, CSP e caminhos atuais. Se não for ideal, considerar múltiplos `<link>` explícitos no Full App e Sidepanel.
+
+Exemplo de direção:
+
+```txt
+src/shared/base.css
+src/shared/ui/styles/index.css
+src/shared/ui/styles/button.css
+src/shared/ui/styles/badge.css
+src/shared/ui/styles/modal-shell.css
+src/shared/ui/styles/toggle.css
+src/shared/ui/styles/select.css
+src/shared/ui/styles/toast.css
+src/shared/ui/styles/dialogs.css
+src/shared/ui/styles/data-panel.css
+```
+
 Escopo pendente:
 
-- Investigar se `src/shared/base.css` deve continuar apenas como base global.
-- Decidir onde estilos de componentes compartilhados devem morar.
-- Avaliar criação de um CSS específico para `src/shared/ui/`, como `src/shared/ui/ui.css` ou equivalente.
-- Centralizar variantes reutilizáveis de button, badge, toggle, select, modal, toast e dialogs.
+- Investigar se `src/shared/base.css` deve ficar restrito a fundamentos globais.
+- Decidir a estrutura final de `src/shared/ui/styles/`.
+- Avaliar `src/shared/ui/styles/index.css` como agregador.
+- Centralizar variantes reutilizáveis de button, badge, toggle, select, modal, toast, dialogs e data panel.
 - Evitar replace manual de CSS para criar variações reutilizáveis.
-- Preservar `base.css` apenas para tokens, reset e fundamentos globais, se essa for a decisão.
+- Preservar estilos específicos de tela/feature nos CSS das respectivas superfícies.
 - Migrar incrementalmente sem quebrar Full App e Sidepanel.
 - Adicionar testes ou validações visuais quando possível.
 
@@ -530,9 +554,13 @@ Critérios de aceite:
 
 - Cada componente compartilhado tem responsabilidade clara.
 - Variantes visuais são semânticas.
+- `base.css` fica restrito a fundamentos globais.
+- Estilos compartilhados de componentes ficam em `src/shared/ui/styles/`.
+- Componentes reutilizáveis possuem CSS centralizado por componente ou grupo.
+- Full App e Sidepanel importam a mesma base compartilhada quando aplicável.
 - CSS de feature não duplica variante global.
-- `base.css` não vira depósito de CSS aleatório.
-- Full App e Sidepanel usam os mesmos padrões quando aplicável.
+- Novas variantes visuais são adicionadas de forma semântica no componente/shared UI.
+- A migração é incremental e validada nas duas superfícies.
 
 ## Priorização recomendada
 
