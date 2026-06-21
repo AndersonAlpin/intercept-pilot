@@ -6,7 +6,16 @@ const RELEASE_NOTES = {
   //   itemKeys: [
   //     'releaseNotes.items.exampleItem'
   //   ]
-  // }
+  // },
+  '1.3.0': {
+    itemKeys: [
+      'releaseNotes.items.aiBridgeBeta',
+      'releaseNotes.items.aiBridgeSharedDaemon',
+      'releaseNotes.items.aiBridgeTools',
+      'releaseNotes.items.aiBridgeAssistedActions',
+      'releaseNotes.items.aiBridgePermissions'
+    ]
+  }
 }
 
 export const RELEASE_NOTES_VISIBLE_AFTER_SEEN_MS = 3 * 24 * 60 * 60 * 1000

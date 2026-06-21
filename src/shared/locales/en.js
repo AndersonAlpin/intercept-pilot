@@ -519,7 +519,14 @@ const en = {
     version: 'Version {version}',
     markSeen: 'Got it',
     reopen: 'View update notes',
-    settingsLabel: 'Update notes'
+    settingsLabel: 'Update notes',
+    items: {
+      aiBridgeBeta: 'AI Bridge beta connects InterceptPilot to local AI agents.',
+      aiBridgeSharedDaemon: 'MCP integration now uses a shared local daemon to avoid port conflicts between clients.',
+      aiBridgeTools: 'Tools can inspect context, requests, logs, rules, collections, and recent rule results.',
+      aiBridgeAssistedActions: 'Imports, assisted actions, edits, protected deletes, and captured-tab reloads are controlled by configurable permissions.',
+      aiBridgePermissions: 'A permission model controls which data AI can see and which actions it can run.'
+    }
   },
   importTemplate: {
     templates: 'Templates',

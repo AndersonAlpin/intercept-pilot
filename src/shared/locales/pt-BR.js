@@ -375,7 +375,14 @@ const ptBR = {
     version: 'Versão {version}',
     markSeen: 'Entendi',
     reopen: 'Ver notas de atualização',
-    settingsLabel: 'Notas de atualização'
+    settingsLabel: 'Notas de atualização',
+    items: {
+      aiBridgeBeta: 'AI Bridge beta para conectar o InterceptPilot a agentes de IA locais.',
+      aiBridgeSharedDaemon: 'Integração MCP com daemon local compartilhado para evitar conflito de porta entre clientes.',
+      aiBridgeTools: 'Tools para consultar contexto, requests, logs, regras, coleções e resultados recentes.',
+      aiBridgeAssistedActions: 'Importação, ações assistidas, edição, deleção protegida e reload da aba capturada com permissões configuráveis.',
+      aiBridgePermissions: 'Modelo de permissões para controlar quais dados a IA pode ver e quais ações pode executar.'
+    }
   },
   importTemplate: {
     templates: 'Templates',
