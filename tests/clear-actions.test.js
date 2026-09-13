@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { renderNetworkPage } from '../src/fullapp/components/network-page.js'
 import { renderLogsPage } from '../src/fullapp/components/logs-page.js'
 import { renderNetworkQuickPanel } from '../src/sidepanel/components/network-quick-panel.js'
-import { renderLogsQuickPanel } from '../src/sidepanel/components/logs-quick-panel.js'
+import { renderLogsQuickHeader, renderLogsQuickPanel } from '../src/sidepanel/components/logs-quick-panel.js'
 
 const networkEntry = {
   id: 'req-1',
@@ -118,4 +118,15 @@ test('logs clear actions stay enabled when filters hide active-context web logs'
   assert.doesNotMatch(fullHtml, /id="full-clear-logs"[^>]*disabled/)
   assert.match(sideHtml, /id="logs-clear-btn"/)
   assert.doesNotMatch(sideHtml, /id="logs-clear-btn"[^>]*disabled/)
+})
+
+test('side logs header enables clear action when active-context logs exist', () => {
+  const html = renderLogsQuickHeader(baseLogsState({
+    visibleLogs: [webLog],
+    filteredLogs: [],
+    pagedLogs: [],
+  }))
+
+  assert.match(html, /id="logs-clear-btn"/)
+  assert.doesNotMatch(html, /id="logs-clear-btn"[^>]*disabled/)
 })

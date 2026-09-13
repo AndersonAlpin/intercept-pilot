@@ -9,6 +9,7 @@ import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureAtt
 import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule, getExecutableRules } from './rule-engine.js'
+import { enrichFetchErrorLog } from './compat-log-error-enrichment.js'
 import { resolveNetworkEntryResponseBody } from './network-entry-body.js'
 import { normalizePerformanceEntries } from './performance-entries.js'
 import {
@@ -1732,6 +1733,14 @@ async function handleCompatPageLog(message, sender) {
   const text = truncateCompatBody(payload.message, 16 * 1024)
   const messageText = String(text.body || '').trim()
   if (!messageText) return { ok: false }
+  const enrichedLog = await enrichFetchErrorLog({
+    message: messageText,
+    tabId,
+    networkEntries: runtimeState.networkEntries,
+    resolveResponseBody: entry => resolveNetworkEntryResponseBody(entry, {
+      getEntry: () => runtimeState.networkEntries.find(item => item.id === entry.id),
+    }),
+  })
 
   await pushLog({
     level: normalizeBrowserLogLevel(payload.level),
@@ -1739,13 +1748,21 @@ async function handleCompatPageLog(message, sender) {
     tabId,
     captureSessionId: runtimeState.currentCaptureSessionId || null,
     networkCycleId: runtimeState.currentNetworkCycleId || null,
-    message: messageText,
+    message: enrichedLog?.message || messageText,
     url: String(payload.url || sender?.tab?.url || ''),
     source: String(payload.source || 'console'),
     lineNumber: payload.lineNumber || null,
     columnNumber: payload.columnNumber || null,
     stack: payload.stack ? String(payload.stack) : '',
-    truncated: Boolean(text.truncated || payload.truncated)
+    truncated: Boolean(text.truncated || payload.truncated),
+    ...(enrichedLog?.originalMessage ? { originalMessage: enrichedLog.originalMessage } : {}),
+    ...(enrichedLog?.relatedNetworkEntryId ? { relatedNetworkEntryId: enrichedLog.relatedNetworkEntryId } : {}),
+    ...(enrichedLog?.requestMethod ? { requestMethod: enrichedLog.requestMethod } : {}),
+    ...(enrichedLog?.requestUrl ? { requestUrl: enrichedLog.requestUrl } : {}),
+    ...(enrichedLog?.responseStatus ? { responseStatus: enrichedLog.responseStatus } : {}),
+    ...(enrichedLog?.responseErrorCode ? { responseErrorCode: enrichedLog.responseErrorCode } : {}),
+    ...(enrichedLog?.responseErrorSummary ? { responseErrorSummary: enrichedLog.responseErrorSummary } : {}),
+    ...(enrichedLog?.responseErrorDetails ? { responseErrorDetails: enrichedLog.responseErrorDetails } : {}),
   })
   return { ok: true }
 }
