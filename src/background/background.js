@@ -2,16 +2,48 @@ import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants.js'
 import { ensureState, getState, setState, saveCollection, replaceCollectionContents, deleteCollection, deleteCollections, saveRule, deleteRule, deleteRules, moveRulesToCollection, updateRuleEnabled, updateSettings, setLogs, getReleaseNotesState, markReleaseNotesSeen } from '../shared/storage.js'
 import { validateRule } from '../shared/validators.js'
 import { clone, isHttpUrl, tryPrettyJson, uid } from '../shared/utils.js'
-import { makeRule } from '../shared/models.js'
+import { makeCollection, makeRule } from '../shared/models.js'
+import { BUNDLE_TYPE_COLLECTION, BUNDLE_TYPE_RULE, getUniqueName } from '../shared/export.js'
+import { findCollectionConflictById } from '../shared/import-bundles.js'
 import { attachToTab, clearPersistedAttachedSession, detachCurrentTab, ensureAttachedDomainsReady, ensureRehydrated, isAttachedSource, sendAttachedCommand } from './debugger.js'
 import { runtimeState } from './runtime-state.js'
 import { pushLog } from './logger.js'
 import { detectSimpleConflicts, findMatchingRule, getExecutableRules } from './rule-engine.js'
+import { enrichFetchErrorLog } from './compat-log-error-enrichment.js'
 import { resolveNetworkEntryResponseBody } from './network-entry-body.js'
 import { normalizePerformanceEntries } from './performance-entries.js'
+import {
+  getAiBridgeSession,
+  markAiBridgeConnected,
+  markAiBridgeWaiting,
+  stopAiBridgeSession,
+  startAiBridgeSession,
+  updateAiBridgeSessionPermissions
+} from './ai-bridge-session.js'
+import { AI_BRIDGE_STATUS, generateAiBridgeConnectionKey, resolveAiBridgeConnectionKey } from '../shared/ai-bridge-state.js'
+import { createAiBridgeConnection } from './ai-bridge-connection.js'
+import { createAiBridgeKeepalive } from './ai-bridge-keepalive.js'
+import { cancelPendingAiImport, confirmPendingAiImport, createPendingAiImport, getPendingAiImport } from './ai-bridge-imports.js'
+import { AI_BRIDGE_RULE_ACTIONS, AI_BRIDGE_TAB_ACTIONS, cancelPendingAiRuleAction, confirmPendingAiRuleAction, createPendingAiCaptureAction, createPendingAiReloadAction, createPendingAiRuleAction, getPendingAiRuleAction } from './ai-bridge-actions.js'
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {})
+}
+
+function broadcastAiBridgeSession(aiBridgeSession = getAiBridgeSession()) {
+  broadcast({ type: 'state:aiBridge', aiBridgeSession })
+}
+
+function broadcastAiBridgeImport(pendingImport = getPendingAiImport()) {
+  broadcast({ type: 'state:aiBridgeImport', pendingImport })
+}
+
+function broadcastAiBridgeAction(pendingAction = getPendingAiRuleAction()) {
+  broadcast({ type: 'state:aiBridgeAction', pendingAction })
+}
+
+function broadcastAiBridgeApplied(kind, summary = {}) {
+  broadcast({ type: 'state:aiBridgeApplied', kind, summary })
 }
 
 async function notifyCompatModeChanged(captureMode) {
@@ -563,6 +595,9 @@ async function getFullState() {
     logs: state.logs,
     settings: state.settings || DEFAULT_SETTINGS,
     releaseNotes,
+    aiBridgeSession: getAiBridgeSession(),
+    aiBridgePendingImport: getPendingAiImport(),
+    aiBridgePendingAction: getPendingAiRuleAction(),
     networkEntries: runtimeState.networkEntries,
     networkMeta: getNetworkCycleMeta(),
     attachedTabId: runtimeState.attachedTabId,
@@ -573,6 +608,551 @@ async function getFullState() {
     lastAttachableTab: runtimeState.lastAttachableTab,
     compatActiveTabId
   }
+}
+
+async function getAiBridgeCommandContext() {
+  const state = await getState()
+  const effectiveCandidate = getEffectiveCandidateTab()
+  const compatActiveTabId = getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null)
+  const activeCaptureTab = runtimeState.attachedTabId
+    ? await getAttachedTabRef()
+    : await getCompatTabRef(compatActiveTabId)
+  return {
+    state: {
+      ...state,
+      attachedTabId: runtimeState.attachedTabId,
+      compatActiveTabId,
+      networkMeta: getNetworkCycleMeta(),
+      activeCaptureTab,
+      activeTab: effectiveCandidate || runtimeState.activeTab || null,
+      captureMode: state.settings?.captureMode || 'auto',
+      aiBridgeStatus: getAiBridgeSession().status,
+      aiBridgePermissions: getAiBridgeSession().permissions || {}
+    },
+    networkEntries: runtimeState.networkEntries
+  }
+}
+
+function buildImportedAiRulePayload(rule, overrides = {}) {
+  return {
+    ...rule,
+    ...overrides,
+    action: {
+      ...rule.action,
+      applyResponseBody: rule.action?.applyResponseBody ?? true,
+      applyResponseHeaders: rule.action?.applyResponseHeaders ?? false
+    }
+  }
+}
+
+async function applyAiBridgeImportBundle(bundle = {}) {
+  const state = await getState()
+  if (bundle.type === BUNDLE_TYPE_RULE) {
+    const activeCollectionId = state.settings.activeCollectionId
+    const existingNames = state.rules
+      .filter(rule => rule.collectionId === activeCollectionId)
+      .map(rule => rule.name)
+    const payload = buildImportedAiRulePayload(bundle.rule || {}, {
+      id: null,
+      collectionId: activeCollectionId,
+      name: getUniqueName(bundle.rule?.name || 'Untitled', existingNames)
+    })
+    const rules = await saveRule(payload)
+    return {
+      ok: true,
+      rules,
+      summary: {
+        type: bundle.type,
+        ruleName: payload.name,
+        ruleCount: 1
+      }
+    }
+  }
+
+  if (bundle.type === BUNDLE_TYPE_COLLECTION) {
+    const existingCollection = findCollectionConflictById(bundle, state.collections)
+    if (existingCollection) {
+      const result = await replaceCollectionContents({
+        ...existingCollection,
+        name: bundle.collection?.name,
+        description: bundle.collection?.description,
+        enabled: bundle.collection?.enabled !== false
+      }, (bundle.rules || []).map(rule => buildImportedAiRulePayload(rule, {
+        collectionId: existingCollection.id
+      })))
+      return {
+        ok: true,
+        ...result,
+        summary: {
+          type: bundle.type,
+          collectionName: bundle.collection?.name || existingCollection.name,
+          ruleCount: Array.isArray(bundle.rules) ? bundle.rules.length : 0
+        }
+      }
+    }
+
+    const collectionName = getUniqueName(bundle.collection?.name || 'Imported collection', state.collections.map(item => item.name))
+    const collection = makeCollection({
+      name: collectionName,
+      description: bundle.collection?.description,
+      enabled: bundle.collection?.enabled !== false,
+      order: state.collections.length
+    })
+    await saveCollection(collection)
+    const usedNames = []
+    for (const rule of Array.isArray(bundle.rules) ? bundle.rules : []) {
+      const ruleName = getUniqueName(rule.name, usedNames)
+      usedNames.push(ruleName)
+      await saveRule(buildImportedAiRulePayload(rule, {
+        id: null,
+        collectionId: collection.id,
+        name: ruleName
+      }))
+    }
+    const nextState = await getState()
+    return {
+      ok: true,
+      collections: nextState.collections,
+      rules: nextState.rules,
+      summary: {
+        type: bundle.type,
+        collectionName,
+        ruleCount: Array.isArray(bundle.rules) ? bundle.rules.length : 0
+      }
+    }
+  }
+
+  return {
+    error: {
+      code: 'INVALID_BUNDLE',
+      message: 'Import bundle is not supported.'
+    }
+  }
+}
+
+async function proposeAiBridgeImport(payload) {
+  if (getPendingAiRuleAction()) {
+    return {
+      error: {
+        code: 'PENDING_PROPOSAL_EXISTS',
+        message: 'Another AI Bridge proposal is already pending.'
+      }
+    }
+  }
+  const state = await getState()
+  const result = createPendingAiImport(payload, { collections: state.collections })
+  if (!result.error && getAiBridgeSession().permissions?.allowImportBundleApplyThisSession) {
+    const confirmed = await confirmPendingAiImport(result.pendingImportId, applyAiBridgeImportBundle)
+    broadcastAiBridgeImport()
+    if (confirmed?.error) return confirmed
+    await pushLog({ level: 'info', scope: 'ai-bridge', message: 'AI Bridge import_bundle applied by session permission.' })
+    broadcastAiBridgeApplied('import_bundle', confirmed.summary || result.summary)
+    return {
+      status: 'applied',
+      approval: 'session_permission',
+      action: 'import_bundle',
+      summary: confirmed.summary || result.summary
+    }
+  }
+  if (!result.error) {
+    result.approval = 'modal_required'
+    broadcastAiBridgeImport()
+  }
+  return result
+}
+
+function applyRuleEnabledState(rule, enabled, updatedAt) {
+  const nextEnabled = enabled !== false
+  const nextRule = {
+    ...rule,
+    enabled: nextEnabled,
+    updatedAt
+  }
+
+  if (nextEnabled && rule.enabled === false) {
+    nextRule.diagnostics = {
+      ...(rule.diagnostics || {}),
+      lastMatchedAt: null
+    }
+  }
+
+  return nextRule
+}
+
+function setPathValue(source = {}, path = '', value) {
+  const keys = String(path || '').split('.').filter(Boolean)
+  if (!keys.length) return source
+  let current = source
+  keys.slice(0, -1).forEach(key => {
+    if (!current[key] || typeof current[key] !== 'object') current[key] = {}
+    current = current[key]
+  })
+  current[keys.at(-1)] = value
+  return source
+}
+
+function applyDiffToObject(source = {}, diff = []) {
+  const next = clone(source)
+  for (const item of Array.isArray(diff) ? diff : []) {
+    setPathValue(next, item.field, item.after)
+  }
+  next.updatedAt = new Date().toISOString()
+  return next
+}
+
+async function applyAiBridgeRuleUpdate(pendingAction = {}) {
+  const state = await getState()
+  const summary = pendingAction.summary || {}
+  const targetRuleId = String(summary.ruleId || '')
+  const targetRule = state.rules.find(rule => rule.id === targetRuleId)
+  if (!targetRule) {
+    return { error: { code: 'RULE_NOT_FOUND', message: 'Rule was not found.' } }
+  }
+
+  const nextRule = applyDiffToObject(targetRule, summary.diff)
+  const errors = validateRule(nextRule)
+  if (errors.length) {
+    return { error: { code: 'INVALID_RULE_UPDATE', message: 'Rule update is invalid.' } }
+  }
+
+  state.rules = state.rules.map(rule => rule.id === targetRuleId ? nextRule : rule)
+  await setState(state)
+  await maybeAutoReloadAfterRuleChange()
+  return { ok: true, rules: state.rules }
+}
+
+async function applyAiBridgeCollectionUpdate(pendingAction = {}) {
+  const state = await getState()
+  const summary = pendingAction.summary || {}
+  const targetCollectionId = String(summary.collectionId || '')
+  const targetCollection = state.collections.find(collection => collection.id === targetCollectionId)
+  if (!targetCollection) {
+    return { error: { code: 'COLLECTION_NOT_FOUND', message: 'Collection was not found.' } }
+  }
+
+  const nextCollection = applyDiffToObject(targetCollection, summary.diff)
+  state.collections = state.collections.map(collection => collection.id === targetCollectionId ? nextCollection : collection)
+  await setState(state)
+  return { ok: true, collections: state.collections }
+}
+
+async function applyAiBridgeSetActiveCollection(pendingAction = {}) {
+  const state = await getState()
+  const summary = pendingAction.summary || {}
+  const targetCollectionId = String(summary.collectionId || '')
+  if (!state.collections.some(collection => collection.id === targetCollectionId)) {
+    return { error: { code: 'COLLECTION_NOT_FOUND', message: 'Collection was not found.' } }
+  }
+
+  await updateSettings({ activeCollectionId: targetCollectionId })
+  await resetMatchedState()
+  await maybeAutoReloadAfterRuleChange()
+  return { ok: true, activeCollectionId: targetCollectionId }
+}
+
+async function applyAiBridgeRuleDelete(pendingAction = {}) {
+  const summary = pendingAction.summary || {}
+  const targetRuleId = String(summary.ruleId || '')
+  const state = await getState()
+  if (!state.rules.some(rule => rule.id === targetRuleId)) {
+    return { error: { code: 'RULE_NOT_FOUND', message: 'Rule was not found.' } }
+  }
+
+  const rules = await deleteRule(targetRuleId)
+  await maybeAutoReloadAfterRuleChange()
+  return { ok: true, rules }
+}
+
+async function applyAiBridgeCollectionDelete(pendingAction = {}) {
+  const summary = pendingAction.summary || {}
+  const targetCollectionId = String(summary.collectionId || '')
+  const state = await getState()
+  if (!state.collections.some(collection => collection.id === targetCollectionId)) {
+    return { error: { code: 'COLLECTION_NOT_FOUND', message: 'Collection was not found.' } }
+  }
+
+  const collections = await deleteCollection(targetCollectionId)
+  await maybeAutoReloadAfterRuleChange()
+  return {
+    ok: true,
+    collections,
+    affectedRuleCount: Number(summary.affectedRuleCount || 0)
+  }
+}
+
+async function applyAiBridgeRuleAction(pendingAction = {}) {
+  const state = await getState()
+  const summary = pendingAction.summary || {}
+  const targetRuleId = String(summary.ruleId || '')
+  const targetRule = state.rules.find(rule => rule.id === targetRuleId)
+  if (!targetRule) {
+    return {
+      error: {
+        code: 'RULE_NOT_FOUND',
+        message: 'Rule was not found.'
+      }
+    }
+  }
+
+  const updatedAt = new Date().toISOString()
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.enableRule) {
+    state.rules = state.rules.map(rule => (
+      rule.id === targetRuleId ? applyRuleEnabledState(rule, true, updatedAt) : rule
+    ))
+  } else if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.disableRule) {
+    state.rules = state.rules.map(rule => (
+      rule.id === targetRuleId ? applyRuleEnabledState(rule, false, updatedAt) : rule
+    ))
+  } else if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.setOnlyActiveRule) {
+    const collectionId = String(summary.collectionId || targetRule.collectionId || '')
+    state.rules = state.rules.map(rule => (
+      rule.collectionId === collectionId
+        ? applyRuleEnabledState(rule, rule.id === targetRuleId, updatedAt)
+        : rule
+    ))
+  } else {
+    return {
+      error: {
+        code: 'UNKNOWN_ACTION',
+        message: 'Rule action is not allowed.'
+      }
+    }
+  }
+
+  await setState(state)
+  return { ok: true, rules: state.rules }
+}
+
+async function requestAiBridgeRuleAction(action, payload) {
+  const state = await getState()
+  const result = createPendingAiRuleAction(action, payload, {
+    rules: state.rules,
+    collections: state.collections,
+    settings: state.settings,
+    hasPendingImport: Boolean(getPendingAiImport())
+  })
+  const canAutoApplyRuleAction = [
+    AI_BRIDGE_RULE_ACTIONS.enableRule,
+    AI_BRIDGE_RULE_ACTIONS.disableRule,
+    AI_BRIDGE_RULE_ACTIONS.setOnlyActiveRule,
+    AI_BRIDGE_RULE_ACTIONS.setActiveCollection,
+    AI_BRIDGE_RULE_ACTIONS.updateRule,
+    AI_BRIDGE_RULE_ACTIONS.updateCollection
+  ].includes(action)
+  const canAutoApplyDestructiveAction = [
+    AI_BRIDGE_RULE_ACTIONS.deleteRule,
+    AI_BRIDGE_RULE_ACTIONS.deleteCollection
+  ].includes(action)
+  const sessionPermissions = getAiBridgeSession().permissions || {}
+  const canApplyDirectly = canAutoApplyRuleAction
+    ? sessionPermissions.allowRuleActionsThisSession
+    : canAutoApplyDestructiveAction
+      ? sessionPermissions.allowDestructiveRuleCollectionActionsThisSession
+      : false
+  if (!result.error && canApplyDirectly) {
+    const confirmed = await confirmPendingAiRuleAction(result.pendingActionId, applyAiBridgePendingAction)
+    broadcastAiBridgeAction()
+    if (confirmed?.error) return confirmed
+    await pushLog({ level: 'info', scope: 'ai-bridge', message: `AI Bridge rule action ${action} applied by session permission.` })
+    broadcastAiBridgeApplied(action, result.summary)
+    return {
+      status: 'applied',
+      approval: 'session_permission',
+      action,
+      summary: result.summary,
+      rules: confirmed.rules
+    }
+  }
+  if (!result.error) {
+    result.approval = 'modal_required'
+    broadcastAiBridgeAction()
+  }
+  return result
+}
+
+async function resolveAiBridgeCapturedTab() {
+  const state = await getState()
+  const effectiveCandidate = getEffectiveCandidateTab()
+  const compatActiveTabId = getCompatActiveTabId(state.settings, effectiveCandidate?.id || runtimeState.activeTab?.id || null)
+  const tabId = runtimeState.attachedTabId || compatActiveTabId || null
+  if (!tabId) return null
+  const ref = runtimeState.attachedTabId ? await getAttachedTabRef() : await getCompatTabRef(compatActiveTabId)
+  const url = String(ref?.url || '')
+  if (!isHttpUrl(url)) return null
+  let origin = ''
+  let path = ''
+  try {
+    const parsed = new URL(url)
+    origin = parsed.origin
+    path = parsed.pathname
+  } catch {
+    return null
+  }
+  return { tabId, origin, path }
+}
+
+async function applyReloadCapturedTab() {
+  const captured = await resolveAiBridgeCapturedTab()
+  if (!captured) {
+    return { error: { code: 'CAPTURED_TAB_NOT_FOUND', message: 'No captured tab is available to reload.' } }
+  }
+  try {
+    const result = await reloadTabWithReadyDebugger(captured.tabId)
+    return { ok: true, reloadedTabId: result?.reloadedTabId || captured.tabId }
+  } catch {
+    return { error: { code: 'RELOAD_FAILED', message: 'Failed to reload the captured tab.' } }
+  }
+}
+
+async function applyAiBridgePendingAction(pendingAction = {}) {
+  if (pendingAction.action === AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab) return applyReloadCapturedTab(pendingAction)
+  if ([AI_BRIDGE_TAB_ACTIONS.startCapture, AI_BRIDGE_TAB_ACTIONS.restartCapture, AI_BRIDGE_TAB_ACTIONS.stopCapture, AI_BRIDGE_TAB_ACTIONS.captureCurrentTab, AI_BRIDGE_TAB_ACTIONS.setCaptureMode].includes(pendingAction.action)) return applyAiBridgeCaptureAction(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.setActiveCollection) return applyAiBridgeSetActiveCollection(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.updateRule) return applyAiBridgeRuleUpdate(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.updateCollection) return applyAiBridgeCollectionUpdate(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.deleteRule) return applyAiBridgeRuleDelete(pendingAction)
+  if (pendingAction.action === AI_BRIDGE_RULE_ACTIONS.deleteCollection) return applyAiBridgeCollectionDelete(pendingAction)
+  return applyAiBridgeRuleAction(pendingAction)
+}
+
+async function requestReloadCapturedTab() {
+  const captured = await resolveAiBridgeCapturedTab()
+  if (!captured) {
+    return { error: { code: 'CAPTURED_TAB_NOT_FOUND', message: 'No captured tab is available to reload.' } }
+  }
+  const result = createPendingAiReloadAction({
+    capturedTab: captured,
+    hasPendingImport: Boolean(getPendingAiImport())
+  })
+  if (!result.error && getAiBridgeSession().permissions?.allowCapturedTabReloadThisSession) {
+    const confirmed = await confirmPendingAiRuleAction(result.pendingActionId, applyReloadCapturedTab)
+    broadcastAiBridgeAction()
+    if (confirmed?.error) return confirmed
+    await pushLog({ level: 'info', scope: 'ai-bridge', message: 'AI Bridge captured tab reload applied by session permission.' })
+    broadcastAiBridgeApplied(AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab, result.summary)
+    return {
+      status: 'applied',
+      approval: 'session_permission',
+      action: AI_BRIDGE_TAB_ACTIONS.reloadCapturedTab,
+      summary: result.summary
+    }
+  }
+  if (!result.error) {
+    result.approval = 'modal_required'
+    broadcastAiBridgeAction()
+  }
+  return result
+}
+
+async function resolveAiBridgeCaptureTarget() {
+  const state = await getState()
+  const candidate = getEffectiveCandidateTab()
+  const tabId = runtimeState.attachedTabId || getCompatActiveTabId(state.settings, candidate?.id || runtimeState.activeTab?.id || null) || candidate?.id
+  const tab = tabId ? await chrome.tabs.get(tabId).catch(() => null) : null
+  if (!tab?.id || !isHttpUrl(tab.url || '')) return null
+  const parsed = new URL(tab.url)
+  return { tabId: tab.id, origin: parsed.origin, path: parsed.pathname }
+}
+
+async function applyAiBridgeCaptureAction(pendingAction = {}) {
+  const target = await resolveAiBridgeCaptureTarget()
+  if (!target) return { error: { code: 'CAPTURE_TARGET_NOT_FOUND', message: 'No eligible web tab is available.' } }
+  const state = await getState()
+  if (pendingAction.action === AI_BRIDGE_TAB_ACTIONS.stopCapture) {
+    if (runtimeState.attachedTabId) await detachCurrentTab()
+    const compatTabId = getCompatActiveTabId(state.settings, target.tabId)
+    if (compatTabId) await disableCompatForTab(compatTabId)
+    await resetMatchedState()
+  } else {
+    const requestedMode = pendingAction.summary?.nextMode || state.settings?.captureMode || 'auto'
+    const mode = requestedMode === 'full' ? 'cdp' : requestedMode === 'light' ? 'compat' : requestedMode
+    if (pendingAction.summary?.nextMode) await updateSettings({ captureMode: mode })
+    if (runtimeState.attachedTabId && pendingAction.action !== AI_BRIDGE_TAB_ACTIONS.startCapture) await detachCurrentTab()
+    if (mode === 'compat') await enableCompatForTab(target.tabId)
+    else {
+      try { await attachToTab(target.tabId); clearCompatFallback(target.tabId) } catch (error) {
+        if (mode === 'auto' && getAutoCompatFallbackNotice(error)) await enableCompatForTab(target.tabId)
+        else throw error
+      }
+    }
+    await seedExistingNetworkEntries(target.tabId).catch(() => {})
+    await resetMatchedState()
+  }
+  await updateConnectionFromActiveTab()
+  await broadcastConnectionState()
+  return { ok: true, captureState: await getAiBridgeCommandContext() }
+}
+
+async function requestAiBridgeCaptureAction(action, payload = {}) {
+  const state = await getState()
+  const result = createPendingAiCaptureAction(action, payload, {
+    captureTarget: await resolveAiBridgeCaptureTarget(),
+    captureMode: state.settings?.captureMode,
+    hasPendingImport: Boolean(getPendingAiImport())
+  })
+  if (!result.error && getAiBridgeSession().permissions?.allowCaptureControlThisSession) {
+    const applied = await confirmPendingAiRuleAction(result.pendingActionId, applyAiBridgeCaptureAction)
+    broadcastAiBridgeAction()
+    if (applied?.error) return applied
+    return { status: 'applied', approval: 'session_permission', action, summary: result.summary, captureState: applied.captureState }
+  }
+  if (!result.error) { result.approval = 'modal_required'; broadcastAiBridgeAction() }
+  return result
+}
+
+let aiBridgeConnectionKeyCache = ''
+
+function getAiBridgeConnectionKey() {
+  return aiBridgeConnectionKeyCache
+}
+
+async function ensureAiBridgeConnectionKey() {
+  const state = await getState()
+  const existing = String(state.settings?.aiBridgeConnectionKey || '')
+  const key = resolveAiBridgeConnectionKey(existing)
+  if (key !== existing) await updateSettings({ aiBridgeConnectionKey: key })
+  aiBridgeConnectionKeyCache = key
+  return key
+}
+
+const aiBridgeConnection = createAiBridgeConnection({
+  getSession: getAiBridgeSession,
+  getConnectionKey: getAiBridgeConnectionKey,
+  markConnected: markAiBridgeConnected,
+  markWaiting: markAiBridgeWaiting,
+  getCommandContext: getAiBridgeCommandContext,
+  importBundle: proposeAiBridgeImport,
+  requestRuleAction: requestAiBridgeRuleAction,
+  requestReload: requestReloadCapturedTab,
+  requestCapture: requestAiBridgeCaptureAction,
+  onSessionChange: broadcastAiBridgeSession
+})
+
+const aiBridgeKeepalive = createAiBridgeKeepalive({
+  alarms: globalThis.chrome?.alarms,
+  onTick: () => {
+    if (getAiBridgeSession().status !== AI_BRIDGE_STATUS.disabled) aiBridgeConnection.sync()
+  }
+})
+
+function startAiBridgeKeepalive() {
+  aiBridgeKeepalive.start()
+}
+
+function stopAiBridgeKeepalive() {
+  aiBridgeKeepalive.stop()
+}
+
+async function initAiBridgeFromSettings() {
+  const state = await getState()
+  const enabled = state.settings?.aiBridgeConnectionEnabled === true
+  const key = String(state.settings?.aiBridgeConnectionKey || '')
+  if (!enabled || !key) return
+  aiBridgeConnectionKeyCache = key
+  startAiBridgeSession(state.settings?.aiBridgePermissions)
+  aiBridgeConnection.sync()
+  startAiBridgeKeepalive()
+  broadcastAiBridgeSession()
 }
 
 async function reloadTabWithReadyDebugger(tabId) {
@@ -1224,6 +1804,14 @@ async function handleCompatPageLog(message, sender) {
   const text = truncateCompatBody(payload.message, 16 * 1024)
   const messageText = String(text.body || '').trim()
   if (!messageText) return { ok: false }
+  const enrichedLog = await enrichFetchErrorLog({
+    message: messageText,
+    tabId,
+    networkEntries: runtimeState.networkEntries,
+    resolveResponseBody: entry => resolveNetworkEntryResponseBody(entry, {
+      getEntry: () => runtimeState.networkEntries.find(item => item.id === entry.id),
+    }),
+  })
 
   await pushLog({
     level: normalizeBrowserLogLevel(payload.level),
@@ -1231,13 +1819,21 @@ async function handleCompatPageLog(message, sender) {
     tabId,
     captureSessionId: runtimeState.currentCaptureSessionId || null,
     networkCycleId: runtimeState.currentNetworkCycleId || null,
-    message: messageText,
+    message: enrichedLog?.message || messageText,
     url: String(payload.url || sender?.tab?.url || ''),
     source: String(payload.source || 'console'),
     lineNumber: payload.lineNumber || null,
     columnNumber: payload.columnNumber || null,
     stack: payload.stack ? String(payload.stack) : '',
-    truncated: Boolean(text.truncated || payload.truncated)
+    truncated: Boolean(text.truncated || payload.truncated),
+    ...(enrichedLog?.originalMessage ? { originalMessage: enrichedLog.originalMessage } : {}),
+    ...(enrichedLog?.relatedNetworkEntryId ? { relatedNetworkEntryId: enrichedLog.relatedNetworkEntryId } : {}),
+    ...(enrichedLog?.requestMethod ? { requestMethod: enrichedLog.requestMethod } : {}),
+    ...(enrichedLog?.requestUrl ? { requestUrl: enrichedLog.requestUrl } : {}),
+    ...(enrichedLog?.responseStatus ? { responseStatus: enrichedLog.responseStatus } : {}),
+    ...(enrichedLog?.responseErrorCode ? { responseErrorCode: enrichedLog.responseErrorCode } : {}),
+    ...(enrichedLog?.responseErrorSummary ? { responseErrorSummary: enrichedLog.responseErrorSummary } : {}),
+    ...(enrichedLog?.responseErrorDetails ? { responseErrorDetails: enrichedLog.responseErrorDetails } : {}),
   })
   return { ok: true }
 }
@@ -1324,6 +1920,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     await updateConnectionFromActiveTab()
     await broadcastConnectionState()
   }
+  await initAiBridgeFromSettings()
 })()
 
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
@@ -1492,6 +2089,85 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'releaseNotes:markSeen':
         sendResponse(await markReleaseNotesSeen(message.version || '', message.seenAt))
         return
+      case 'aiBridge:getSession':
+        sendResponse({ aiBridgeSession: getAiBridgeSession() })
+        return
+      case 'aiBridge:startSession': {
+        const state = await getState()
+        cancelPendingAiImport()
+        cancelPendingAiRuleAction()
+        await ensureAiBridgeConnectionKey()
+        await updateSettings({ aiBridgeConnectionEnabled: true })
+        const aiBridgeSession = startAiBridgeSession(state.settings?.aiBridgePermissions)
+        aiBridgeConnection.sync()
+        startAiBridgeKeepalive()
+        sendResponse({ aiBridgeSession })
+        broadcastAiBridgeImport()
+        broadcastAiBridgeAction()
+        return
+      }
+      case 'aiBridge:revokeSession': {
+        aiBridgeConnection.disconnect()
+        stopAiBridgeKeepalive()
+        await updateSettings({ aiBridgeConnectionEnabled: false })
+        cancelPendingAiImport()
+        cancelPendingAiRuleAction()
+        sendResponse({ aiBridgeSession: stopAiBridgeSession() })
+        broadcastAiBridgeImport()
+        broadcastAiBridgeAction()
+        return
+      }
+      case 'aiBridge:regenerateKey': {
+        const state = await getState()
+        const key = generateAiBridgeConnectionKey()
+        await updateSettings({ aiBridgeConnectionKey: key })
+        aiBridgeConnectionKeyCache = key
+        let aiBridgeSession = getAiBridgeSession()
+        if (aiBridgeSession.status !== AI_BRIDGE_STATUS.disabled) {
+          aiBridgeConnection.disconnect()
+          aiBridgeSession = startAiBridgeSession(state.settings?.aiBridgePermissions)
+          aiBridgeConnection.sync()
+        }
+        sendResponse({ aiBridgeSession })
+        broadcastAiBridgeSession(aiBridgeSession)
+        return
+      }
+      case 'aiBridge:updateSessionPermissions': {
+        const aiBridgeSession = updateAiBridgeSessionPermissions(message.payload || {})
+        sendResponse({ aiBridgeSession })
+        broadcastAiBridgeSession(aiBridgeSession)
+        return
+      }
+      case 'aiBridge:getPendingImport':
+        sendResponse({ pendingImport: getPendingAiImport() })
+        return
+      case 'aiBridge:confirmPendingImport': {
+        const result = await confirmPendingAiImport(message.pendingImportId || '')
+        sendResponse({ ...result, pendingImport: getPendingAiImport() })
+        broadcastAiBridgeImport()
+        return
+      }
+      case 'aiBridge:cancelPendingImport': {
+        const result = cancelPendingAiImport(message.pendingImportId || '')
+        sendResponse({ ...result, pendingImport: getPendingAiImport() })
+        broadcastAiBridgeImport()
+        return
+      }
+      case 'aiBridge:getPendingAction':
+        sendResponse({ pendingAction: getPendingAiRuleAction() })
+        return
+      case 'aiBridge:confirmPendingAction': {
+        const result = await confirmPendingAiRuleAction(message.pendingActionId || '', applyAiBridgePendingAction)
+        sendResponse({ ...result, pendingAction: getPendingAiRuleAction() })
+        broadcastAiBridgeAction()
+        return
+      }
+      case 'aiBridge:cancelPendingAction': {
+        const result = cancelPendingAiRuleAction(message.pendingActionId || '')
+        sendResponse({ ...result, pendingAction: getPendingAiRuleAction() })
+        broadcastAiBridgeAction()
+        return
+      }
       case 'debugger:attachActiveTab': {
         const targetTab = await resolveAttachTargetTab(message, sender)
         const tabId = targetTab?.id

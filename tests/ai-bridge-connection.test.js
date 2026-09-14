@@ -1,0 +1,701 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+
+import { AI_BRIDGE_STATUS, createAiBridgeSessionState } from '../src/shared/ai-bridge-state.js'
+import { createAiBridgeConnection } from '../src/background/ai-bridge-connection.js'
+
+class FakeWebSocket {
+  static instances = []
+
+  constructor(url) {
+    this.url = url
+    this.sent = []
+    this.closed = false
+    FakeWebSocket.instances.push(this)
+  }
+
+  send(message) {
+    this.sent.push(message)
+  }
+
+  close() {
+    this.closed = true
+    this.onclose?.({})
+  }
+
+  open() {
+    this.onopen?.({})
+  }
+
+  receive(data) {
+    this.onmessage?.({ data })
+  }
+}
+
+function makeHarness(session) {
+  let currentSession = session
+  const changes = []
+  const timers = []
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => currentSession,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => {
+      currentSession = { ...currentSession, status: AI_BRIDGE_STATUS.connected, connectedAt: '2026-06-19T12:01:00.000Z' }
+      return currentSession
+    },
+    markWaiting: () => {
+      currentSession = { ...currentSession, status: AI_BRIDGE_STATUS.waiting, connectedAt: null }
+      return currentSession
+    },
+    getCommandContext: async () => ({
+      state: {
+        attachedTabId: 42,
+        networkMeta: { currentCaptureSessionId: 'session-1' },
+        collections: [{ id: 'collection-1', name: 'Main', enabled: true, order: 0 }],
+        rules: [],
+        settings: { activeCollectionId: 'collection-1' }
+      },
+      networkEntries: [
+        {
+          id: 'entry-1',
+          networkTabId: 42,
+          captureSessionId: 'session-1',
+          url: 'https://example.test/api?token=secret',
+          method: 'GET',
+          requestHeaders: [{ name: 'Authorization', value: 'Bearer secret' }],
+          responseBody: '{"secret":true}'
+        }
+      ]
+    }),
+    onSessionChange: next => changes.push(next),
+    setTimeoutFn: fn => {
+      timers.push(fn)
+      return timers.length
+    },
+    clearTimeoutFn: () => {}
+  })
+  return {
+    connection,
+    get session() {
+      return currentSession
+    },
+    changes,
+    timers
+  }
+}
+
+test('AI Bridge connection does not connect while session is disabled', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness(createAiBridgeSessionState())
+
+  harness.connection.sync()
+
+  assert.equal(FakeWebSocket.instances.length, 0)
+})
+
+test('AI Bridge connection opens localhost WebSocket and sends token handshake', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.waiting,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: null
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.open()
+
+  assert.equal(socket.url, 'ws://127.0.0.1:37177')
+  assert.deepEqual(JSON.parse(socket.sent[0]), {
+    type: 'hello',
+    source: 'interceptpilot-extension',
+    key: 'pairing-token-123',
+    version: 1
+  })
+})
+
+test('AI Bridge connection marks session connected after hello ack', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.waiting,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: null
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.open()
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+
+  assert.equal(harness.session.status, AI_BRIDGE_STATUS.connected)
+  assert.equal(harness.changes.at(-1).status, AI_BRIDGE_STATUS.connected)
+})
+
+test('AI Bridge connection ignores invalid JSON without leaking token', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.waiting,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: null
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.open()
+  const sentBeforeInvalidMessage = socket.sent.length
+  socket.receive('{bad json')
+
+  assert.equal(socket.sent.length, sentBeforeInvalidMessage)
+  assert.doesNotMatch(JSON.stringify(socket.sent.slice(sentBeforeInvalidMessage)), /pairing-token-123/)
+})
+
+test('AI Bridge connection rejects unknown commands with safe error', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-1', type: 'command', command: 'enable_rule', payload: {} }))
+  await Promise.resolve()
+
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-1',
+    type: 'command:error',
+    ok: false,
+    error: {
+      code: 'UNKNOWN_COMMAND',
+      message: 'Command is not allowed.'
+    }
+  })
+})
+
+test('AI Bridge connection routes import_bundle command through write proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedImports = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => harness.session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => harness.session,
+    markWaiting: () => harness.session,
+    getCommandContext: async () => ({}),
+    importBundle: async payload => {
+      proposedImports.push(payload)
+      return { status: 'awaiting_human_confirmation', pendingImportId: 'ai-import-1' }
+    },
+    setTimeoutFn: fn => {
+      harness.timers.push(fn)
+      return harness.timers.length
+    },
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-import', type: 'command', command: 'import_bundle', payload: { bundleJson: '{"schemaVersion":1}' } }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedImports, [{ bundleJson: '{"schemaVersion":1}' }])
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-import',
+    type: 'command:result',
+    ok: true,
+    result: { status: 'awaiting_human_confirmation', pendingImportId: 'ai-import-1' }
+  })
+})
+
+test('AI Bridge connection routes rule action request commands through proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedActions = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => harness.session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => harness.session,
+    markWaiting: () => harness.session,
+    getCommandContext: async () => ({}),
+    importBundle: async () => {
+      throw new Error('import should not be called')
+    },
+    requestRuleAction: async (action, payload) => {
+      proposedActions.push({ action, payload })
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: 'ai-action-1',
+        action,
+        summary: { ruleId: 'rule-1', ruleName: 'Rule 1' }
+      }
+    },
+    setTimeoutFn: fn => {
+      harness.timers.push(fn)
+      return harness.timers.length
+    },
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-action', type: 'command', command: 'request_enable_rule', payload: { ruleId: 'rule-1' } }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedActions, [{ action: 'enable_rule', payload: { ruleId: 'rule-1' } }])
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-action',
+    type: 'command:result',
+    ok: true,
+    result: {
+      status: 'awaiting_human_confirmation',
+      pendingActionId: 'ai-action-1',
+      action: 'enable_rule',
+      summary: { ruleId: 'rule-1', ruleName: 'Rule 1' }
+    }
+  })
+})
+
+test('AI Bridge connection routes set active collection request through proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedActions = []
+  const session = {
+    status: AI_BRIDGE_STATUS.connected,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  }
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => session,
+    markWaiting: () => session,
+    getCommandContext: async () => ({}),
+    importBundle: async () => {
+      throw new Error('import should not be called')
+    },
+    requestRuleAction: async (action, payload) => {
+      proposedActions.push({ action, payload })
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: 'ai-action-collection',
+        action,
+        summary: { collectionId: 'collection-2', collectionName: 'Account' }
+      }
+    },
+    setTimeoutFn: fn => fn && 1,
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-collection', type: 'command', command: 'request_set_active_collection', payload: { collectionId: 'collection-2' } }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedActions, [{ action: 'set_active_collection', payload: { collectionId: 'collection-2' } }])
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-collection',
+    type: 'command:result',
+    ok: true,
+    result: {
+      status: 'awaiting_human_confirmation',
+      pendingActionId: 'ai-action-collection',
+      action: 'set_active_collection',
+      summary: { collectionId: 'collection-2', collectionName: 'Account' }
+    }
+  })
+})
+
+test('AI Bridge connection routes update requests through proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedActions = []
+  const session = {
+    status: AI_BRIDGE_STATUS.connected,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  }
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => session,
+    markWaiting: () => session,
+    getCommandContext: async () => ({}),
+    requestRuleAction: async (action, payload) => {
+      proposedActions.push({ action, payload })
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: 'ai-action-update',
+        action,
+        summary: { ruleId: 'rule-1', ruleName: 'Rule 1', diff: [{ field: 'priority', before: 100, after: 300 }] }
+      }
+    },
+    setTimeoutFn: fn => fn && 1,
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({
+    id: 'req-update',
+    type: 'command',
+    command: 'request_update_rule',
+    payload: { ruleId: 'rule-1', patch: { priority: 300 }, reason: 'Raise priority.' }
+  }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedActions, [{
+    action: 'update_rule',
+    payload: { ruleId: 'rule-1', patch: { priority: 300 }, reason: 'Raise priority.' }
+  }])
+  assert.equal(JSON.parse(socket.sent.at(-1)).result.action, 'update_rule')
+})
+
+test('AI Bridge connection routes delete requests through proposal handler', async () => {
+  FakeWebSocket.instances = []
+  const proposedActions = []
+  const session = {
+    status: AI_BRIDGE_STATUS.connected,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  }
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => session,
+    markWaiting: () => session,
+    getCommandContext: async () => ({}),
+    requestRuleAction: async (action, payload) => {
+      proposedActions.push({ action, payload })
+      return {
+        status: 'awaiting_human_confirmation',
+        pendingActionId: 'ai-action-delete',
+        action,
+        summary: { ruleId: 'rule-1', ruleName: 'Rule 1' }
+      }
+    },
+    setTimeoutFn: fn => fn && 1,
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({
+    id: 'req-delete',
+    type: 'command',
+    command: 'request_delete_rule',
+    payload: { ruleId: 'rule-1' }
+  }))
+  await Promise.resolve()
+
+  assert.deepEqual(proposedActions, [{ action: 'delete_rule', payload: { ruleId: 'rule-1' } }])
+  assert.equal(JSON.parse(socket.sent.at(-1)).result.action, 'delete_rule')
+})
+
+test('AI Bridge connection returns safe error when import_bundle is rejected', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => harness.session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => harness.session,
+    markWaiting: () => harness.session,
+    getCommandContext: async () => ({}),
+    importBundle: async () => ({
+      error: {
+        code: 'INVALID_JSON',
+        message: 'Import bundle JSON is invalid.'
+      }
+    }),
+    setTimeoutFn: fn => {
+      harness.timers.push(fn)
+      return harness.timers.length
+    },
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-import', type: 'command', command: 'import_bundle', payload: { bundleJson: '{bad json' } }))
+  await Promise.resolve()
+
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-import',
+    type: 'command:error',
+    ok: false,
+    error: {
+      code: 'INVALID_JSON',
+      message: 'Import bundle JSON is invalid.'
+    }
+  })
+})
+
+test('AI Bridge connection ignores commands before hello ack', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.waiting,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: null
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.open()
+  socket.receive(JSON.stringify({ id: 'req-before-ack', type: 'command', command: 'list_rules', payload: {} }))
+  await Promise.resolve()
+
+  assert.equal(socket.sent.length, 1)
+})
+
+test('AI Bridge connection executes allowed read-only commands with sanitized results', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-2', type: 'command', command: 'list_captured_requests', payload: {} }))
+  await Promise.resolve()
+
+  const response = JSON.parse(socket.sent.at(-1))
+  assert.equal(response.id, 'req-2')
+  assert.equal(response.type, 'command:result')
+  assert.equal(response.ok, true)
+  assert.equal(response.result[0].urlSanitized, 'https://example.test/api')
+  assert.deepEqual(response.result[0].queryKeys, ['token'])
+  assert.equal(response.result[0].requestHeadersPresent, true)
+  assert.equal(response.result[0].responseBodyPresent, true)
+  assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
+})
+
+test('AI Bridge connection routes search_captured_requests with payload to read-only command', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({
+    id: 'req-search',
+    type: 'command',
+    command: 'search_captured_requests',
+    payload: { method: 'GET', urlContains: 'api', limit: 5 }
+  }))
+  await Promise.resolve()
+
+  const response = JSON.parse(socket.sent.at(-1))
+  assert.equal(response.id, 'req-search')
+  assert.equal(response.type, 'command:result')
+  assert.equal(response.ok, true)
+  assert.equal(response.result.total, 1)
+  assert.equal(response.result.items[0].urlSanitized, 'https://example.test/api')
+  assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
+})
+
+test('AI Bridge connection executes current test context command with sanitized results', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-context', type: 'command', command: 'get_current_test_context', payload: { ignored: true } }))
+  await Promise.resolve()
+
+  const response = JSON.parse(socket.sent.at(-1))
+  assert.equal(response.id, 'req-context')
+  assert.equal(response.type, 'command:result')
+  assert.equal(response.ok, true)
+  assert.equal(response.result.capture.active, true)
+  assert.equal(response.result.activeCollection.id, 'collection-1')
+  assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
+})
+
+test('AI Bridge connection forwards explain_rule_match payload to read-only command', async () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({
+    id: 'req-diagnostic',
+    type: 'command',
+    command: 'explain_rule_match',
+    payload: {
+      ruleId: 'rule-1',
+      requestId: 'entry-1'
+    }
+  }))
+  await Promise.resolve()
+
+  const response = JSON.parse(socket.sent.at(-1))
+  assert.equal(response.id, 'req-diagnostic')
+  assert.equal(response.type, 'command:result')
+  assert.equal(response.ok, true)
+  assert.equal(response.result.rule?.id || null, null)
+  assert.match(response.result.summary, /Rule was not found/)
+  assert.doesNotMatch(JSON.stringify(response), /secret|Authorization|"requestHeaders":|"responseBody":/)
+})
+
+test('AI Bridge connection closes socket and cancels reconnect on disconnect', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.connected,
+    token: 'pairing-token-123',
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+
+  harness.connection.disconnect()
+
+  assert.equal(socket.closed, true)
+  assert.equal(harness.timers.length, 0)
+})
+
+test('AI Bridge connection replies pong to a heartbeat ping after hello ack', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.waiting,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: null
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.open()
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  const sentBefore = socket.sent.length
+  socket.receive(JSON.stringify({ type: 'ping' }))
+
+  assert.deepEqual(JSON.parse(socket.sent[sentBefore]), { type: 'pong' })
+})
+
+test('AI Bridge connection ignores ping before hello ack', () => {
+  FakeWebSocket.instances = []
+  const harness = makeHarness({
+    status: AI_BRIDGE_STATUS.waiting,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: null
+  })
+
+  harness.connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.open()
+  const sentBefore = socket.sent.length
+  socket.receive(JSON.stringify({ type: 'ping' }))
+
+  assert.equal(socket.sent.length, sentBefore)
+})
+
+test('AI Bridge connection routes request_reload_captured_tab through the reload handler', async () => {
+  FakeWebSocket.instances = []
+  const reloadCalls = []
+  const session = {
+    status: AI_BRIDGE_STATUS.connected,
+    port: 37177,
+    startedAt: '2026-06-19T12:00:00.000Z',
+    connectedAt: '2026-06-19T12:01:00.000Z'
+  }
+  const connection = createAiBridgeConnection({
+    WebSocketCtor: FakeWebSocket,
+    getSession: () => session,
+    getConnectionKey: () => 'pairing-token-123',
+    markConnected: () => session,
+    markWaiting: () => session,
+    getCommandContext: async () => ({}),
+    requestReload: async payload => {
+      reloadCalls.push(payload)
+      return { status: 'awaiting_human_confirmation', pendingActionId: 'ai-action-reload', action: 'reload_captured_tab', summary: { origin: 'https://app.test', path: '/videos' } }
+    },
+    setTimeoutFn: fn => fn && 1,
+    clearTimeoutFn: () => {}
+  })
+
+  connection.sync()
+  const socket = FakeWebSocket.instances[0]
+  socket.receive(JSON.stringify({ type: 'hello:ack', ok: true, version: 1 }))
+  socket.receive(JSON.stringify({ id: 'req-reload', type: 'command', command: 'request_reload_captured_tab', payload: {} }))
+  await Promise.resolve()
+
+  assert.deepEqual(reloadCalls, [{}])
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)), {
+    id: 'req-reload',
+    type: 'command:result',
+    ok: true,
+    result: { status: 'awaiting_human_confirmation', pendingActionId: 'ai-action-reload', action: 'reload_captured_tab', summary: { origin: 'https://app.test', path: '/videos' } }
+  })
+})

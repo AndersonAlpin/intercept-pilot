@@ -23,7 +23,7 @@ import { renderConnectionHeader } from './components/connection-header.js'
 import { renderTabs } from './components/tabs.js'
 import { renderRulesQuickPanel, renderQuickRuleEditor } from './components/rules-quick-panel.js'
 import { renderNetworkQuickCount, renderNetworkQuickPagination, renderNetworkQuickPanel, renderNetworkQuickRows } from './components/network-quick-panel.js'
-import { renderLogsQuickList, renderLogsQuickMeta, renderLogsQuickPanel } from './components/logs-quick-panel.js'
+import { renderLogsQuickHeader, renderLogsQuickList, renderLogsQuickMeta, renderLogsQuickPanel } from './components/logs-quick-panel.js'
 import { renderLogDetailModal } from '../shared/ui/log-detail.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
@@ -303,14 +303,16 @@ function refreshSideNetworkOnly({ defer = false } = {}) {
 
 function patchSideLogsOnly() {
   if (appState.currentTab !== 'logs') return
+  const head = document.querySelector('.logs-head')
   const list = $('#side-logs-list')
   const meta = $('#side-logs-meta')
-  if (!list || !meta) {
+  if (!head || !list || !meta) {
     render()
     return
   }
   appState.filteredLogs = filteredLogs()
   applyLogsPagination()
+  patchHtml(head, renderLogsQuickHeader(appState))
   patchHtml(list, renderLogsQuickList(appState))
   patchHtml(meta, renderLogsQuickMeta(appState))
   bindEvents()

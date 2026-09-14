@@ -1,3 +1,5 @@
+import { AI_BRIDGE_DEFAULT_PERMISSIONS } from './ai-bridge-permissions.js'
+
 export const STORAGE_KEYS = {
   collections: 'collections',
   rules: 'rules',
@@ -36,7 +38,10 @@ export const DEFAULT_SETTINGS = {
   networkFilters: {
     fullApp: { ...DEFAULT_NETWORK_FILTER_FULL },
     sidepanel: { ...DEFAULT_NETWORK_FILTER_SIDE }
-  }
+  },
+  aiBridgePermissions: { ...AI_BRIDGE_DEFAULT_PERMISSIONS },
+  aiBridgeConnectionKey: '',
+  aiBridgeConnectionEnabled: false
 }
 
 export const METHODS = ['ANY', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']

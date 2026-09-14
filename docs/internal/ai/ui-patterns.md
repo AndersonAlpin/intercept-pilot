@@ -104,6 +104,107 @@ Modals should use the shared modal shell pattern when practical:
 - Preserve Escape/backdrop behavior when it already exists.
 - Preserve ids, handlers, and dirty/pristine state.
 
+## AI Bridge UI
+
+### Página AI Bridge
+
+AI Bridge deve ficar em uma página dedicada no Full App, acessível pelo item `AI Bridge` no menu lateral. Não misture esse fluxo dentro de Configurações gerais.
+
+A página deve conter:
+
+- seção de status da conexão;
+- configuração MCP;
+- modos de permissão;
+- permissões avançadas;
+- ações curtas para copiar configuração, mostrar/ocultar configuração, regenerar chave e encerrar conexão.
+
+Na própria página AI Bridge, botões não devem repetir `AI Bridge` no texto quando o contexto já estiver claro.
+
+### Status de conexão
+
+Status padronizados:
+
+- `Desligado`;
+- `Aguardando conexão`;
+- `Conectado`;
+- `Erro de conexão`, quando aplicável.
+
+Use badge curta e texto explicativo curto. A configuração MCP deve ficar oculta por padrão depois que a conexão estiver pronta, com ações `Copiar configuração`, `Mostrar configuração`, `Ocultar configuração` e `Regenerar chave`.
+
+### Modos de permissão
+
+Modos atuais:
+
+- `Restrito`;
+- `Assistido`;
+- `Avançado`;
+- `Personalizado`.
+
+Cada modo aparece como card clicável. Selecionar um preset aplica o conjunto de permissões. Os toggles refletem o modo selecionado. Ao alterar um toggle manualmente, o modo visual deve mudar para `Personalizado`.
+
+Evite duplicar explicações entre o card do modo e a lista de permissões. O card explica o preset; cada permissão explica apenas seu efeito específico.
+
+### Permissões avançadas
+
+Use dois grupos:
+
+- `Dados que a IA pode ver`;
+- `Ações que a IA pode executar sem confirmação`.
+
+Preferir lista vertical compacta, com label, descrição curta e toggle à direita. O card inteiro pode ser clicável. Alternar um toggle não deve levar o scroll de volta ao topo.
+
+### Modal global de propostas
+
+O modal global é usado para propostas vindas da IA e pode aparecer independente da tela atual. Ele deve comunicar origem, alvo e impacto sem virar painel de diagnóstico.
+
+Padrão:
+
+- título específico quando possível;
+- badge `AI Bridge`;
+- texto curto;
+- alvo principal em destaque;
+- impacto extra somente quando necessário;
+- botões `Cancelar` e `Confirmar`;
+- botão destrutivo específico para ações destrutivas quando fizer sentido, como `Excluir coleção`.
+
+Evite `A IA solicitou...` no corpo quando o badge já comunica a origem. Evite repetir `Nada será aplicado sem sua confirmação` em todos os modais, porque os botões e o próprio modal já indicam confirmação.
+
+### Copy dos modais
+
+Diretrizes:
+
+- ação simples usa texto simples;
+- ação com impacto extra explica o impacto;
+- ação destrutiva explica irreversibilidade;
+- URL, regra e coleção devem ter destaque;
+- não listar todas as regras de uma coleção quando o impacto puder ser resumido por contagem;
+- não transformar o modal em diagnóstico detalhado.
+
+Exemplos por fluxo:
+
+- Importação de regra: `Importar a regra "{name}".`
+- Importação de coleção: `Importar a coleção "{name}".` e `Isso criará {count} regras.`
+- Ativar regra: `Ativar a regra "{name}".`
+- Desativar regra: `Desativar a regra "{name}".`
+- Ativar somente esta regra: `Ativar somente "{name}" nesta coleção.`
+- Trocar coleção principal: `Usar "{name}" como coleção principal.`
+- Recarregar aba capturada: `Recarregar a aba capturada.` e `Aba: {target}`.
+- Editar regra: `Atualizar a regra "{name}".` seguido do diff.
+- Editar coleção: `Atualizar a coleção "{name}".` seguido do diff.
+- Excluir regra: `Excluir a regra "{name}".` e `Esta ação não pode ser desfeita.`
+- Excluir coleção: `Excluir "{name}" também removerá {count} regras desta coleção.` e `Esta ação não pode ser desfeita.`
+
+### Diff de edição
+
+Para edição proposta pela IA, mostre:
+
+- campo alterado;
+- valor atual;
+- novo valor;
+- motivo, quando existir.
+
+Use layout vertical legível. Não exponha dados sensíveis no diff sem a permissão correspondente.
+
 ## Import panel
 
 Import should keep manual paste, file selection, and drag-and-drop on the same validation path.

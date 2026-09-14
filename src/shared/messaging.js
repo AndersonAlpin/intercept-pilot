@@ -25,7 +25,19 @@ export const MSG = {
   NETWORK_CLEAR: 'network:clear',
   NETWORK_GET_BODY: 'network:getBody',
   LOGS_CLEAR: 'logs:clear',
-  RULE_CREATE_FROM_REQUEST: 'rule:createFromRequest'
+  RULE_CREATE_FROM_REQUEST: 'rule:createFromRequest',
+
+  AI_BRIDGE_GET_SESSION: 'aiBridge:getSession',
+  AI_BRIDGE_START_SESSION: 'aiBridge:startSession',
+  AI_BRIDGE_REVOKE_SESSION: 'aiBridge:revokeSession',
+  AI_BRIDGE_REGENERATE_KEY: 'aiBridge:regenerateKey',
+  AI_BRIDGE_UPDATE_SESSION_PERMISSIONS: 'aiBridge:updateSessionPermissions',
+  AI_BRIDGE_GET_PENDING_IMPORT: 'aiBridge:getPendingImport',
+  AI_BRIDGE_CONFIRM_PENDING_IMPORT: 'aiBridge:confirmPendingImport',
+  AI_BRIDGE_CANCEL_PENDING_IMPORT: 'aiBridge:cancelPendingImport',
+  AI_BRIDGE_GET_PENDING_ACTION: 'aiBridge:getPendingAction',
+  AI_BRIDGE_CONFIRM_PENDING_ACTION: 'aiBridge:confirmPendingAction',
+  AI_BRIDGE_CANCEL_PENDING_ACTION: 'aiBridge:cancelPendingAction'
 }
 
 export async function sendMessage(message) {

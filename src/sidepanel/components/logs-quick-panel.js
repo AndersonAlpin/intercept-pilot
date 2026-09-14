@@ -93,21 +93,27 @@ export function renderLogsQuickList(state) {
   `).join('') : renderEmptyState({ message: t(hasActiveCaptureContext(state) ? 'logs.webOnlyEmpty' : 'logs.activateCaptureToSeeLogs') })
 }
 
-export function renderLogsQuickPanel(state) {
+export function renderLogsQuickHeader(state) {
   const { canClearLogs } = getLogsQuickView(state)
+  return `
+    <div class="logs-head">
+      <h2>${t('logs.title')}</h2>
+      ${renderButton({
+        id: 'logs-clear-btn',
+        label: t('logs.clearLogs'),
+        variant: 'warning',
+        disabled: !canClearLogs,
+        tooltip: !canClearLogs ? t('logs.clearDisabled') : ''
+      })}
+    </div>
+  `
+}
+
+export function renderLogsQuickPanel(state) {
   return `
     <div class="card compact-card sticky-filters logs-panel">
       <div class="sticky-bar logs-sticky-bar">
-        <div class="logs-head">
-          <h2>${t('logs.title')}</h2>
-          ${renderButton({
-            id: 'logs-clear-btn',
-            label: t('logs.clearLogs'),
-            variant: 'warning',
-            disabled: !canClearLogs,
-            tooltip: !canClearLogs ? t('logs.clearDisabled') : ''
-          })}
-        </div>
+        ${renderLogsQuickHeader(state)}
         <div class="logs-filter-stack">
           ${renderSelect({ id: 'logs-filter-level', value: state.logsFilter?.level || 'ANY', options: getLogLevelOptions() })}
           <input class="input" id="logs-filter-search" placeholder="${escapeHtml(t('common.search') + ' ' + t('logs.title').toLowerCase())}" value="${escapeHtml(state.logsFilter?.search || '')}" />
