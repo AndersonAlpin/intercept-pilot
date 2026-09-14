@@ -13,7 +13,7 @@ O pacote conecta clientes MCP ao InterceptPilot por um daemon local compartilhad
 
 ## Uso local/dev
 
-O pacote ainda está privado e com versão `0.0.0`, então o uso atual é local/dev.
+O pacote é distribuído como um servidor MCP local e pode ser executado com `npx` após a publicação.
 
 Exemplo genérico:
 
@@ -123,9 +123,14 @@ Não existe alias `--token` no estado atual.
 | `request_set_active_collection` | Trocar a coleção principal. | Abre proposta, exceto quando ações de regra/coleção sem confirmação estiverem ativas. |
 | `request_update_rule` | Editar campos seguros de uma regra. | Abre proposta com diff antes/depois. Não permite `responseBody` nem `responseHeaders`. |
 | `request_update_collection` | Editar campos seguros de uma coleção. | Abre proposta com diff antes/depois. |
-| `request_delete_rule` | Excluir uma regra existente. | Sempre exige confirmação humana. |
-| `request_delete_collection` | Excluir uma coleção existente. | Sempre exige confirmação humana e mostra o impacto de regras afetadas. |
+| `request_delete_rule` | Excluir uma regra existente. | Abre proposta, exceto quando ações destrutivas de regra/coleção sem confirmação estiverem ativas. |
+| `request_delete_collection` | Excluir uma coleção existente. | Abre proposta, exceto quando ações destrutivas de regra/coleção sem confirmação estiverem ativas. |
 | `request_reload_captured_tab` | Recarregar somente a aba capturada para validar mocks/regras. | Abre proposta, exceto quando a permissão de reload da aba capturada sem confirmação estiver ativa. Não recarrega páginas arbitrárias ou internas. |
+| `request_start_capture` | Iniciar captura na aba web elegível. | Abre proposta, exceto quando o controle de captura sem confirmação estiver ativo. |
+| `request_restart_capture` | Reiniciar a captura na aba web elegível. | Abre proposta, exceto quando o controle de captura sem confirmação estiver ativo. |
+| `request_stop_capture` | Parar a captura da aba capturada. | Abre proposta, exceto quando o controle de captura sem confirmação estiver ativo. |
+| `request_capture_current_tab` | Capturar a aba web atual elegível. | Abre proposta, exceto quando o controle de captura sem confirmação estiver ativo. |
+| `request_set_capture_mode` | Alterar o modo de captura entre `auto`, `full` e `light`. | Abre proposta, exceto quando o controle de captura sem confirmação estiver ativo. |
 
 ## Segurança
 
@@ -134,9 +139,9 @@ Não existe alias `--token` no estado atual.
 - Sanitização por padrão.
 - Dados sensíveis dependem de permissões explícitas.
 - Ações sem confirmação dependem de permissões explícitas.
-- Deleção é sempre protegida por confirmação humana.
+- Deleções dependem da permissão destrutiva explícita; sem ela, continuam protegidas por confirmação humana.
 - O daemon usa allowlist de comandos.
-- Não há tools diretas para limpar logs, mudar modo de captura, controlar debugger ou recarregar páginas arbitrárias.
+- Não há tools diretas para limpar logs, controlar debugger ou recarregar páginas arbitrárias. O controle de captura é limitado à aba web elegível e aos modos suportados.
 - A stable connection key não deve aparecer em logs, erros, snackbars ou retornos MCP.
 
 ## Troubleshooting
@@ -171,4 +176,4 @@ Use caminho absoluto para `packages/interceptpilot-mcp/src/index.js`. No Windows
 
 ### Diferença entre local/dev e `npx`
 
-O modo local/dev usa `node` com caminho local. O modo `npx` só deve ser usado depois que o pacote for publicado.
+O modo local/dev usa `node` com caminho local. O modo `npx` baixa e executa a versão publicada do pacote.

@@ -658,7 +658,7 @@ export function createToolCallHandler({ bridge }) {
 export function createMcpServer({ bridge }) {
   const server = new McpServer({
     name: 'interceptpilot-mcp',
-    version: '0.0.0'
+    version: '0.1.0'
   })
   const handleToolCall = createToolCallHandler({ bridge })
 
