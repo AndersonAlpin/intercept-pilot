@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 import { setLocale } from '../src/shared/i18n.js'
-import { getReleaseNotesForVersion, getReleaseNotesMenuState, hasReleaseNotesForVersion } from '../src/shared/release-notes.js'
+import { getReleaseNotesForVersion, getReleaseNotesMenuState, getReleaseNotesSeenKey, hasReleaseNotesForVersion } from '../src/shared/release-notes.js'
 import { renderReleaseNotesModal } from '../src/fullapp/components/release-notes-modal.js'
 import { renderSidebar } from '../src/fullapp/components/sidebar.js'
 
@@ -58,6 +58,28 @@ test('release notes menu state stays hidden when a version has no notes', () => 
     version: '1.2.3',
     lastSeenVersion: '1.2.3',
     lastSeenAt: twoDaysAgo,
+    now
+  }), { visible: false, unread: false })
+})
+
+test('a content revision shows the notes again to who saw the previous edition', () => {
+  const now = new Date('2026-09-14T12:00:00.000Z').getTime()
+  const tenDaysAgo = now - (10 * 24 * 60 * 60 * 1000)
+
+  assert.equal(getReleaseNotesSeenKey('1.3.0'), '1.3.0#2')
+  assert.equal(getReleaseNotesSeenKey('1.2.4'), '1.2.4')
+
+  assert.deepEqual(getReleaseNotesMenuState({
+    version: '1.3.0',
+    lastSeenVersion: '1.3.0',
+    lastSeenAt: tenDaysAgo,
+    now
+  }), { visible: true, unread: true })
+
+  assert.deepEqual(getReleaseNotesMenuState({
+    version: '1.3.0',
+    lastSeenVersion: '1.3.0#2',
+    lastSeenAt: tenDaysAgo,
     now
   }), { visible: false, unread: false })
 })

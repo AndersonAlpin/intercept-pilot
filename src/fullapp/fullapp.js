@@ -47,7 +47,7 @@ import { renderReleaseNotesModal } from './components/release-notes-modal.js'
 import { renderRuleMoveModal } from './components/rule-move-modal.js'
 import { renderAiBridgePage } from './components/ai-bridge-page.js'
 import { renderAiBridgeProposalModal } from './components/ai-bridge-proposal-modal.js'
-import { getReleaseNotesMenuState, hasReleaseNotesForVersion } from '../shared/release-notes.js'
+import { getReleaseNotesMenuState, getReleaseNotesSeenKey, hasReleaseNotesForVersion } from '../shared/release-notes.js'
 import { initTooltips } from '../shared/ui/tooltip.js'
 import { buildCollectionTemplate, buildRuleTemplate, getAiPrompt } from '../shared/import-template.js'
 import { getBulkDeleteDialogCopy, getBulkDeleteSuccessMessage } from '../shared/bulk-delete-dialog.js'
@@ -558,10 +558,11 @@ function openReleaseNotes(manual = false) {
 async function closeReleaseNotes() {
   const modal = state.releaseNotesModal
   state.releaseNotesModal = null
-  if (modal?.version && state.releaseNotes?.lastSeenVersion !== modal.version) {
+  const seenKey = modal?.version ? getReleaseNotesSeenKey(modal.version) : ''
+  if (seenKey && state.releaseNotes?.lastSeenVersion !== seenKey) {
     const seenAt = Date.now()
-    state.releaseNotes = { lastSeenVersion: modal.version, lastSeenAt: seenAt }
-    await sendMessage({ type: MSG.RELEASE_NOTES_MARK_SEEN, version: modal.version, seenAt })
+    state.releaseNotes = { lastSeenVersion: seenKey, lastSeenAt: seenAt }
+    await sendMessage({ type: MSG.RELEASE_NOTES_MARK_SEEN, version: seenKey, seenAt })
   }
   render()
 }
