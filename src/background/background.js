@@ -624,6 +624,7 @@ async function getAiBridgeCommandContext() {
       compatActiveTabId,
       networkMeta: getNetworkCycleMeta(),
       activeCaptureTab,
+      activeTab: effectiveCandidate || runtimeState.activeTab || null,
       captureMode: state.settings?.captureMode || 'auto',
       aiBridgeStatus: getAiBridgeSession().status,
       aiBridgePermissions: getAiBridgeSession().permissions || {}

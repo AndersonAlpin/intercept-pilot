@@ -722,7 +722,7 @@ test('getCurrentTestContext returns sanitized SPA hash route without hash query 
   assert.doesNotMatch(serialized, /beta=1|bare-query-secret|bare-hash-secret|secret-token|user@example|Security secret|#\/security|token=|email=/)
 })
 
-test('getCurrentTestContext handles missing capture context without exposing private URLs', () => {
+test('getCurrentTestContext exposes the active tab origin and path while capture is off, never query values', () => {
   const context = getCurrentTestContext({
     state: {
       collections: [],
@@ -741,7 +741,15 @@ test('getCurrentTestContext handles missing capture context without exposing pri
       active: false,
       mode: 'auto'
     },
-    tab: null,
+    tab: {
+      origin: 'https://private.example.test',
+      path: '/path',
+      hasQuery: true,
+      queryKeys: ['token'],
+      hashPath: '',
+      hasHashQuery: false,
+      hashQueryKeys: []
+    },
     activeCollection: null,
     rules: {
       total: 0,
@@ -754,5 +762,5 @@ test('getCurrentTestContext handles missing capture context without exposing pri
     }
   })
 
-  assert.doesNotMatch(JSON.stringify(context), /private|secret/)
+  assert.doesNotMatch(JSON.stringify(context), /secret/)
 })

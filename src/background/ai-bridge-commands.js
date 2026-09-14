@@ -188,7 +188,7 @@ export function getCurrentTestContext({ state = {} } = {}) {
       active: activeCapture,
       mode: getCaptureMode(state)
     },
-    tab: activeCapture ? sanitizeTabContext(state.activeCaptureTab || state.activeTab, permissions) : null,
+    tab: sanitizeTabContext(state.activeCaptureTab || state.activeTab, permissions),
     activeCollection: activeCollection.collection
       ? {
           id: activeCollection.collection.id,
