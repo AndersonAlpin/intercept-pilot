@@ -8,7 +8,7 @@ export const AI_BRIDGE_STATUS = {
 
 export const DEFAULT_AI_BRIDGE_PORT = 37177
 
-export const LOCAL_MCP_ENTRY_PLACEHOLDER = '<caminho-local>/packages/interceptpilot-mcp/src/index.js'
+export const LOCAL_MCP_ENTRY_PLACEHOLDER = '<caminho-local>/interceptpilot-mcp/src/index.js'
 
 export function generateAiBridgeConnectionKey(byteLength = 32) {
   const bytes = new Uint8Array(byteLength)

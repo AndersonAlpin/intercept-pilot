@@ -10,7 +10,6 @@ The extension is built with vanilla JS/HTML/CSS and runs as an MV3 service worke
 - `src/shared/*`: constants, models, storage, messaging, validators, i18n, release notes, utils, and shared UI helpers.
 - `src/sidepanel/*`: compact operational UI.
 - `src/fullapp/*`: full management UI in dedicated extension tab.
-- `packages/interceptpilot-mcp/*`: local MCP adapter and shared daemon for AI Bridge.
 - `icons/*`: extension icons.
 - `tools/*`: packaging and release helpers that do not ship inside the extension.
 - `site/dist/*`: public static privacy policy site for Chrome Web Store and future product web presence.
@@ -44,9 +43,9 @@ The extension is built with vanilla JS/HTML/CSS and runs as an MV3 service worke
 
 ## AI Bridge / MCP
 
-AI Bridge connects InterceptPilot to local AI agents through MCP. It exposes sanitized context, request/rule/log queries, match diagnostics, import proposals, assisted rule/collection actions, and captured-tab reload proposals through the local `packages/interceptpilot-mcp` adapter and shared daemon.
+AI Bridge connects InterceptPilot to local AI agents through MCP. It exposes sanitized context, request/rule/log queries, match diagnostics, import proposals, assisted rule/collection actions, and captured-tab reload proposals through the `interceptpilot-mcp` package (adapter and shared daemon), maintained in its own repository: https://github.com/AndersonAlpin/interceptpilot-mcp.
 
-Detailed architecture and UI guidance live in `docs/internal/ai/architecture.md` and `docs/internal/ai/ui-patterns.md`. Package usage and local/dev configuration live in `packages/interceptpilot-mcp/README.md`.
+Detailed architecture and UI guidance live in `docs/internal/ai/architecture.md` and `docs/internal/ai/ui-patterns.md`. Package usage and configuration live in the `interceptpilot-mcp` README.
 
 ## Network behavior
 
