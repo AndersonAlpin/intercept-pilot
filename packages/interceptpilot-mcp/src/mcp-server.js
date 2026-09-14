@@ -469,6 +469,25 @@ function createReloadProposalResult(result = {}) {
   }
 }
 
+function createCaptureActionResult(result = {}) {
+  const summary = result.summary || {}
+  const prefix = result.status === 'applied' ? 'Capture action applied in InterceptPilot.' : 'Capture action proposal sent to InterceptPilot.'
+  const lines = [
+    prefix,
+    result.status === 'applied' ? 'Approval: session_permission.' : 'The user must confirm it in the Full App before the capture state changes.',
+    result.pendingActionId ? `Pending action: ${result.pendingActionId}` : '',
+    result.action ? `Action: ${result.action}` : '',
+    summary.origin ? `Origin: ${summary.origin}` : '',
+    summary.path ? `Path: ${summary.path}` : '',
+    summary.nextMode ? `Mode: ${summary.nextMode}` : ''
+  ].filter(Boolean)
+  return { content: [{ type: 'text', text: lines.join('\n') }] }
+}
+
+function createCaptureActionTool(description, inputSchema = EMPTY_JSON_INPUT_SCHEMA, registeredInputSchema = {}, buildPayload = createEmptyPayload) {
+  return { description, jsonInputSchema: inputSchema, registeredInputSchema, buildPayload, formatResult: createCaptureActionResult }
+}
+
 function createRuleActionTool(description) {
   return {
     description,
@@ -582,17 +601,24 @@ const MCP_TOOLS = {
   request_disable_rule: createRuleActionTool('Request disabling an existing InterceptPilot rule. This creates a pending action proposal in the Full App and requires user confirmation before the rule is disabled.'),
   request_set_only_active_rule: createRuleActionTool('Request making one rule the only active rule in its collection. This creates a pending action proposal in the Full App and requires user confirmation before enabling the selected rule and disabling the others in the same collection.'),
   request_set_active_collection: createCollectionActionTool('Request making an existing InterceptPilot collection the active collection. This creates a pending action proposal in the Full App and requires user confirmation before the active collection changes, unless the session allows rule and collection actions without confirmation.'),
-  request_update_rule: createUpdateRuleTool('Request updating safe fields on an existing InterceptPilot rule. This creates a pending action proposal in the Full App with a before/after diff and requires user confirmation before anything is changed. It does not allow responseBody or responseHeaders edits.'),
-  request_update_collection: createUpdateCollectionTool('Request updating safe fields on an existing InterceptPilot collection. This creates a pending action proposal in the Full App with a before/after diff and requires user confirmation before anything is changed.'),
-  request_delete_rule: createDeleteRuleTool('Request deleting an existing InterceptPilot rule. This always creates a pending action proposal in the Full App and requires human confirmation before anything is removed.'),
-  request_delete_collection: createDeleteCollectionTool('Request deleting an existing InterceptPilot collection. This always creates a pending action proposal in the Full App, shows the affected rule count, and requires human confirmation before anything is removed.'),
+  request_update_rule: createUpdateRuleTool('Request updating safe fields on an existing InterceptPilot rule. This is applied without confirmation when rule and collection actions are enabled for the session; otherwise it creates a pending proposal. It does not allow responseBody or responseHeaders edits.'),
+  request_update_collection: createUpdateCollectionTool('Request updating safe fields on an existing InterceptPilot collection. This is applied without confirmation when rule and collection actions are enabled for the session; otherwise it creates a pending proposal.'),
+  request_delete_rule: createDeleteRuleTool('Request deleting an existing InterceptPilot rule. It is applied without confirmation only when destructive rule and collection actions are enabled for the session; otherwise it always creates a pending proposal.'),
+  request_delete_collection: createDeleteCollectionTool('Request deleting an existing InterceptPilot collection. It is applied without confirmation only when destructive rule and collection actions are enabled for the session; otherwise it always creates a pending proposal.'),
   request_reload_captured_tab: {
     description: 'Request reloading only the InterceptPilot captured tab so a mock or rule change can be validated. Creates a pending action proposal in the Full App that the user must confirm, unless the captured-tab reload session permission is enabled. Never reloads an arbitrary or internal (chrome://, extension://) page and does not change capture mode or debugger state.',
     jsonInputSchema: EMPTY_JSON_INPUT_SCHEMA,
     registeredInputSchema: {},
     buildPayload: createEmptyPayload,
     formatResult: createReloadProposalResult
-  }
+  },
+  request_start_capture: createCaptureActionTool('Request starting capture on the eligible current web tab. It is applied without confirmation when capture control is enabled for the session; otherwise it creates a pending proposal. Never targets arbitrary URLs or restricted pages.'),
+  request_restart_capture: createCaptureActionTool('Request restarting capture on the eligible current web tab using the configured capture mode. It is applied without confirmation when capture control is enabled for the session; otherwise it creates a pending proposal.'),
+  request_stop_capture: createCaptureActionTool('Request stopping capture on the current captured web tab. It is applied without confirmation when capture control is enabled for the session; otherwise it creates a pending proposal.'),
+  request_capture_current_tab: createCaptureActionTool('Request capturing the eligible current web tab. It is applied without confirmation when capture control is enabled for the session; otherwise it creates a pending proposal. It does not accept arbitrary tab IDs or URLs.'),
+  request_set_capture_mode: createCaptureActionTool('Request changing capture mode. Allowed values are auto, full, and light. It is applied without confirmation when capture control is enabled for the session; otherwise it creates a pending proposal.', {
+    type: 'object', properties: { mode: { type: 'string', enum: ['auto', 'full', 'light'] } }, required: ['mode'], additionalProperties: false
+  }, { mode: z.enum(['auto', 'full', 'light']).describe('Capture mode: auto, full, or light.') }, args => ({ mode: args.mode }))
 }
 
 export function getMcpToolNames() {

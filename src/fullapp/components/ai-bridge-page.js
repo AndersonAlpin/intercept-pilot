@@ -24,6 +24,8 @@ const DATA_PERMISSION_ROWS = [
 const ACTION_PERMISSION_ROWS = [
   ['allowImportBundleApplyByDefault', 'allowImportBundleApplyThisSession', 'aiBridgePermissionImportApply', 'aiBridgePermissionImportApplyDescription'],
   ['allowRuleActionsByDefault', 'allowRuleActionsThisSession', 'aiBridgePermissionRuleActions', 'aiBridgePermissionRuleActionsDescription'],
+  ['allowDestructiveRuleCollectionActionsByDefault', 'allowDestructiveRuleCollectionActionsThisSession', 'aiBridgePermissionDestructiveActions', 'aiBridgePermissionDestructiveActionsDescription'],
+  ['allowCaptureControlByDefault', 'allowCaptureControlThisSession', 'aiBridgePermissionCaptureControl', 'aiBridgePermissionCaptureControlDescription'],
   ['allowCapturedTabReloadByDefault', 'allowCapturedTabReloadThisSession', 'aiBridgePermissionCapturedTabReload', 'aiBridgePermissionCapturedTabReloadDescription']
 ]
 

@@ -36,7 +36,12 @@ test('protocol exposes only allowed MVP commands', () => {
     'request_update_collection',
     'request_delete_rule',
     'request_delete_collection',
-    'request_reload_captured_tab'
+    'request_reload_captured_tab',
+    'request_start_capture',
+    'request_restart_capture',
+    'request_stop_capture',
+    'request_capture_current_tab',
+    'request_set_capture_mode'
   ])
   assert.equal(isAllowedCommand('list_rules'), true)
   assert.equal(isAllowedCommand('search_rules'), true)

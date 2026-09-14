@@ -387,7 +387,11 @@ const en = {
     aiBridgePermissionResponseBodyDescription: 'Allows sending the response body, with limits and truncation.',
     aiBridgePermissionDetailedLogsDescription: 'Allows sending logs with more context for diagnostics.',
     aiBridgePermissionImportApplyDescription: 'Allows creating AI-proposed rules or collections without asking for confirmation.',
-    aiBridgePermissionRuleActionsDescription: 'Allows enabling, disabling, isolating rules, or setting the active collection without asking for confirmation.',
+    aiBridgePermissionRuleActionsDescription: 'Allows enabling, disabling, isolating, editing rules, or setting the active collection without asking for confirmation.',
+    aiBridgePermissionDestructiveActions: 'Delete rules and collections without confirmation',
+    aiBridgePermissionDestructiveActionsDescription: 'Allows deleting rules and collections without asking for confirmation.',
+    aiBridgePermissionCaptureControl: 'Control capture without confirmation',
+    aiBridgePermissionCaptureControlDescription: 'Allows starting, restarting, stopping, capturing the current tab, and changing capture mode without asking for confirmation.',
     aiBridgePermissionCapturedTabReloadDescription: 'Allows reloading only the captured tab without asking for confirmation.',
     aiBridgePermissionQueryValuesDefault: 'Expose query string values by default',
     aiBridgePermissionRequestHeadersDefault: 'Expose request headers by default',
@@ -467,6 +471,11 @@ const en = {
     aiActionLead_update_rule: 'Edit rule "{rule}".',
     aiActionLead_update_collection: 'Edit collection "{collection}".',
     aiActionLead_reload_captured_tab: 'Reload captured tab.',
+    aiActionLead_start_capture: 'Start capture on the current tab.',
+    aiActionLead_restart_capture: 'Restart capture on the current tab.',
+    aiActionLead_stop_capture: 'Stop capture.',
+    aiActionLead_capture_current_tab: 'Capture the current tab.',
+    aiActionLead_set_capture_mode: 'Change the capture mode.',
     aiActionCollectionLine: 'Collection: {collection}.',
     aiActionPreviousCollectionLine: 'Current collection: {collection}.',
     aiActionReloadTargetLine: 'Tab: {target}.',
@@ -525,7 +534,8 @@ const en = {
       aiBridgeIntro: 'AI Bridge connects InterceptPilot to local AI agents.',
       aiBridgeContext: 'Agents can inspect context with sensitive data filtered out, requests, logs, rules, collections, and recent results.',
       aiBridgeActions: 'Imports, assisted actions, edits, protected deletes, and captured-tab reloads use configurable permissions.',
-      aiBridgePermissions: 'You control which data AI can see and which actions it can run.'
+      aiBridgePermissions: 'You control which data AI can see and which actions it can run.',
+      aiBridgeCaptureControl: 'Agents can start, stop and switch capture mode, and see the current tab before capturing. Deletions and capture have their own permissions.'
     }
   },
   importTemplate: {

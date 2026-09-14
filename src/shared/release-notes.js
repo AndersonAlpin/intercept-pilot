@@ -12,7 +12,8 @@ const RELEASE_NOTES = {
       'releaseNotes.items.aiBridgeIntro',
       'releaseNotes.items.aiBridgeContext',
       'releaseNotes.items.aiBridgeActions',
-      'releaseNotes.items.aiBridgePermissions'
+      'releaseNotes.items.aiBridgePermissions',
+      'releaseNotes.items.aiBridgeCaptureControl'
     ]
   }
 }

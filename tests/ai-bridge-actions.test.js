@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   AI_BRIDGE_RULE_ACTIONS,
+  AI_BRIDGE_TAB_ACTIONS,
   cancelPendingAiRuleAction,
   confirmPendingAiRuleAction,
   createAiBridgeRuleActionController,
@@ -107,6 +108,40 @@ test('AI rule action controller returns safe errors for invalid action, payload 
   })
   assert.deepEqual(controller.createPendingAction(AI_BRIDGE_RULE_ACTIONS.enableRule, { ruleId: 'missing' }, context), {
     error: { code: 'RULE_NOT_FOUND', message: 'Rule was not found.' }
+  })
+})
+
+test('AI bridge capture controller creates a safe capture proposal', () => {
+  const controller = createController({ idGenerator: () => 'ai-capture-1' })
+  const result = controller.createCaptureProposal(AI_BRIDGE_TAB_ACTIONS.setCaptureMode, { mode: 'light' }, {
+    captureTarget: { tabId: 12, origin: 'https://example.com', path: '/checkout' },
+    captureMode: 'full'
+  })
+
+  assert.deepEqual(result, {
+    status: 'awaiting_human_confirmation',
+    pendingActionId: 'ai-capture-1',
+    action: 'set_capture_mode',
+    summary: {
+      action: 'set_capture_mode',
+      origin: 'https://example.com',
+      path: '/checkout',
+      previousMode: 'full',
+      nextMode: 'light'
+    }
+  })
+})
+
+test('AI bridge capture controller rejects an invalid mode and missing target', () => {
+  const controller = createController()
+
+  assert.deepEqual(controller.createCaptureProposal(AI_BRIDGE_TAB_ACTIONS.setCaptureMode, { mode: 'debugger' }, {
+    captureTarget: { tabId: 12 }
+  }), {
+    error: { code: 'INVALID_CAPTURE_MODE', message: 'Capture mode must be auto, full, or light.' }
+  })
+  assert.deepEqual(controller.createCaptureProposal(AI_BRIDGE_TAB_ACTIONS.startCapture, {}, {}), {
+    error: { code: 'CAPTURE_TARGET_NOT_FOUND', message: 'No eligible web tab is available.' }
   })
 })
 

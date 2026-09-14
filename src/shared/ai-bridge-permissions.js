@@ -7,6 +7,8 @@ export const AI_BRIDGE_DEFAULT_PERMISSIONS = Object.freeze({
   allowDetailedLogsByDefault: false,
   allowImportBundleApplyByDefault: false,
   allowRuleActionsByDefault: false,
+  allowDestructiveRuleCollectionActionsByDefault: false,
+  allowCaptureControlByDefault: false,
   allowCapturedTabReloadByDefault: false
 })
 
@@ -19,6 +21,8 @@ export const AI_BRIDGE_SESSION_PERMISSIONS = Object.freeze({
   allowDetailedLogsThisSession: false,
   allowImportBundleApplyThisSession: false,
   allowRuleActionsThisSession: false,
+  allowDestructiveRuleCollectionActionsThisSession: false,
+  allowCaptureControlThisSession: false,
   allowCapturedTabReloadThisSession: false
 })
 
@@ -31,6 +35,8 @@ export const AI_BRIDGE_PERMISSION_PAIRS = Object.freeze([
   ['allowDetailedLogsByDefault', 'allowDetailedLogsThisSession'],
   ['allowImportBundleApplyByDefault', 'allowImportBundleApplyThisSession'],
   ['allowRuleActionsByDefault', 'allowRuleActionsThisSession'],
+  ['allowDestructiveRuleCollectionActionsByDefault', 'allowDestructiveRuleCollectionActionsThisSession'],
+  ['allowCaptureControlByDefault', 'allowCaptureControlThisSession'],
   ['allowCapturedTabReloadByDefault', 'allowCapturedTabReloadThisSession']
 ])
 
@@ -58,6 +64,8 @@ const AI_BRIDGE_DEFAULT_PERMISSION_PRESETS = Object.freeze({
     allowDetailedLogsByDefault: true,
     allowImportBundleApplyByDefault: true,
     allowRuleActionsByDefault: true,
+    allowDestructiveRuleCollectionActionsByDefault: true,
+    allowCaptureControlByDefault: true,
     allowCapturedTabReloadByDefault: true
   })
 })

@@ -45,6 +45,13 @@ const RULE_ACTION_PROPOSAL_COMMANDS = {
   request_delete_collection: 'delete_collection'
 }
 const TAB_ACTION_PROPOSAL_COMMANDS = new Set(['request_reload_captured_tab'])
+const CAPTURE_ACTION_COMMANDS = {
+  request_start_capture: 'start_capture',
+  request_restart_capture: 'restart_capture',
+  request_stop_capture: 'stop_capture',
+  request_capture_current_tab: 'capture_current_tab',
+  request_set_capture_mode: 'set_capture_mode'
+}
 
 const COMMAND_NOT_ALLOWED_ERROR = {
   code: 'UNKNOWN_COMMAND',
@@ -79,6 +86,7 @@ export function createAiBridgeConnection(options = {}) {
     importBundle,
     requestRuleAction,
     requestReload,
+    requestCapture,
     onSessionChange = () => {},
     setTimeoutFn = setTimeout,
     clearTimeoutFn = clearTimeout,
@@ -121,7 +129,7 @@ export function createAiBridgeConnection(options = {}) {
   async function handleCommand(message) {
     const id = String(message?.id || '')
     const command = String(message?.command || '')
-    if (!id || (!ALLOWED_COMMANDS[command] && !WRITE_PROPOSAL_COMMANDS.has(command) && !RULE_ACTION_PROPOSAL_COMMANDS[command] && !TAB_ACTION_PROPOSAL_COMMANDS.has(command))) {
+    if (!id || (!ALLOWED_COMMANDS[command] && !WRITE_PROPOSAL_COMMANDS.has(command) && !RULE_ACTION_PROPOSAL_COMMANDS[command] && !TAB_ACTION_PROPOSAL_COMMANDS.has(command) && !CAPTURE_ACTION_COMMANDS[command])) {
       sendCommandError(id, COMMAND_NOT_ALLOWED_ERROR)
       return
     }
@@ -169,6 +177,16 @@ export function createAiBridgeConnection(options = {}) {
           ok: true,
           result
         })
+        return
+      }
+
+      if (CAPTURE_ACTION_COMMANDS[command]) {
+        const result = await requestCapture(CAPTURE_ACTION_COMMANDS[command], message.payload || {})
+        if (result?.error) {
+          sendCommandError(id, result.error)
+          return
+        }
+        send({ id, type: 'command:result', ok: true, result })
         return
       }
 

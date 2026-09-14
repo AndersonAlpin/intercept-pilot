@@ -43,7 +43,12 @@ export const ALLOWED_COMMANDS = Object.freeze([
   'request_update_collection',
   'request_delete_rule',
   'request_delete_collection',
-  'request_reload_captured_tab'
+  'request_reload_captured_tab',
+  'request_start_capture',
+  'request_restart_capture',
+  'request_stop_capture',
+  'request_capture_current_tab',
+  'request_set_capture_mode'
 ])
 
 const ALLOWED_COMMAND_SET = new Set(ALLOWED_COMMANDS)

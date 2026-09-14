@@ -10,10 +10,22 @@ export const AI_BRIDGE_RULE_ACTIONS = {
 }
 
 export const AI_BRIDGE_TAB_ACTIONS = {
-  reloadCapturedTab: 'reload_captured_tab'
+  reloadCapturedTab: 'reload_captured_tab',
+  startCapture: 'start_capture',
+  restartCapture: 'restart_capture',
+  stopCapture: 'stop_capture',
+  captureCurrentTab: 'capture_current_tab',
+  setCaptureMode: 'set_capture_mode'
 }
 
 const ALLOWED_ACTIONS = new Set(Object.values(AI_BRIDGE_RULE_ACTIONS))
+const ALLOWED_CAPTURE_ACTIONS = new Set([
+  AI_BRIDGE_TAB_ACTIONS.startCapture,
+  AI_BRIDGE_TAB_ACTIONS.restartCapture,
+  AI_BRIDGE_TAB_ACTIONS.stopCapture,
+  AI_BRIDGE_TAB_ACTIONS.captureCurrentTab,
+  AI_BRIDGE_TAB_ACTIONS.setCaptureMode
+])
 const MAX_AFFECTED_RULES_SUMMARY = 5
 const SAFE_RULE_UPDATE_FIELDS = new Set([
   'name',
@@ -423,6 +435,23 @@ export function createAiBridgeRuleActionController(options = {}) {
     }
   }
 
+  function createCaptureProposal(action, payload = {}, context = {}) {
+    if (!ALLOWED_CAPTURE_ACTIONS.has(action)) return createSafeActionError('UNKNOWN_ACTION', 'Capture action is not allowed.')
+    if (pendingAction || context.hasPendingImport) return createSafeActionError('PENDING_PROPOSAL_EXISTS', 'Another AI Bridge proposal is already pending.')
+    if (!context.captureTarget?.tabId) return createSafeActionError('CAPTURE_TARGET_NOT_FOUND', 'No eligible web tab is available.')
+    if (action === AI_BRIDGE_TAB_ACTIONS.setCaptureMode && !['auto', 'full', 'light'].includes(String(payload.mode || ''))) {
+      return createSafeActionError('INVALID_CAPTURE_MODE', 'Capture mode must be auto, full, or light.')
+    }
+    const summary = {
+      action,
+      origin: String(context.captureTarget.origin || ''),
+      path: String(context.captureTarget.path || ''),
+      ...(action === AI_BRIDGE_TAB_ACTIONS.setCaptureMode ? { previousMode: String(context.captureMode || 'auto'), nextMode: String(payload.mode) } : {})
+    }
+    pendingAction = { id: idGenerator(), source: 'AI Bridge', createdAt: now(), action, summary }
+    return { status: 'awaiting_human_confirmation', pendingActionId: pendingAction.id, action, summary }
+  }
+
   function cancelPendingAction(id = '') {
     if (!pendingAction) return { ok: true, pendingAction: null }
     if (id && pendingAction.id !== id) {
@@ -451,6 +480,7 @@ export function createAiBridgeRuleActionController(options = {}) {
   return {
     createPendingAction,
     createReloadProposal,
+    createCaptureProposal,
     getPendingAction,
     cancelPendingAction,
     confirmPendingAction
@@ -465,6 +495,10 @@ export function createPendingAiRuleAction(action, payload, context) {
 
 export function createPendingAiReloadAction(context) {
   return aiBridgeRuleActionController.createReloadProposal(context)
+}
+
+export function createPendingAiCaptureAction(action, payload, context) {
+  return aiBridgeRuleActionController.createCaptureProposal(action, payload, context)
 }
 
 export function getPendingAiRuleAction() {

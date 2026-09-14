@@ -259,7 +259,11 @@ const ptBR = {
     aiBridgePermissionResponseBodyDescription: 'Permite enviar o corpo da resposta, com limite e truncamento.',
     aiBridgePermissionDetailedLogsDescription: 'Permite enviar logs com mais contexto para diagnóstico.',
     aiBridgePermissionImportApplyDescription: 'Permite criar regras ou coleções propostas pela IA sem pedir confirmação.',
-    aiBridgePermissionRuleActionsDescription: 'Permite ativar, desativar, isolar regras ou definir a coleção principal sem pedir confirmação.',
+    aiBridgePermissionRuleActionsDescription: 'Permite ativar, desativar, isolar, editar regras ou definir a coleção principal sem pedir confirmação.',
+    aiBridgePermissionDestructiveActions: 'Excluir regras e coleções sem confirmação',
+    aiBridgePermissionDestructiveActionsDescription: 'Permite excluir regras e coleções sem pedir confirmação.',
+    aiBridgePermissionCaptureControl: 'Controlar captura sem confirmação',
+    aiBridgePermissionCaptureControlDescription: 'Permite iniciar, reiniciar, parar, capturar a aba atual e trocar o modo de captura sem pedir confirmação.',
     aiBridgePermissionCapturedTabReloadDescription: 'Permite recarregar somente a aba capturada sem pedir confirmação.',
     aiBridgePermissionQueryValuesDefault: 'Expor valores de query string por padrão',
     aiBridgePermissionRequestHeadersDefault: 'Expor headers de request por padrão',
@@ -339,6 +343,11 @@ const ptBR = {
     aiActionLead_update_rule: 'Editar a regra “{rule}”.',
     aiActionLead_update_collection: 'Editar a coleção “{collection}”.',
     aiActionLead_reload_captured_tab: 'Recarregar a aba capturada.',
+    aiActionLead_start_capture: 'Iniciar a captura na aba atual.',
+    aiActionLead_restart_capture: 'Reiniciar a captura na aba atual.',
+    aiActionLead_stop_capture: 'Parar a captura.',
+    aiActionLead_capture_current_tab: 'Capturar a aba atual.',
+    aiActionLead_set_capture_mode: 'Trocar o modo de captura.',
     aiActionCollectionLine: 'Coleção: {collection}.',
     aiActionPreviousCollectionLine: 'Coleção atual: {collection}.',
     aiActionReloadTargetLine: 'Aba: {target}.',
@@ -380,7 +389,8 @@ const ptBR = {
       aiBridgeIntro: 'AI Bridge conecta o InterceptPilot a agentes locais de IA.',
       aiBridgeContext: 'Agentes podem consultar contexto com dados sensíveis filtrados, requisições, logs, regras, coleções e resultados recentes.',
       aiBridgeActions: 'Importações, ações assistidas, edição, exclusões protegidas e recarregamento da aba capturada usam permissões configuráveis.',
-      aiBridgePermissions: 'Você controla quais dados a IA pode ver e quais ações pode executar.'
+      aiBridgePermissions: 'Você controla quais dados a IA pode ver e quais ações pode executar.',
+      aiBridgeCaptureControl: 'Agentes podem iniciar, parar e trocar o modo de captura, e ver a aba atual antes de capturar. Exclusões e captura têm permissões próprias.'
     }
   },
   importTemplate: {

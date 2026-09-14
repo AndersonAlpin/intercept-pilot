@@ -258,7 +258,11 @@ const es = {
     aiBridgePermissionResponseBodyDescription: 'Permite enviar el cuerpo de la respuesta, con límite y truncamiento.',
     aiBridgePermissionDetailedLogsDescription: 'Permite enviar logs con más contexto para diagnóstico.',
     aiBridgePermissionImportApplyDescription: 'Permite crear reglas o colecciones propuestas por la IA sin pedir confirmación.',
-    aiBridgePermissionRuleActionsDescription: 'Permite activar, desactivar, aislar reglas o definir la colección principal sin pedir confirmación.',
+    aiBridgePermissionRuleActionsDescription: 'Permite activar, desactivar, aislar, editar reglas o definir la colección principal sin pedir confirmación.',
+    aiBridgePermissionDestructiveActions: 'Eliminar reglas y colecciones sin confirmación',
+    aiBridgePermissionDestructiveActionsDescription: 'Permite eliminar reglas y colecciones sin pedir confirmación.',
+    aiBridgePermissionCaptureControl: 'Controlar captura sin confirmación',
+    aiBridgePermissionCaptureControlDescription: 'Permite iniciar, reiniciar, detener, capturar la pestaña actual y cambiar el modo de captura sin pedir confirmación.',
     aiBridgePermissionCapturedTabReloadDescription: 'Permite recargar solo la pestaña capturada sin pedir confirmación.',
     aiBridgePermissionQueryValuesDefault: 'Exponer valores de query string por defecto',
     aiBridgePermissionRequestHeadersDefault: 'Exponer headers de request por defecto',
@@ -338,6 +342,11 @@ const es = {
     aiActionLead_update_rule: 'Editar la regla "{rule}".',
     aiActionLead_update_collection: 'Editar la colección "{collection}".',
     aiActionLead_reload_captured_tab: 'Recargar la pestaña capturada.',
+    aiActionLead_start_capture: 'Iniciar la captura en la pestaña actual.',
+    aiActionLead_restart_capture: 'Reiniciar la captura en la pestaña actual.',
+    aiActionLead_stop_capture: 'Detener la captura.',
+    aiActionLead_capture_current_tab: 'Capturar la pestaña actual.',
+    aiActionLead_set_capture_mode: 'Cambiar el modo de captura.',
     aiActionCollectionLine: 'Colección: {collection}.',
     aiActionPreviousCollectionLine: 'Colección actual: {collection}.',
     aiActionReloadTargetLine: 'Pestaña: {target}.',
@@ -380,7 +389,8 @@ const es = {
       aiBridgeIntro: 'AI Bridge conecta InterceptPilot con agentes locales de IA.',
       aiBridgeContext: 'Los agentes pueden consultar contexto con datos sensibles filtrados, solicitudes, logs, reglas, colecciones y resultados recientes.',
       aiBridgeActions: 'Importaciones, acciones asistidas, edición, eliminaciones protegidas y recarga de la pestaña capturada usan permisos configurables.',
-      aiBridgePermissions: 'Tú controlas qué datos puede ver la IA y qué acciones puede ejecutar.'
+      aiBridgePermissions: 'Tú controlas qué datos puede ver la IA y qué acciones puede ejecutar.',
+      aiBridgeCaptureControl: 'Los agentes pueden iniciar, detener y cambiar el modo de captura, y ver la pestaña actual antes de capturar. Las eliminaciones y la captura tienen permisos propios.'
     }
   },
   importTemplate: {
