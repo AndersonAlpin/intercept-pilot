@@ -145,7 +145,7 @@ function renderStatusSection(session, settings = {}, options = {}) {
         ? `
           <p class="ai-bridge-page__config-help">${escapeHtml(t('fullapp.aiBridgeConfigHelp'))}</p>
           <pre class="ai-bridge-page__config" id="settings-ai-bridge-config">${escapeHtml(configText)}</pre>
-          <p class="ai-bridge-page__config-help">${escapeHtml(t('fullapp.aiBridgeDevConfigNote'))}</p>
+          <p class="ai-bridge-page__config-help">${escapeHtml(t('fullapp.aiBridgeConfigNextStep'))}</p>
         `
         : ''}
     </section>

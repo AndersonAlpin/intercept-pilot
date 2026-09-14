@@ -224,7 +224,7 @@ const ptBR = {
     aiBridgeCopyConfig: 'Copiar configuração',
     aiBridgeShowConfig: 'Mostrar configuração',
     aiBridgeHideConfig: 'Ocultar configuração',
-    aiBridgeDevConfigNote: 'Modo dev: o pacote ainda não está publicado. Use o comando "node" com o caminho local do servidor em packages/interceptpilot-mcp/src/index.js.',
+    aiBridgeConfigNextStep: 'Cole no seu cliente MCP e reinicie o cliente. O status acima muda para Conectado.',
     aiBridgeDisabledNotice: 'A IA não acessa dados da extensão enquanto o AI Bridge estiver desligado.',
     aiBridgeWaitingNotice: 'Aguardando conexão do bridge local. Use a configuração desta sessão no seu cliente MCP.',
     aiBridgeConnectedNotice: 'AI Bridge conectado. As tools MCP podem usar apenas os dados e ações permitidos por esta sessão.',

@@ -352,7 +352,7 @@ const en = {
     aiBridgeCopyConfig: 'Copy configuration',
     aiBridgeShowConfig: 'Show configuration',
     aiBridgeHideConfig: 'Hide configuration',
-    aiBridgeDevConfigNote: 'Dev mode: the package is not published yet. Use the "node" command with the local server path at packages/interceptpilot-mcp/src/index.js.',
+    aiBridgeConfigNextStep: 'Paste it into your MCP client and restart the client. The status above changes to Connected.',
     aiBridgeDisabledNotice: 'AI agents cannot access extension data while AI Bridge is disabled.',
     aiBridgeWaitingNotice: 'Waiting for the local bridge connection. Use this session configuration in your MCP client.',
     aiBridgeConnectedNotice: 'AI Bridge connected. MCP tools can only use the data and actions allowed for this session.',
