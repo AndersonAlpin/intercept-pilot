@@ -78,10 +78,14 @@
     if (isCompatMessage(message, 'request')) {
       const request = message.payload || {}
       if (!request.compatRequestId || !request.url) return
+      // An orphaned bridge (extension reloaded) must stay silent: answering with
+      // the fallback would win the race against the live bridge's real decision.
+      if (!extensionContextAvailable) return
       const response = await sendRuntimeMessage({
         type: 'compat:fetchRequest',
         payload: request
       }, { action: 'passThrough', disabled: true })
+      if (!extensionContextAvailable) return
 
       window.postMessage({
         source: 'interceptpilot-compat-bridge',
